@@ -295,11 +295,17 @@ class TimeRecordController extends Controller
 
         $user_id = TimeRecord::where('id', $record_id)->first()->user_id;
 
+        // Handle "Sonstiges" (other) reason
+        $reason = $request->reason;
+        if ($request->reason === 'Sonstiges' && $request->other_reason) {
+            $reason = $request->other_reason;
+        }
+
         // Save to a ChangeRequest model (for approval workflow)
         TimeChangeRequest::create([
             'time_record_id' => $record_id,
             'requested_by' => $user_id,
-            'reason' => $request->reason,
+            'reason' => $reason,
             'payload' => json_encode($request->logs),
             'record_start_time' => $request->record_start_time,
             'record_end_time' => $request->record_end_time,

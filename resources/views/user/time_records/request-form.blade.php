@@ -94,7 +94,20 @@
 
                     <div class="mb-3">
                         <label for="reason" class="form-label"><strong>Grund für die Änderung:</strong></label>
-                        <textarea name="reason" id="reason" rows="4" class="form-control" required></textarea>
+                        <select name="reason" id="reason" class="form-select" required onchange="toggleOtherReason()">
+                            <option value="">-- Grund wählen --</option>
+                            <option value="Vergessen an und aus zu stechen">Vergessen an und aus zu stechen</option>
+                            <option value="Fehler">Fehler</option>
+                            <option value="Noch kein Stecher">Noch kein Stecher</option>
+                            <option value="Technisches Problem">Technisches Problem</option>
+                            <option value="In Besprechung erklären">In Besprechung erklären</option>
+                            <option value="Sonstiges">Sonstiges</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3" id="otherReasonDiv" style="display: none;">
+                        <label for="otherReason" class="form-label"><strong>Sonstiger Grund:</strong></label>
+                        <input type="text" name="other_reason" id="otherReason" class="form-control" placeholder="Bitte Grund angeben...">
                     </div>
 
                     <button type="submit" class="btn btn-success">Änderungsantrag einreichen</button>
@@ -236,6 +249,22 @@
                 }
             }
         });
+
+        // Toggle other reason input
+        window.toggleOtherReason = function() {
+            const reasonSelect = document.getElementById('reason');
+            const otherReasonDiv = document.getElementById('otherReasonDiv');
+            const otherReasonInput = document.getElementById('otherReason');
+
+            if (reasonSelect.value === 'Sonstiges') {
+                otherReasonDiv.style.display = 'block';
+                otherReasonInput.required = true;
+            } else {
+                otherReasonDiv.style.display = 'none';
+                otherReasonInput.required = false;
+                otherReasonInput.value = '';
+            }
+        };
     });
     </script>
 @endsection
