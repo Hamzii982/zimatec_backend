@@ -22,6 +22,7 @@ use App\Http\Controllers\Admin\ProjectOfferController;
 use App\Http\Controllers\Admin\Settings\EmailTemplateController;
 use App\Http\Controllers\Admin\EmailController;
 use App\Http\Controllers\Admin\PositionController;
+use App\Http\Controllers\Admin\FeedbackController;
 
 Auth::routes();
 
@@ -251,5 +252,10 @@ Route::middleware(['auth', 'role:admin'])
                 // Email Templates
                 Route::resource('email_templates', EmailTemplateController::class);
             });
+        }
+
+        // Supplier Routes
+        if (config('modules.feedback')) {
+            Route::get('feedback', [FeedbackController::class, 'index'])->name('feedback.index');
         }
 });

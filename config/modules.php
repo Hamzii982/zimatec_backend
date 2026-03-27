@@ -8,4 +8,5 @@ return [
     'emails' => false,
     'suppliers' => false,
     'settings' => true,
+    'feedback' => true,
 ];

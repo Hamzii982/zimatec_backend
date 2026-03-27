@@ -114,6 +114,22 @@
         </div>
     @endif
 
+    {{-- Feedback-Details --}}
+    @if(config('modules.feedback'))
+        @php
+            $feedbackActive = request()->is('admin/feedback*');
+        @endphp
+        <a data-bs-toggle="collapse" href="#feedbackSubmenu" role="button"
+        aria-expanded="{{ $feedbackActive ? 'true' : 'false' }}"
+        aria-controls="feedbackSubmenu"
+        class="{{ $feedbackActive ? 'active' : '' }}">
+            <i class="bi bi-folder2-open me-2"></i> Feedback Management
+        </a>
+        <div class="collapse submenu {{ $feedbackActive ? 'show' : '' }}" id="feedbackSubmenu">
+            <a href="{{ route('admin.feedback.index') }}" class="{{ request()->is('admin/feedback') ? 'active' : '' }}">Feedbacks</a>
+        </div>
+    @endif
+
     {{-- Settings --}}
     @if(config('modules.settings'))
         @php
