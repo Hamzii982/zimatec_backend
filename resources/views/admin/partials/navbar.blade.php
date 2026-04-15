@@ -32,21 +32,44 @@
             
                 <ul class="dropdown-menu dropdown-menu-end p-2 notification-dropdown" style="width: 350px; max-height: 400px; overflow-y: auto;">
                     @forelse($notifications as $index => $note)
-                        <li>
-                            <a href="#" class="dropdown-item notification-item {{ $note->is_read ? '' : 'fw-semibold' }}" data-id="{{ $note->id }}" data-url="{{ $note->url }}">
-                                <div class="d-flex justify-content-between flex-wrap">
-                                    <span class="badge bg-{{ $note->type == 'request' ? 'primary' : ($note->type == 'warning' ? 'warning' : 'secondary') }} text-dark mb-1">{{ ucfirst($note->type) }}</span>
-                                    <small class="text-muted mb-1">{{ $note->created_at->diffForHumans() }}</small>
+                        <li id="notification-{{ $note->id }}">
+                            <div class="dropdown-item notification-item d-flex justify-content-between align-items-start {{ $note->is_read ? '' : 'fw-semibold' }}"
+                                data-id="{{ $note->id }}"
+                                data-url="{{ $note->url }}">
+                       
+                                <!-- LEFT CONTENT (clickable) -->
+                                <div style="flex: 1; cursor: pointer;"
+                                        onclick="handleNotificationClick(this)"
+                                        data-id="{{ $note->id }}"
+                                        data-url="{{ $note->url }}">
+                        
+                                    <div class="d-flex justify-content-between flex-wrap">
+                                        <span class="badge bg-{{ $note->type == 'request' ? 'primary' : ($note->type == 'warning' ? 'warning' : 'secondary') }} text-dark mb-1">
+                                            {{ ucfirst($note->type) }}
+                                        </span>
+                                        <small class="text-muted mb-1">{{ $note->created_at->diffForHumans() }}</small>
+                                    </div>
+                        
+                                    <div style="white-space: normal;">
+                                        {{ $note->message }}
+                                    </div>
+                        
+                                    @if($note->user)
+                                        <div class="text-small">{{ $note->user->name }}</div>
+                                    @endif
                                 </div>
-                                <div style="white-space: normal;">
-                                    {{ $note->message }}
-                                </div>
-                                <div class="text-small">{{ $note->user->name }}</div>
-                            </a>
-                            @if($index < $notifications->count() - 1)
-                                <hr class="dropdown-divider my-1">
-                            @endif
-                        </li>
+                        
+                                <!-- DELETE BUTTON -->
+                                <button class="btn btn-sm btn-link text-danger ms-2"
+                                        onclick="deleteNotification(event, {{ $note->id }})"
+                                        title="Löschen">
+                                    🗑️
+                                </button>
+                            </div>
+                        
+                        @if($index < $notifications->count() - 1)
+                            <hr class="dropdown-divider my-1" id="divider-{{ $note->id }}">
+                        @endif
                     @empty
                         <li class="text-center text-muted">No notifications</li>
                     @endforelse
@@ -74,3 +97,38 @@
         </div>
     </div>
 </nav>
+
+<script>
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    
+    // DELETE FUNCTION
+    async function deleteNotification(event, id) {
+        event.stopPropagation(); // 🔥 prevents triggering click navigation
+    
+        if (!confirm("Benachrichtigung wirklich löschen?")) return;
+    
+        try {
+            const res = await fetch(`/admin/notifications/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken
+                }
+            });
+    
+            if (!res.ok) throw new Error();
+    
+            // 🔥 Remove from DOM instantly
+            document.getElementById(`notification-${id}`)?.remove();
+            document.getElementById(`divider-${id}`)?.remove();
+    
+        } catch {
+            alert("Fehler beim Löschen");
+        }
+    }
+    
+    // EXISTING CLICK HANDLER (if not already separated)
+    function handleNotificationClick(el) {
+        const url = el.getAttribute('data-url');
+        if (url) window.location.href = url;
+    }
+</script>

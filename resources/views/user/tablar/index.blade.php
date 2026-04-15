@@ -1,5 +1,7 @@
 @extends('user.layouts.index')
 
+@section('title', 'Tablar Übersicht')
+
 @section('content')
 <div class="container py-4">
 
@@ -40,7 +42,7 @@
                     <tbody>
                         @foreach($column as $material)
                             <tr class="clickable-row"
-                                onclick="openMaterialModal('{{ $material['name'] }}', {{ $material['quantity'] }}, '{{ $material['shelf'] }}')">
+                                onclick="openMaterialModal({{ $material['id'] }}, '{{ $material['name'] }}', {{ $material['quantity'] }}, '{{ $material['shelf'] }}')">
                                 <td>{{ $material['name'] }}</td>
                                 <td>{{ $material['quantity'] }}</td>
                                 <td>{{ $material['shelf'] }}</td>
@@ -104,8 +106,8 @@
 let selectedMaterial = null;
 
 // OPEN MODAL
-function openMaterialModal(name, quantity, shelf) {
-    selectedMaterial = { name, quantity, shelf };
+function openMaterialModal(id, name, quantity, shelf) {
+    selectedMaterial = { id, name, quantity, shelf };
 
     document.getElementById('modalMaterialName').innerText = name;
     document.getElementById('modalShelf').innerText = "Tablar: " + shelf;
@@ -151,23 +153,59 @@ function decrease() {
     }
 }
 
+function showAlert(message) {
+    let alertDiv = document.createElement('div');
+    alertDiv.className = "alert alert-danger alert-dismissible fade show";
+    alertDiv.role = "alert";
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+
+    document.querySelector('.container').prepend(alertDiv);
+}
+
 // CONFIRM ACTION
-function confirmConsumption() {
+async function confirmConsumption() {
     const input = document.getElementById('counterInput');
     const amountTaken = parseInt(input.value);
     
     if (!selectedMaterial || isNaN(amountTaken)) return;
-    const newQuantity = selectedMaterial.quantity - amountTaken;
 
-    selectedMaterial.quantity = newQuantity;
+    const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
-    updateTableUI(selectedMaterial.name, newQuantity);
+    try {
+        const res = await fetch('/tablar/consume', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': token
+            },
+            body: JSON.stringify({
+                material_id: selectedMaterial.id,
+                quantity: amountTaken
+            })
+        });
 
-    // 4. Close the modal (using Bootstrap's method)
-    let modalElement = document.getElementById('materialModal');
-    let modalInstance = bootstrap.Modal.getInstance(modalElement);
-    modalInstance.hide();
-    // TODO: AJAX call later
+        if (!res.ok) {
+            const err = await res.text();
+            throw new Error(err);
+        }
+
+        const data = await res.json();
+
+        // Update UI with backend truth (NOT local calculation)
+        updateTableUI(selectedMaterial.name, data.new_quantity);
+
+        selectedMaterial.quantity = data.new_quantity;
+
+        let modalElement = document.getElementById('materialModal');
+        let modalInstance = bootstrap.Modal.getInstance(modalElement);
+        modalInstance.hide();
+
+    } catch (e) {
+        showAlert("Fehler: " + e.message);
+    }
 }
 
 function updateTableUI(name, newQuantity) {
@@ -226,7 +264,7 @@ function searchMaterial() {
         div.innerHTML = `<strong>${m.name}</strong> <small class="text-muted">(Menge: ${m.quantity} | Tablar: ${m.shelf})</small>`;
         
         // Add click event to open your existing modal
-        div.onclick = () => openMaterialModal(m.name, m.quantity, m.shelf);
+        div.onclick = () => openMaterialModal(m.id, m.name, m.quantity, m.shelf);
         
         resultsDiv.appendChild(div);
     });

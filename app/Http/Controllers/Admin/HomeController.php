@@ -82,4 +82,14 @@ class HomeController extends Controller
 
         return response()->json(['success' => true]);
     }
+
+    public function deleteNotification($id)
+    {
+        $notification = Notification::findOrFail($id);
+        $notification->delete();
+
+        return response()->json([
+            'success' => true
+        ]);
+    }
 }

@@ -50,6 +50,7 @@ Route::prefix('time-records')->name('time-records.')->group(function() {
 });
 
 Route::get('/tablar', [TablarController::class, 'index'])->name('tablar.index');
+Route::post('/tablar/consume', [TablarController::class, 'consume'])->name('tablar.consume');
 
 // Language routes
 Route::get('/language/{locale}', [LanguageController::class, 'switchLanguage'])->name('language.switch');
@@ -64,6 +65,7 @@ Route::middleware(['auth', 'role:admin'])
         Route::get('/dashboard', [AdminHome::class, 'index'])->name('dashboard');
         Route::get('/search', [AdminHome::class, 'search'])->name('search');
         Route::post('/notifications/read/{id}', [AdminHome::class, 'markRead'])->name('notifications.read');
+        Route::delete('/notifications/{id}', [AdminHome::class, 'deleteNotification'])->name('notifications.delete');
 
         // Emails management Views
         if (config('modules.emails')) {
@@ -203,6 +205,10 @@ Route::middleware(['auth', 'role:admin'])
         // Projects Routes
         if (config('modules.tablar')) {
             Route::get('/tablar', [AdminTablarController::class, 'index'])->name('tablar.index');
+            Route::post('/tablar', [AdminTablarController::class, 'store'])->name('tablar.store');
+            Route::put('/tablar/{id}', [AdminTablarController::class, 'update'])->name('tablar.update');
+            Route::delete('/tablar/{id}', [AdminTablarController::class, 'destroy'])->name('tablar.destroy');
+            Route::get('/tablar/overview', [AdminTablarController::class, 'overview'])->name('tablar.overview');
         }
 
 

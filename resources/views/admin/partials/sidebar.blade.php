@@ -139,10 +139,11 @@
         aria-expanded="{{ $tablarActive ? 'true' : 'false' }}"
         aria-controls="tablarSubmenu"
         class="{{ $tablarActive ? 'active' : '' }}">
-            <i class="bi bi-folder2-open me-2"></i> Tablar Übersicht
+            <i class="bi bi-folder2-open me-2"></i> Tablar Management
         </a>
         <div class="collapse submenu {{ $tablarActive ? 'show' : '' }}" id="tablarSubmenu">
-            <a href="{{ route('admin.tablar.index') }}" class="{{ request()->is('admin/tablar') ? 'active' : '' }}">Tablar</a>
+            <a href="{{ route('admin.tablar.overview') }}" class="{{ request()->is('admin/tablar/overview') ? 'active' : '' }}">Übersicht</a>
+            <a href="{{ route('admin.tablar.index') }}" class="{{ request()->is('admin/tablar') ? 'active' : '' }}">Materialverwaltung</a>
         </div>
     @endif
 

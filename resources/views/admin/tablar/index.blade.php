@@ -1,6 +1,9 @@
 @extends('admin.layouts.index')
 
 @section('content')
+
+<div id="alert-container" style="position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; width: auto; min-width: 300px;"></div>
+
 <div class="container py-4">
 
     <!-- HEADER CARD -->
@@ -29,9 +32,9 @@
                         <!-- Quantity Range -->
                         <div class="col-md-4">
                             <label class="form-label">
-                                Menge (max): <span id="qtyValue">500</span>
+                                Menge (max): <span id="qtyValue">{{ $maxQuantity }}</span>
                             </label>
-                            <input type="range" class="form-range" min="0" max="500" value="500" id="filterQuantity">
+                            <input type="range" class="form-range" min="0" max="{{ $maxQuantity }}" value="{{ $maxQuantity }}" id="filterQuantity">
                         </div>
 
                         <!-- Tablar -->
@@ -44,43 +47,39 @@
                 </div>
             </div>
 
-            <table class="table table-hover align-middle">
-                <thead class="table-dark">
-                    <tr>
+            <table class="table table-hover align-middle border-top">
+                <thead class="table-light">
+                    <tr class="text-secondary text-uppercase" style="font-size: 0.85rem; letter-spacing: 0.05em;">
                         <th>Name</th>
                         <th>Menge</th>
                         <th>Fach</th>
-                        <th>Status</th>
                         <th class="text-end">Aktionen</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach($materials as $material)
-                        <tr class="clickable-row"
-                            data-name="{{ strtolower($material['name']) }}"
-                            data-quantity="{{ $material['quantity'] }}"
-                            data-shelf="{{ strtolower($material['shelf']) }}"
-                            onclick="openMaterialModal('{{ $material['name'] }}', {{ $material['quantity'] }}, '{{ $material['shelf'] }}')">
-
-                            <td>{{ $material['name'] }}</td>
-                            <td>{{ $material['quantity'] }}</td>
-                            <td>{{ $material['shelf'] }}</td>
-                            <td>
-                                @if($material['quantity'] < 70)
-                                    <span class="badge bg-danger">Niedrig</span>
-                                @else
-                                    <span class="badge bg-success">OK</span>
-                                @endif
-                            </td>
+                        <tr class="clickable-row
+                            @if(
+                                ($material->threshold && $material->quantity <= $material->threshold) ||
+                                (!$material->threshold && $material->quantity <= 20)
+                            ) table-danger
+                            @endif"
+                            data-id="{{ $material->id }}"
+                            data-name="{{ $material->name }}"
+                            data-quantity="{{ $material->quantity }}"
+                            data-tablar="{{ $material->tablar ?? '' }}"
+                            data-threshold="{{ $material->threshold ?? '' }}"
+                            data-type="{{ $material->type ?? '' }}"
+                            >
+                            <td class="fw-bold text-dark">{{ $material->name }}</td>
+                            <td><span class="badge rounded-pill bg-light text-dark border">{{ $material->quantity }} Stk.</span></td>
+                            <td class="text-muted small">{{ $material->tablar }}</td>
                             <td class="text-end">
-                                <button class="btn btn-sm btn-filter"
-                                    onclick="openEditModal({{ json_encode($material) }})">
-                                    ✏️
+                                <button class="btn btn-outline-primary btn-sm me-1" onclick="openEditModal(this)">
+                                    <i class="bi bi-pencil"></i>
                                 </button>
-
-                                <button class="btn btn-sm btn-danger"
-                                    onclick="deleteMaterial('{{ $material['name'] }}')">
-                                    🗑️
+                                <button class="btn btn-outline-danger btn-sm" onclick="deleteMaterial('{{ $material->id }}')">
+                                    <i class="bi bi-trash"></i>
                                 </button>
                             </td>
                         </tr>
@@ -105,19 +104,50 @@
                 <form id="materialForm">
                     <input type="hidden" id="materialId">
 
+                    <!-- NAME -->
                     <div class="mb-3">
-                        <label class="form-label">Name</label>
-                        <input type="text" id="name" class="form-control">
+                        <label class="form-label">
+                            Name <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" id="name" class="form-control" required>
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label">Menge</label>
-                        <input type="number" id="quantity" class="form-control">
+                    <!-- CURRENT QUANTITY (READ ONLY) -->
+                    <div class="mb-2">
+                        <label class="form-label">Aktueller Bestand</label>
+                        <input type="number" id="currentQuantity" class="form-control bg-light" readonly>
                     </div>
 
+                    <!-- ADD STOCK -->
                     <div class="mb-3">
-                        <label class="form-label">Fach / Tablar</label>
-                        <input type="text" id="shelf" class="form-control">
+                        <label class="form-label">
+                            Hinzufügen (+ Menge) <span class="text-danger">*</span>
+                        </label>
+                        <input type="number" id="addQuantity" class="form-control" min="0" value="0">
+                    </div>
+
+                    <!-- TABLAR -->
+                    <div class="mb-3">
+                        <label class="form-label">
+                            Fach / Tablar <span class="text-muted">(optional)</span>
+                        </label>
+                        <input type="text" id="tablar" class="form-control">
+                    </div>
+
+                    <!-- THRESHOLD -->
+                    <div class="mb-3">
+                        <label class="form-label">
+                            Mindestbestand <span class="text-muted">(optional)</span>
+                        </label>
+                        <input type="number" id="threshold" class="form-control" min="0" placeholder="z.B. 50">
+                    </div>
+
+                    <!-- TYPE -->
+                    <div class="mb-3">
+                        <label class="form-label">
+                            Typ <span class="text-muted">(optional)</span>
+                        </label>
+                        <input type="text" id="type" class="form-control" placeholder="z.B. Schrauben, Kunststoff">
                     </div>
                 </form>
             </div>
@@ -133,57 +163,133 @@
 
 <script>
 let editMode = false;
+let currentId = null;
+
+// CSRF helper
+const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
 // OPEN ADD
 function openAddModal() {
     editMode = false;
+    currentId = null;
 
     document.getElementById('modalTitle').innerText = "Neues Material";
     document.getElementById('materialForm').reset();
-    document.getElementById('materialId').value = "";
 
     new bootstrap.Modal(document.getElementById('materialModal')).show();
 }
 
 // OPEN EDIT
-function openEditModal(material) {
+function openEditModal(button) {
     editMode = true;
+
+    const row = button.closest('.clickable-row');
+    currentId = row.getAttribute('data-id');
 
     document.getElementById('modalTitle').innerText = "Material bearbeiten";
 
-    document.getElementById('materialId').value = material.id;
-    document.getElementById('name').value = material.name;
-    document.getElementById('quantity').value = material.quantity;
-    document.getElementById('shelf').value = material.shelf;
+    document.getElementById('name').value = row.getAttribute('data-name');
+    document.getElementById('currentQuantity').value = row.getAttribute('data-quantity');
+    document.getElementById('addQuantity').value = 0;
+
+    document.getElementById('tablar').value = row.getAttribute('data-tablar') ?? '';
+    document.getElementById('threshold').value = row.getAttribute('data-threshold') ?? '';
+    document.getElementById('type').value = row.getAttribute('data-type') ?? '';
 
     new bootstrap.Modal(document.getElementById('materialModal')).show();
 }
 
-// SAVE (SIMULATED)
-function saveMaterial() {
-    let name = document.getElementById('name').value;
-    let quantity = document.getElementById('quantity').value;
-    let shelf = document.getElementById('shelf').value;
+// HELPER: Show floating error for 5 seconds
+function showAlert(message, type = 'danger') {
+    const container = document.getElementById('alert-container');
+    const alert = document.createElement('div');
+    alert.className = `alert alert-${type} shadow-lg border-0 fade show`;
+    alert.innerHTML = `<strong>${message}</strong>`;
+    container.appendChild(alert);
+    
+    setTimeout(() => {
+        alert.classList.remove('show');
+        setTimeout(() => alert.remove(), 500);
+    }, 5000);
+}
 
-    if (!name || !quantity || !shelf) {
-        alert("Bitte alle Felder ausfüllen");
+/// SAVE (CREATE + UPDATE)
+async function saveMaterial() {
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+
+    const addQty = parseInt(document.getElementById('addQuantity')?.value || 0);
+    const currentQty = parseInt(document.getElementById('currentQuantity')?.value || 0);
+
+    const data = {
+        name: document.getElementById('name').value,
+        quantity: editMode ? (currentQty + addQty) : addQty,
+        tablar: document.getElementById('tablar').value,
+        threshold: document.getElementById('threshold').value || null,
+        type: document.getElementById('type').value || null
+    };
+
+    if (!data.name) {
+        showAlert("Bitte alle Felder korrekt ausfüllen");
         return;
     }
 
-    if (editMode) {
-        alert("Material aktualisiert: " + name);
-    } else {
-        alert("Material hinzugefügt: " + name);
+    if (editMode && addQty < 0) {
+        showAlert("Ungültige Menge");
+        return;
     }
 
-    // TODO: replace with AJAX later
+    // Start Loading Transition
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Speichern...`;
+
+    let url = '/admin/tablar';
+    let method = 'POST';
+
+    if (editMode) {
+        url = `/admin/tablar/${currentId}`;
+        method = 'PUT';
+    }
+
+    try {
+        const res = await fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': token
+            },
+            body: JSON.stringify(data)
+        });
+
+        if (!res.ok) throw new Error();
+
+        location.reload(); // simple + reliable for MVP
+
+    } catch (e) {
+        showAlert("Fehler beim Speichern - Bitte erneut versuchen");
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
 }
 
 // DELETE (SIMULATED)
-function deleteMaterial(name) {
-    if (confirm(`Material "${name}" wirklich löschen?`)) {
-        alert("Gelöscht: " + name);
-        // TODO: AJAX delete later
+async function deleteMaterial(id) {
+    if (!confirm("Wirklich löschen?")) return;
+
+    try {
+        const res = await fetch(`/admin/tablar/${id}`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': token
+            }
+        });
+
+        if (!res.ok) throw new Error();
+
+        location.reload();
+
+    } catch {
+        alert("Fehler beim Löschen");
     }
 }
 
@@ -212,9 +318,9 @@ function applyFilters() {
     const rows = document.querySelectorAll('.clickable-row');
 
     rows.forEach(row => {
-        const rowName = row.dataset.name;
+        const rowName = (row.dataset.name).toLowerCase();
         const rowQty = parseInt(row.dataset.quantity);
-        const rowShelf = row.dataset.shelf;
+        const rowShelf = (row.dataset.tablar).toLowerCase();
 
         const matchName = rowName.includes(name);
         const matchQty = rowQty <= maxQty;
