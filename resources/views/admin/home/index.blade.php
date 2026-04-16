@@ -2,13 +2,17 @@
 
 @section('title', 'Admin Dashboard')
 
+@php
+    $currentDate = \Carbon\Carbon::now()->locale('de')->translatedFormat('l, d M Y');
+@endphp
+
 @section('content')
     <div class="container-fluid py-4">
 
         {{-- Dashboard Header --}}
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h3 class="fw-bold">Dashboard</h3>
-            <span class="text-muted">{{ \Carbon\Carbon::now()->format('l, d M Y') }}</span>
+            <h4 class="fw-semi-bold">{{ $greeting }}, {{ Auth::user()->name }}</h4>
+            <span class="text-muted">{{ $currentDate }}</span>
         </div>
 
         {{-- Summary Cards --}}
@@ -112,7 +116,7 @@
                                 @foreach($recentProjects as $project)
                                 <tr>
                                     <td>{{ $loop->iteration }}</td>
-                                    <td>{{ $project->project_name }}</td>
+                                    <td>{{ Str::limit($project->project_name, 30) }}</td>
                                     <td>{{ $project->start_time?->format('d M Y') ?? '-' }}</td>
                                     <td>{{ $project->end_time?->format('d M Y') ?? '-' }}</td>
                                     <td>

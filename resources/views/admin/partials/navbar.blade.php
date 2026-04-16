@@ -5,7 +5,7 @@
         {{-- 🔍 Search Bar --}}
         <form class="d-flex justify-content-center w-100 position-relative" role="search" method="GET" action="{{ route('admin.search') }}">
             <div class="input-group" style="max-width: 600px; width: 100%;">
-                <input type="search" name="q" class="form-control form-control-sm rounded-start-pill bg-light border-0 ps-3"
+                <input type="search" name="keyword" class="form-control form-control-sm rounded-start-pill bg-light border-0 ps-3"
                     placeholder="Search..." aria-label="Search">
                 <button class="btn btn-top-search rounded-end-pill px-3" type="submit" style="border: none;">
                     <i class="bi bi-search"></i>
@@ -66,12 +66,42 @@
                                     🗑️
                                 </button>
                             </div>
-                        
+                        </li>
                         @if($index < $notifications->count() - 1)
                             <hr class="dropdown-divider my-1" id="divider-{{ $note->id }}">
                         @endif
+                        
+                        {{-- 🔥 Example of triggering a popup for specific notifications --}}
+                        @if($note->type == 'low_stock' && !$note->is_read)
+                            <script>
+                                document.addEventListener('DOMContentLoaded', function() {
+                                    // Using SweetAlert2 for a nice popup
+                                    Swal.fire({
+                                        title: 'Warnung vor niedrigem Materialstand',
+                                        text: "{{ $note->message }}",
+                                        icon: 'warning',
+                                        showCancelButton: true,
+                                        confirmButtonText: 'Ansehen',
+                                        cancelButtonText: 'Schließen'
+                                    }).then((result) => {
+                                        if (result.isConfirmed) {
+                                            // Call the reusable function we defined in the navbar
+                                            if (window.triggerMarkAsRead) {
+                                                window.triggerMarkAsRead("{{ $note->id }}", "{{ $note->url }}");
+                                            } else {
+                                                // Fallback if the script isn't loaded yet
+                                                window.location.href = "{{ $note->url }}";
+                                            }
+                                        }
+                                    });
+                                });
+                            </script>
+
+                            {{-- 🔥 STOP HERE: Don't create scripts for any other low_stock notes --}}
+                            @break
+                        @endif
                     @empty
-                        <li class="text-center text-muted">No notifications</li>
+                        <li class="text-center text-muted">Keine Benachrichtigungen</li>
                     @endforelse
                 </ul>
             </div>
@@ -83,12 +113,12 @@
                     <span class="fw-semibold username-text">{{ Auth::user()->name ?? 'Admin' }}</span>
                 </a>
                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userMenu">
-                    <li><a class="dropdown-item" href="{{ route('admin.profile') }}">Manage Profile</a></li>
+                    <li><a class="dropdown-item" href="{{ route('admin.profile') }}">Profil verwalten</a></li>
                     <li><hr class="dropdown-divider"></li>
                     <li>
                         <form action="{{ route('logout') }}" method="POST" class="m-0">
                             @csrf
-                            <button class="dropdown-item text-danger" type="submit">Logout</button>
+                            <button class="dropdown-item text-danger" type="submit">Abmelden</button>
                         </form>
                     </li>
                 </ul>

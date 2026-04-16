@@ -23,6 +23,21 @@ class HomeController extends Controller
         $usersCount = User::count();
         $processesCount = \DB::table('processes')->count();
 
+        $hour = Carbon::now()->hour;
+        switch (time()) {
+        case (time() >= strtotime('05:00') && time() < strtotime('12:00')):
+            $greeting = 'Guten Morgen';
+            break;
+        case (time() >= strtotime('12:00') && time() < strtotime('18:00')):
+            $greeting = 'Guten Tag';
+            break;
+        case (time() >= strtotime('18:00') && time() < strtotime('22:00')):
+            $greeting = 'Guten Abend';
+            break;
+        default:
+            $greeting = 'Willkommen zurück';
+        }
+
         // --- Recent Projects (last 5) ---
         $recentProjects = Project::orderBy('start_time', 'desc')
             ->take(5)
@@ -70,7 +85,8 @@ class HomeController extends Controller
             'projectLabels',
             'projectData',
             'userLabels',
-            'userData'
+            'userData',
+            'greeting'
         ));
     }
 
@@ -91,5 +107,26 @@ class HomeController extends Controller
         return response()->json([
             'success' => true
         ]);
+    }
+
+    public function search(Request $request)
+    {
+        $keyword = $request->input('keyword');
+
+        // Perform the search
+        $results = Project::where('project_name', 'LIKE', "%{$keyword}%")
+            ->orWhereHas('processes', function ($query) use ($keyword) {
+                $query->where('name', 'LIKE', "%{$keyword}%");
+            })
+            ->orWhereHas('status', function ($query) use ($keyword) {
+                $query->where('name', 'LIKE', "%{$keyword}%");
+            })
+            ->get();
+        // $results = Post::where('title', 'LIKE', "%{$keyword}%")
+                    //    ->orWhere('content', 'LIKE', "%{$keyword}%")
+                    //    ->get();
+
+        // Return the view with results and the keyword used
+        return view('admin.home.search', compact('results', 'keyword'));
     }
 }

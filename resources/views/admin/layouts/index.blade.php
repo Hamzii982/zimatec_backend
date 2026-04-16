@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="{{ asset('bootstrap/icons/bootstrap-icons.css') }}">
     {{-- Custom CSS for personalized layout --}}
     <link rel="stylesheet" href="{{ asset('css/admin.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     @stack('styles')
 
 </head>

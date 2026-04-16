@@ -41,10 +41,30 @@
                     </thead>
                     <tbody>
                         @foreach($column as $material)
-                            <tr class="clickable-row"
-                                onclick="openMaterialModal({{ $material['id'] }}, '{{ $material['name'] }}', {{ $material['quantity'] }}, '{{ $material['shelf'] }}')">
-                                <td>{{ $material['name'] }}</td>
-                                <td>{{ $material['quantity'] }}</td>
+                            @php
+                                $quantity = (int)$material['quantity'];
+                                $threshold = $material['threshold'] ?? 20; // Use material threshold or default 20
+                                $isOutOfStock = $quantity <= 0;
+                            @endphp
+                            <tr class="{{ $isOutOfStock ? 'table-light text-muted' : 'clickable-row' }}"
+                                @if(!$isOutOfStock)    
+                                    onclick="openMaterialModal({{ $material['id'] }}, '{{ $material['name'] }}', {{ $material['quantity'] }}, '{{ $material['shelf'] }}')"
+                                    style="cursor: pointer;"
+                                @else    
+                                    onclick="Swal.fire('Nicht verfügbar', 'Dieses Material ist momentan nicht im Tablar verfügbar. Bitte warten Sie auf Nachschub.', 'info')"
+                                    style="cursor: not-allowed;"
+                                @endif
+                            >
+                                <td class="{{ $isOutOfStock ? 'text-decoration-line-through' : '' }}">{{ $material['name'] }}</td>
+                                <td>
+                                    @if($isOutOfStock)
+                                        <span class="badge bg-secondary text-uppercase">Kommt gleich</span>
+                                    @else
+                                        <span class="badge {{ $quantity > $threshold ? 'bg-success' : 'bg-danger' }}">
+                                            {{ $quantity }}
+                                        </span>
+                                    @endif
+                                </td>
                                 <td>{{ $material['shelf'] }}</td>
                             </tr>
                         @endforeach
@@ -210,18 +230,48 @@ async function confirmConsumption() {
 
 function updateTableUI(name, newQuantity) {
     // Find all table rows
+    const threshold = 20; // Matches your Blade default
     const rows = document.querySelectorAll('.clickable-row');
     
     rows.forEach(row => {
         // If the first cell (Name) matches our material
-        if (row.cells[0].innerText === name) {
-            // Update the second cell (Menge)
-            row.cells[1].innerText = newQuantity;
-            
-            // Optional: Update the onclick attribute so the next click uses the new total
-            // This is important because the onclick was hardcoded by Blade
+        // Find row by matching the first cell (Name)
+        if (row.cells[0] && row.cells[0].innerText.trim() === name) {
+            const qtyCell = row.cells[1];
+            const nameCell = row.cells[0];
             const shelf = row.cells[2].innerText;
-            row.setAttribute('onclick', `openMaterialModal('${name}', ${newQuantity}, '${shelf}')`);
+            const materialId = selectedMaterial.id; // Ensure this variable is available globally
+
+            // 1. Update the Quantity Cell with Badge/Coming Soon
+            if (newQuantity <= 0) {
+                qtyCell.innerHTML = `<span class="badge bg-secondary text-uppercase">Coming Soon</span>`;
+                
+                // Add "Out of Stock" styling
+                row.classList.add('table-light', 'text-muted');
+                row.classList.remove('clickable-row');
+                nameCell.classList.add('text-decoration-line-through');
+                row.style.cursor = "not-allowed";
+
+                // Update onclick to the "Warning" popup
+                row.onclick = function() {
+                    Swal.fire('Nicht verfügbar', 'Dieses Material ist momentan nicht im Tablar verfügbar.', 'info');
+                };
+            } else {
+                // Determine Badge Color
+                const badgeClass = newQuantity > threshold ? 'bg-success' : 'bg-danger';
+                qtyCell.innerHTML = `<span class="badge ${badgeClass}">${newQuantity}</span>`;
+
+                // Restore "In Stock" styling
+                row.classList.remove('table-light', 'text-muted');
+                row.classList.add('clickable-row');
+                nameCell.classList.remove('text-decoration-line-through');
+                row.style.cursor = "pointer";
+
+                // Update onclick to allow the modal again
+                row.onclick = function() {
+                    openMaterialModal(materialId, name, newQuantity, shelf);
+                };
+            }
             
             // Visual feedback: flash the row green
             row.style.transition = "background-color 0.5s";

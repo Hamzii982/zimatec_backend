@@ -20,6 +20,7 @@ class TablarController extends Controller
                 'id' => $m->id,
                 'name' => $m->name,
                 'quantity' => $m->quantity,
+                'threshold' => $m->threshold ?? 20,
                 'shelf' => $m->tablar,
             ];
         });
