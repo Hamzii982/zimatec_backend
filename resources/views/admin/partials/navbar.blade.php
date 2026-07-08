@@ -56,75 +56,42 @@
                     @endif
                 </button>
             
-                <ul class="dropdown-menu dropdown-menu-end p-2 notification-dropdown" style="width: 350px; max-height: 400px; overflow-y: auto;">
+                <ul class="dropdown-menu dropdown-menu-end p-2 notification-dropdown"
+                    style="width: 350px; max-height: 400px; overflow-y: auto;">
+
                     @forelse($notifications as $index => $note)
                         <li id="notification-{{ $note->id }}">
                             <div class="dropdown-item notification-item d-flex justify-content-between align-items-start {{ $note->is_read ? '' : 'fw-semibold' }}"
                                 data-id="{{ $note->id }}"
                                 data-url="{{ $note->url }}">
-                    
-                                <!-- LEFT CONTENT (clickable) -->
-                                <div style="flex: 1; cursor: pointer;"
-                                        onclick="handleNotificationClick(this)"
-                                        data-id="{{ $note->id }}"
-                                        data-url="{{ $note->url }}">
-                        
+
+                                <div style="flex:1; cursor:pointer;"
+                                    onclick="handleNotificationClick(this)"
+                                    data-id="{{ $note->id }}"
+                                    data-url="{{ $note->url }}">
+
                                     <div class="d-flex justify-content-between flex-wrap">
                                         <span class="badge bg-{{ $note->type == 'request' ? 'primary' : ($note->type == 'warning' ? 'warning' : 'secondary') }} text-dark mb-1">
                                             {{ ucfirst($note->type) }}
                                         </span>
                                         <small class="text-muted mb-1">{{ $note->created_at->diffForHumans() }}</small>
                                     </div>
-                        
-                                    <div style="white-space: normal;">
-                                        {{ $note->message }}
-                                    </div>
-                        
+
+                                    <div style="white-space:normal;">{{ $note->message }}</div>
+
                                     @if($note->user)
                                         <div class="text-small">{{ $note->user->name }}</div>
                                     @endif
                                 </div>
-                        
-                                <!-- DELETE BUTTON -->
+
                                 <button class="btn btn-sm btn-link text-danger ms-2"
                                         onclick="deleteNotification(event, {{ $note->id }})"
-                                        title="Löschen">
-                                    🗑️
-                                </button>
+                                        title="Löschen">🗑️</button>
                             </div>
                         </li>
+
                         @if($index < $notifications->count() - 1)
                             <hr class="dropdown-divider my-1" id="divider-{{ $note->id }}">
-                        @endif
-                        
-                        {{-- 🔥 Example of triggering a popup for specific notifications --}}
-                        @if($note->type == 'low_stock' && !$note->is_read)
-                            <script>
-                                document.addEventListener('DOMContentLoaded', function() {
-                                    // Using SweetAlert2 for a nice popup
-                                    Swal.fire({
-                                        title: 'Warnung vor niedrigem Materialstand',
-                                        text: "{{ $note->message }}",
-                                        icon: 'warning',
-                                        showCancelButton: true,
-                                        confirmButtonText: 'Ansehen',
-                                        cancelButtonText: 'Schließen'
-                                    }).then((result) => {
-                                        if (result.isConfirmed) {
-                                            // Call the reusable function we defined in the navbar
-                                            if (window.triggerMarkAsRead) {
-                                                window.triggerMarkAsRead("{{ $note->id }}", "{{ $note->url }}");
-                                            } else {
-                                                // Fallback if the script isn't loaded yet
-                                                window.location.href = "{{ $note->url }}";
-                                            }
-                                        }
-                                    });
-                                });
-                            </script>
-
-                            {{-- 🔥 STOP HERE: Don't create scripts for any other low_stock notes --}}
-                            @break
                         @endif
                     @empty
                         <li class="text-center text-muted">Keine Benachrichtigungen</li>

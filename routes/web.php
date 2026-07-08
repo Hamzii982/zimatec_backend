@@ -51,6 +51,9 @@ Route::prefix('feedback')->controller(PublicFeedbackController::class)->name('fe
     Route::post('/', 'ask')->name('ask');
 });
 
+Route::post('/push/subscribe',   [App\Http\Controllers\PushSubscriptionController::class, 'subscribe'])->middleware('auth');
+Route::delete('/push/unsubscribe', [App\Http\Controllers\PushSubscriptionController::class, 'unsubscribe'])->middleware('auth');
+
 // Scheduler routes (publicly accessible in workshop)
 if (config('modules.scheduler')) {
     Route::prefix('scheduler')->name('scheduler.')->group(function () {

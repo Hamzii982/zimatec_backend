@@ -8,6 +8,7 @@ use App\Models\MaterialConsumption;
 use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use function App\Helpers\new_notification;
 
 class TablarController extends Controller
 {
@@ -169,12 +170,12 @@ class TablarController extends Controller
 
         // 3. Create the notification if it doesn't exist
         if (! $alreadyExists) {
-            Notification::create([
-                'user_id' => null,
-                'type' => 'order_request', // Custom type to distinguish it from 'low_stock'
-                'message' => "Bestellungsanfrage für {$material->name} im Lager wurde gestellt.",
-                'url' => route('admin.tablar.show', ['lager_id' => $lager_id, 'id' => $material->id]),
-            ]);
+
+            new_notification(
+                type:    'order_request',
+                message: "Bestellungsanfrage für {$material->name} im Lager wurde gestellt.",
+                url:     route('admin.tablar.show', ['lager_id' => $lager_id, 'id' => $material->id]),
+            );
         }
 
         return response()->json([
