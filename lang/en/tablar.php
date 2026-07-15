@@ -27,6 +27,12 @@ return [
         'low_stock_warning' => 'Low stock',
         'quantity_updated'  => 'Quantity updated',
         'quantity_error'    => 'Error while saving',
+        'audit_adjust'     => 'Adjust stock',
+        'audit_hint'       => 'Update the current quantity of this material.',
+        'audit_note'       => 'Note: This action will be logged and cannot be undone.',
+        'audit_actual'     => 'Current Quantity',
+        'audit_save'       => 'Adjust Stock',
+        'change_status'      => 'Change Status',
     ],
 
     'supplier_list' => [

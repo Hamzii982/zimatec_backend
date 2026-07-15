@@ -27,6 +27,12 @@ return [
         'low_stock_warning' => 'Niedriger Bestand',
         'quantity_updated'  => 'Menge aktualisiert',
         'quantity_error'    => 'Fehler beim Speichern',
+        'audit_adjust'     => 'Bestandsanpassen',
+        'audit_hint'       => 'Aktuelle Menge dieses Materials aktualisieren.',
+        'audit_note'       => 'Hinweis: Diese Aktion wird protokolliert und kann nicht rückgängig gemacht werden.',
+        'audit_actual'     => 'Aktuelle Menge',
+        'audit_save'       => 'Bestand anpassen',
+        'change_status'      => 'Status ändern',
     ],
 
     'supplier_list' => [
