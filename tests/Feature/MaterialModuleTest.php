@@ -206,3 +206,70 @@ test('admin tablar overview excludes materials with null or zero threshold from 
     expect($names)->not->toContain('Schwelle null');
     expect($names)->not->toContain('Viel');
 });
+
+test('low stock notification suppressed when reserved quantity keeps available total above threshold', function () {
+    $material = Material::create([
+        'name' => 'Niete',
+        'quantity' => 2,
+        'on_hold_quantity' => 10,
+        'threshold' => 5,
+        'lager_id' => 2,
+    ]);
+
+    // available_total = 2 + 10 = 12, threshold = 5 -> status should be ok
+    expect($material->fresh()->status)->toBe('ok');
+
+    $this->postJson(route('tablar.consume', ['lager_id' => 2]), [
+        'material_id' => $material->id,
+        'quantity' => 1,
+    ])->assertOk();
+
+    expect(Notification::where('type', 'low_stock')
+        ->where('message', 'like', '%'.$material->name.'%')
+        ->whereDate('created_at', now()->toDateString())
+        ->count())->toBe(0);
+});
+
+test('low stock notification suppressed when order quantity keeps available total above threshold', function () {
+    $material = Material::create([
+        'name' => 'Dichtungsring',
+        'quantity' => 1,
+        'order_quantity' => 20,
+        'threshold' => 5,
+        'lager_id' => 2,
+    ]);
+
+    // available_total = 1 + 0 + 20 = 21, threshold = 5 -> status should be ok
+    expect($material->fresh()->status)->toBe('ok');
+
+    $this->postJson(route('tablar.consume', ['lager_id' => 2]), [
+        'material_id' => $material->id,
+        'quantity' => 1,
+    ])->assertOk();
+
+    expect(Notification::where('type', 'low_stock')
+        ->where('message', 'like', '%'.$material->name.'%')
+        ->whereDate('created_at', now()->toDateString())
+        ->count())->toBe(0);
+});
+
+test('available_total accessor sums quantity, on_hold_quantity and order_quantity', function () {
+    $material = Material::create([
+        'name' => 'Kombi',
+        'quantity' => 7,
+        'on_hold_quantity' => 3,
+        'order_quantity' => 4,
+        'threshold' => 20,
+        'lager_id' => 2,
+    ]);
+
+    expect((int) $material->available_total)->toBe(14);
+    // 14 <= 20 -> low
+    expect($material->status)->toBe('low');
+
+    // Bump order so the total strictly exceeds the threshold
+    $material->order_quantity = 11;
+    $material->save();
+    expect($material->fresh()->available_total)->toBe(21);
+    expect($material->fresh()->status)->toBe('ok');
+});

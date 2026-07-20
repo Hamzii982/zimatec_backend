@@ -112,3 +112,92 @@ test('supplier list returns only materials attached to the requested supplier in
     $m1Refreshed = $materials->firstWhere('id', $m1->id);
     expect($m1Refreshed->pivot_attached_at)->not->toBeNull();
 });
+
+test('index filter low_stock ignores on_hold_quantity when it brings total above threshold', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $this->actingAs($admin);
+
+    // quantity is below threshold but reserved stock brings total above
+    $mReserved = Material::create([
+        'name' => 'Reserviert',
+        'quantity' => 2,
+        'on_hold_quantity' => 10,
+        'threshold' => 5,
+        'lager_id' => 2,
+    ]);
+
+    // Genuinely low
+    $mLow = Material::create([
+        'name' => 'Wirklich leer',
+        'quantity' => 1,
+        'on_hold_quantity' => 0,
+        'threshold' => 5,
+        'lager_id' => 2,
+    ]);
+
+    $response = $this->get(route('admin.tablar.index', ['lager_id' => 2, 'low_stock' => 1]));
+    $response->assertOk();
+    $ids = collect($response->viewData('materials')->items())->pluck('id')->all();
+
+    expect($ids)->toContain($mLow->id)
+        ->not->toContain($mReserved->id);
+});
+
+test('index filter low_stock ignores order_quantity when it brings total above threshold', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $this->actingAs($admin);
+
+    // quantity is below threshold but ordered units bring total above
+    $mOrdered = Material::create([
+        'name' => 'Auf Bestellung',
+        'quantity' => 1,
+        'order_quantity' => 20,
+        'threshold' => 5,
+        'lager_id' => 2,
+    ]);
+
+    $mLow = Material::create([
+        'name' => 'Einfach leer',
+        'quantity' => 1,
+        'order_quantity' => 0,
+        'threshold' => 5,
+        'lager_id' => 2,
+    ]);
+
+    $response = $this->get(route('admin.tablar.index', ['lager_id' => 2, 'low_stock' => 1]));
+    $response->assertOk();
+    $ids = collect($response->viewData('materials')->items())->pluck('id')->all();
+
+    expect($ids)->toContain($mLow->id)
+        ->not->toContain($mOrdered->id);
+});
+
+test('admin overview low stock list respects on_hold and order quantities', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $this->actingAs($admin);
+
+    // Below threshold on quantity alone, but reserved quantity brings it above
+    Material::create([
+        'name' => 'Nur scheinbar leer',
+        'quantity' => 1,
+        'on_hold_quantity' => 50,
+        'threshold' => 5,
+        'lager_id' => 2,
+    ]);
+
+    // Genuinely low (no on-hold or order to bring it above)
+    Material::create([
+        'name' => 'Echt knapp',
+        'quantity' => 1,
+        'threshold' => 5,
+        'lager_id' => 2,
+    ]);
+
+    $response = $this->get(route('admin.tablar.overview', ['lager_id' => 2]));
+    $response->assertOk();
+    $low = $response->viewData('lowStockMaterials');
+
+    $names = $low->pluck('name')->all();
+    expect($names)->toContain('Echt knapp')
+        ->not->toContain('Nur scheinbar leer');
+});

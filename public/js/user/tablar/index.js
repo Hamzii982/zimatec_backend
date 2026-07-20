@@ -102,20 +102,25 @@ function renderMaterials(materials) {
     }
 
     container.innerHTML = materials.map(m => {
-        const outOfStock = m.quantity <= 0;
+        const outOfStock = m.quantity+m.on_hold_quantity <= 0;
         const threshold  = m.threshold ?? 0;
         const onHold     = m.on_hold_quantity ?? 0;
+        const orderQty   = m.order_quantity ?? 0;
+        const available  = m.available_total ?? (m.quantity + onHold + orderQty);
         const isReserved = onHold > 0;
         const modalType  = isReserved ? 'openReserveModal' : 'openMaterialModal';
         const badgeClass = outOfStock
             ? 'bg-secondary'
-            : m.quantity + onHold > threshold ? 'bg-success' : 'bg-danger';
+            : available > threshold ? 'bg-success' : 'bg-danger';
         const badgeText  = outOfStock ? 'Kommt gleich' : m.quantity + ' Stk.';
 
         const imageTemplate = generateImageHtml(m.image, m.name);
         const orderTemplate = generateOrderHtml(m);
         const onHoldText = isReserved
             ? `<span class="badge bg-info text-dark ms-2"><i class="bi bi-clock-history me-1"></i>Reserviert: ${onHold} Stk.</span>`
+            : '';
+        const orderText = orderQty > 0
+            ? `<span class="badge bg-warning text-dark ms-2"><i class="bi bi-truck me-1"></i>Bestellt: ${orderQty} Stk.</span>`
             : '';
 
         if (outOfStock) {
@@ -140,7 +145,7 @@ function renderMaterials(materials) {
             <div class="d-flex align-items-center">
                 ${imageTemplate}
                 <div>
-                    <span class="fw-semibold">${m.name} ${onHoldText}</span>
+                    <span class="fw-semibold">${m.name} ${onHoldText}${orderText}</span>
                     <div class="mt-1">${orderTemplate}</div>
                 </div>
             </div>
@@ -463,12 +468,14 @@ function filterByName() {
     }
 
     container.innerHTML = filtered.map(m => {
-        const outOfStock = m.quantity <= 0;
+        const outOfStock = m.quantity + m.on_hold_quantity <= 0;
         const threshold  = m.threshold ?? 0;
         const on_hold = m.on_hold_quantity ?? 0;
+        const orderQty = m.order_quantity ?? 0;
+        const available  = m.available_total ?? (m.quantity + on_hold + orderQty);
         const isReserved = m.on_hold_quantity > 0;
         const badgeClass = outOfStock ? 'bg-secondary'
-            : m.quantity + on_hold > threshold ? 'bg-success' : 'bg-danger';
+            : available > threshold ? 'bg-success' : 'bg-danger';
         const modalType = isReserved ? 'openReserveModal' : 'openMaterialModal';
         const badgeText  = outOfStock ? 'Kommt gleich' : m.quantity + ' Stk.';
 
@@ -480,6 +487,9 @@ function filterByName() {
         const orderTemplate = generateOrderHtml(m);
 
         const onHoldText = isReserved ? `<span class="badge bg-info text-dark ms-2"><i class="bi bi-clock-history me-1"></i>Reserviert: ${on_hold} Stk.</span>` : '';
+        const orderText = orderQty > 0
+            ? `<span class="badge bg-warning text-dark ms-2"><i class="bi bi-truck me-1"></i>Bestellt: ${orderQty} Stk.</span>`
+            : '';
 
         if (outOfStock) {
             return `
@@ -504,7 +514,7 @@ function filterByName() {
             <div class="d-flex align-items-center">
                 ${imageTemplate}
                 <div>
-                    <span class="fw-semibold">${m.name} ${onHoldText}</span>
+                    <span class="fw-semibold">${m.name} ${onHoldText}${orderText}</span>
                     ${shelfHint}
                     <div class="mt-1">${orderTemplate}</div>
                 </div>

@@ -36,6 +36,7 @@ class TablarController extends Controller
             'on_hold_quantity' => $m->on_hold_quantity,
             'order_quantity' => $m->order_quantity,
             'quantity' => $m->quantity,
+            'available_total' => $m->available_total,
             'shelf' => $m->tablar,
             'threshold' => $m->threshold,
             'type' => $m->type,
@@ -89,7 +90,7 @@ class TablarController extends Controller
 
             $threshold = (int) ($material->threshold ?? 0);
 
-            if ($threshold > 0 && $material->quantity <= $threshold) {
+            if ($threshold > 0 && $material->available_total <= $threshold) {
                 $alreadyExists = Notification::where('type', 'low_stock')
                     ->where('message', 'like', '%'.$material->name.'%')
                     ->whereDate('created_at', now()->toDateString())
@@ -138,7 +139,7 @@ class TablarController extends Controller
 
             $threshold = (int) ($material->threshold ?? 0);
 
-            if ($threshold > 0 && $material->quantity > $threshold) {
+            if ($threshold > 0 && $material->available_total > $threshold) {
                 Notification::where('type', 'low_stock')
                     ->where('message', 'like', '%'.$material->name.'%')
                     ->whereDate('created_at', now()->toDateString())
@@ -238,7 +239,7 @@ class TablarController extends Controller
 
             $threshold = (int) ($material->threshold ?? 0);
 
-            if ($returned > 0 && $threshold > 0 && $material->quantity > $threshold) {
+            if ($returned > 0 && $threshold > 0 && $material->available_total > $threshold) {
                 Notification::where('type', 'low_stock')
                     ->where('message', 'like', '%'.$material->name.'%')
                     ->whereDate('created_at', now()->toDateString())

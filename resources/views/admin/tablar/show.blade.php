@@ -141,6 +141,20 @@
                                 <span class="badge bg-light text-dark border fs-6" id="currentStockBadge">{{ $material->quantity }} Stk.</span>
                             </div>
 
+                            <div class="d-flex flex-wrap gap-2 mb-3">
+                                <span class="badge bg-info-subtle text-info-emphasis border" data-bs-toggle="tooltip" title="Reserviert: bereits entnommen, aber noch nicht verbraucht">
+                                    <i class="bi bi-clock-history me-1"></i> Reserviert: {{ (int) $material->on_hold_quantity }} Stk.
+                                </span>
+                                @if((int) $material->order_quantity > 0)
+                                    <span class="badge bg-warning-subtle text-warning-emphasis border" data-bs-toggle="tooltip" title="Bestellt: Lieferung erwartet">
+                                        <i class="bi bi-truck me-1"></i> Bestellt: {{ (int) $material->order_quantity }} Stk.
+                                    </span>
+                                @endif
+                                <span class="badge bg-light text-muted border" data-bs-toggle="tooltip" title="Gesamt: Bestand + Reserviert + Bestellt">
+                                    <i class="bi bi-stack me-1"></i> Verfügbar (gesamt): {{ $material->available_total }} Stk.
+                                </span>
+                            </div>
+
                             <div class="row g-2 align-items-end">
                                 <div class="col-7">
                                     <label for="addQuantity" class="form-label small text-muted mb-1">{{ __('tablar.show.add') }}</label>

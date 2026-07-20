@@ -65,7 +65,19 @@
                                             {{ $m->name }}
                                         </a>
                                     </td>
-                                    <td><span class="badge rounded-pill bg-light text-dark border">{{ $m->quantity }} Stk.</span></td>
+                                    <td>
+                                        <span class="badge rounded-pill bg-light text-dark border">{{ $m->quantity }} Stk.</span>
+                                        @if((int) $m->on_hold_quantity > 0)
+                                            <span class="badge rounded-pill bg-info-subtle text-info-emphasis border ms-1" title="Reserviert">
+                                                <i class="bi bi-clock-history me-1"></i>{{ (int) $m->on_hold_quantity }}
+                                            </span>
+                                        @endif
+                                        @if((int) $m->order_quantity > 0)
+                                            <span class="badge rounded-pill bg-warning-subtle text-warning-emphasis border ms-1" title="Bestellt">
+                                                <i class="bi bi-truck me-1"></i>{{ (int) $m->order_quantity }}
+                                            </span>
+                                        @endif
+                                    </td>
                                     <td class="text-muted small">{{ $m->tablar ?? '—' }}</td>
                                     <td>
                                         @if($m->status_label)

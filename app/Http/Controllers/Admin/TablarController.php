@@ -382,8 +382,11 @@ class TablarController extends Controller
 
         $lowStockMaterials = Material::where('lager_id', $lager_id)
             ->whereNotNull('threshold')->where('threshold', '>', 0)
-            ->whereColumn('quantity', '<=', 'threshold')
-            ->orderBy('quantity')->get();
+            ->whereRaw(
+                '(quantity + COALESCE(on_hold_quantity, 0) + COALESCE(order_quantity, 0)) <= threshold'
+            )
+            ->orderByRaw('(quantity + COALESCE(on_hold_quantity, 0) + COALESCE(order_quantity, 0))')
+            ->get();
 
         $highestStock = Material::where('lager_id', $lager_id)
             ->orderByDesc('quantity')->take(10)->get();

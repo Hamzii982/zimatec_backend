@@ -156,7 +156,7 @@
                                 <tr id="material-{{ $material->id }}"
                                     data-highlight="{{ $material->id }}"
                                     class="clickable-row
-                                @if(!is_null($material->threshold) && (int) $material->threshold > 0 && $material->quantity <= $material->threshold) table-danger
+                                @if(!is_null($material->threshold) && (int) $material->threshold > 0 && $material->available_total <= $material->threshold) table-danger
                                 @endif
                                 @if(!$material->is_active) text-muted @endif"
                                 data-id="{{ $material->id }}"
@@ -164,6 +164,9 @@
                                 data-code="{{ $material->code ?? '' }}"
                                 data-description="{{ $material->description ?? '' }}"
                                 data-quantity="{{ $material->quantity }}"
+                                data-on-hold="{{ (int) $material->on_hold_quantity }}"
+                                data-order-quantity="{{ (int) $material->order_quantity }}"
+                                data-available-total="{{ $material->available_total }}"
                                 data-tablar="{{ $material->tablar ?? '' }}"
                                 data-threshold="{{ $material->threshold ?? '' }}"
                                 data-type="{{ $material->type ?? '' }}"
@@ -200,7 +203,23 @@
                                             <span>—</span>
                                         @endif
                                     </td>
-                                    <td><span class="badge rounded-pill bg-light text-dark border">{{ $material->quantity }} Stk.</span></td>
+                                    <td>
+                                        <span class="badge rounded-pill bg-light text-dark border">{{ $material->quantity }} Stk.</span>
+                                        @if((int) $material->on_hold_quantity > 0)
+                                            <span class="badge rounded-pill bg-info-subtle text-info-emphasis border ms-1"
+                                                  data-bs-toggle="tooltip"
+                                                  title="Reserviert (vom Bestand abgezogen)">
+                                                <i class="bi bi-clock-history me-1"></i>{{ (int) $material->on_hold_quantity }}
+                                            </span>
+                                        @endif
+                                        @if((int) $material->order_quantity > 0)
+                                            <span class="badge rounded-pill bg-warning-subtle text-warning-emphasis border ms-1"
+                                                  data-bs-toggle="tooltip"
+                                                  title="Bestellt (Lieferung erwartet)">
+                                                <i class="bi bi-truck me-1"></i>{{ (int) $material->order_quantity }}
+                                            </span>
+                                        @endif
+                                    </td>
                                     <td class="text-muted small">{{ $material->tablar }}</td>
                                     <td>
                                         @if(!is_null($material->threshold) && (int) $material->threshold > 0)

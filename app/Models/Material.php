@@ -42,7 +42,28 @@ class Material extends Model
             return 'ok';
         }
 
-        return $this->quantity <= $this->threshold ? 'low' : 'ok';
+        return $this->available_total <= $this->threshold ? 'low' : 'ok';
+    }
+
+    public function getReservedQuantityAttribute(): int
+    {
+        return $this->on_hold_quantity ?? 0;
+    }
+
+    /**
+     * Total stock that's effectively "available" for the threshold check.
+     *
+     * = on-shelf quantity + reserved (on-hold) + ordered-from-supplier
+     *
+     * Use this everywhere we previously compared `quantity` against the threshold
+     * so that reserved or ordered units are also counted as stock that will
+     * eventually be on hand.
+     */
+    public function getAvailableTotalAttribute(): int
+    {
+        return (int) $this->quantity
+            + (int) ($this->on_hold_quantity ?? 0)
+            + (int) ($this->order_quantity ?? 0);
     }
 
     public function suppliers()
@@ -97,7 +118,9 @@ class Material extends Model
     {
         return $q->whereNotNull('threshold')
             ->where('threshold', '>', 0)
-            ->whereColumn('quantity', '<=', 'threshold');
+            ->whereRaw(
+                '(quantity + COALESCE(on_hold_quantity, 0) + COALESCE(order_quantity, 0)) <= threshold'
+            );
     }
 
     public function scopeEmpty(Builder $q): Builder

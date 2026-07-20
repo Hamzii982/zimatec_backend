@@ -81,16 +81,23 @@
                     </thead>
                     <tbody>
                         @foreach($lowStockMaterials as $m)
-                            @php 
-                                $ratio = $m->threshold > 0 ? ($m->quantity / $m->threshold) * 100 : 0;
+                            @php
+                                $total = (int) $m->available_total;
+                                $ratio = $m->threshold > 0 ? ($total / (int) $m->threshold) * 100 : 0;
                                 $progressWidth = max(8, min(100, $ratio));
                             @endphp
                             <tr>
                                 <td class="ps-4 fw-bold text-dark">{{ $m->name }}</td>
                                 <td class="text-center">
                                     <span class="badge bg-danger-subtle text-danger px-2.5 py-1.5 fw-bold fs-7">
-                                        {{ $m->quantity }} Stk.
+                                        {{ $total }} Stk.
                                     </span>
+                                    @if((int) $m->on_hold_quantity > 0)
+                                        <small class="text-muted d-block mt-1">davon reserviert: {{ (int) $m->on_hold_quantity }}</small>
+                                    @endif
+                                    @if((int) $m->order_quantity > 0)
+                                        <small class="text-muted d-block">bestellt: {{ (int) $m->order_quantity }}</small>
+                                    @endif
                                 </td>
                                 <td class="text-center text-muted fw-semibold">{{ $m->threshold }} Stk.</td>
                                 <td class="pe-4">
