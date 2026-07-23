@@ -1,0 +1,102 @@
+/* Project Workflow board animations */
+
+.workflow-board {
+    align-items: stretch;
+}
+
+.workflow-column {
+    background: #f8f9fa;
+    border-radius: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    min-height: 60vh;
+    border-top: 4px solid var(--stage-color, #0d6efd);
+    transition: box-shadow .2s ease;
+}
+
+.workflow-column__header {
+    background: #fff;
+    border-bottom: 1px solid rgba(0, 0, 0, .05);
+}
+
+.workflow-column__body {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    min-height: 8rem;
+    transition: background-color .25s ease;
+}
+
+.workflow-column__body.is-drop-target {
+    background-color: rgba(13, 110, 253, .07);
+    outline: 2px dashed var(--stage-color, #0d6efd);
+    outline-offset: -6px;
+}
+
+.workflow-card {
+    border-radius: .5rem;
+    transition: transform .25s ease, box-shadow .25s ease, opacity .25s ease;
+    will-change: transform, opacity;
+}
+
+.workflow-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, .08) !important;
+}
+
+.workflow-card.is-leaving {
+    opacity: 0;
+    transform: translateX(-20px) scale(.95);
+}
+
+.workflow-card.is-entering {
+    animation: workflow-card-in .35s ease;
+}
+
+@keyframes workflow-card-in {
+    from {
+        opacity: 0;
+        transform: translateX(20px) scale(.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+    }
+}
+
+@keyframes workflow-card-out {
+    from {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: translateX(-20px) scale(.95);
+    }
+}
+
+.workflow-step {
+    transition: background-color .2s ease, border-color .2s ease;
+}
+
+.workflow-step--done {
+    background-color: rgba(25, 135, 84, .05);
+    border-color: rgba(25, 135, 84, .25) !important;
+}
+
+.workflow-history li {
+    animation: workflow-history-pulse .35s ease;
+}
+
+@keyframes workflow-history-pulse {
+    from {
+        background-color: rgba(13, 110, 253, .12);
+    }
+    to {
+        background-color: transparent;
+    }
+}
+
+.workflow-stage-pill {
+    font-size: .8rem;
+    padding: .4em .75em;
+}

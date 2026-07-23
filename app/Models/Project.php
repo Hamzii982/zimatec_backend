@@ -66,4 +66,21 @@ class Project extends Model
     {
         return $this->hasMany(ProductionSchedule::class);
     }
+
+    public function workflowProject()
+    {
+        return $this->hasOne(\App\Models\Workflow\Project::class, 'project_id');
+    }
+
+    public function workflowActivities()
+    {
+        return $this->hasManyThrough(
+            \App\Models\Workflow\Activity::class,
+            \App\Models\Workflow\Project::class,
+            'project_id',
+            'workflow_project_id',
+            'id',
+            'id'
+        );
+    }
 }

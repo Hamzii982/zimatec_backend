@@ -31,5 +31,7 @@ class DatabaseSeeder extends Seeder
             ['name' => 'Ohne Aufsicht'],
             ['name' => 'Nacht Zeit'],
         ]);
+
+        $this->call(WorkflowStageSeeder::class);
     }
 }

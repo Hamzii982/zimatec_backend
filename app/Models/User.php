@@ -69,6 +69,16 @@ class User extends Authenticatable
         return $this->hasMany(ProductionSchedule::class);
     }
 
+    public function assignedWorkflowProjects()
+    {
+        return $this->hasMany(\App\Models\Workflow\Project::class, 'current_assignee_id');
+    }
+
+    public function workflowActivities()
+    {
+        return $this->hasMany(\App\Models\Workflow\Activity::class, 'actor_id');
+    }
+
     public function getCompanyName(): ?string
     {
         return match ($this->company) {
