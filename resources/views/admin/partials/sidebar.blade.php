@@ -59,9 +59,6 @@
             <a href="{{ route('admin.bauteile.index') }}" class="{{ request()->is('admin/bauteile*') ? 'active' : '' }}">Alle Bauteilen</a>
             <a href="{{ route('admin.projects.projects.index') }}" class="{{ request()->is('admin/projects/projects*') ? 'active' : '' }}">Alle Fertigungsprozesse</a>
             <a href="{{ route('admin.projects.offers') }}" class="{{ request()->is('admin/projects/offer*') ? 'active' : '' }}">Alle Lieferantenangebote</a>
-            <a href="{{ route('workflow.index') }}" class="{{ request()->is('workflow*') && ! request()->is('admin/workflow*') ? 'active' : '' }}">
-                <i class="bi bi-kanban me-1"></i> Projekt-Workflow
-            </a>
             <a href="{{ route('admin.workflow.settings') }}" class="{{ request()->is('admin/workflow*') ? 'active' : '' }}">
                 <i class="bi bi-gear me-1"></i> Workflow-Einstellungen
             </a>

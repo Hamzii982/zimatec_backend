@@ -122,6 +122,54 @@ class WorkflowService
         return $workflowProject->fresh();
     }
 
+    public function assignStep(WorkflowProject $workflowProject, ProjectStep $projectStep, User $assignee, User $actor): void
+    {
+        $this->assertStepBelongsToProject($workflowProject, $projectStep);
+
+        $projectStep->assignees()->syncWithoutDetaching([
+            $assignee->id => ['assigned_by' => $actor->id],
+        ]);
+
+        $this->logActivity(
+            $workflowProject,
+            $actor->id,
+            'assignee_added',
+            ['step_id' => $projectStep->step_id, 'user_id' => $assignee->id]
+        );
+    }
+
+    public function unassignStep(WorkflowProject $workflowProject, ProjectStep $projectStep, User $assignee, User $actor): void
+    {
+        $this->assertStepBelongsToProject($workflowProject, $projectStep);
+
+        $projectStep->assignees()->detach($assignee->id);
+
+        $this->logActivity(
+            $workflowProject,
+            $actor->id,
+            'assignee_removed',
+            ['step_id' => $projectStep->step_id, 'user_id' => $assignee->id]
+        );
+    }
+
+    public function allowedToComplete(WorkflowProject $workflowProject, ProjectStep $projectStep, User $user): bool
+    {
+        if ($user->isAdmin()) {
+            return true;
+        }
+
+        if ($workflowProject->current_assignee_id === $user->id) {
+            return true;
+        }
+
+        $stage = $workflowProject->currentStage;
+        if ($stage && $stage->required_role && $user->role === $stage->required_role) {
+            return true;
+        }
+
+        return $projectStep->assignees->contains('id', $user->id);
+    }
+
     public function syncStepsForStage(WorkflowProject $workflowProject, Stage $stage): void
     {
         $existingStepIds = $workflowProject->projectSteps()->pluck('step_id')->all();
