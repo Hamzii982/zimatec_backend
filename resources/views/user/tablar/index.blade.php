@@ -205,6 +205,12 @@
                     </div>
 
                     <div class="border rounded p-2 mb-3 bg-light text-center">
+                        <div class="btn-group w-100 mb-2" role="group">
+                            <button type="button" class="btn btn-outline-secondary btn-sm corner-btn active" data-corner="top-left">↖ Oben Links</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm corner-btn" data-corner="top-right">↗ Oben Rechts</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm corner-btn" data-corner="bottom-left">↙ Unten Links</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm corner-btn" data-corner="bottom-right">↘ Unten Rechts</button>
+                        </div>
                         <svg id="sheetPreviewSvg" width="100%" height="300" viewBox="0 0 500 300" style="cursor: crosshair;"></svg>
                         <small class="text-muted d-block mt-1">Klicke auf die Platte, um den Zuschnitt festzulegen.</small>
                     </div>
@@ -277,6 +283,7 @@
         orderRequestBase:   "/lager/{{ $lager->id }}/tablar/order-request",
         sheetOptionsUrlBase: "/lager/{{ $lager->id }}/tablar/materials",
         sheetCutUrl:        "{{ route('tablar.sheets.cut', $lager->id) }}",
+        ungroupUrl:         "{{ route('tablar.sheets.ungroup', $lager->id) }}",
     };
 
     // Helper JavaScript function to open up the lightbox modal

@@ -24,6 +24,7 @@ let selectedMaterial = null;
 let selectedSheetMaterial = null; // { id, name }
 let selectedSheetOption = null;   // { type, sheet_id, length_mm, width_mm, thickness_mm }
 let sheetGeom = null;             // svg draw geometry for click-to-cut
+let selectedCorner = 'top-left';
 
 const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
@@ -51,6 +52,25 @@ async function openSheetModal(id, name) {
     }
 }
 
+async function ungroupSheet(sheetId) {
+    await fetch(window.tablarData.ungroupUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': token },
+        body: JSON.stringify({ sheet_id: sheetId }),
+    });
+    const res = await fetch(`${sheetOptionsUrlBase}/${selectedSheetMaterial.id}/sheet-options`);
+    const data = await res.json();
+    renderSheetOptions(data.options);
+}
+
+function measureFromCorner(p, geom, corner) {
+    const dxLeft = Math.min(Math.max(p.x - geom.x, 0), geom.w);
+    const dyTop  = Math.min(Math.max(p.y - geom.y, 0), geom.h);
+    const dx = (corner === 'top-right' || corner === 'bottom-right') ? geom.w - dxLeft : dxLeft;
+    const dy = (corner === 'bottom-left' || corner === 'bottom-right') ? geom.h - dyTop : dyTop;
+    return { dx, dy };
+}
+
 function renderSheetOptions(options) {
     const container = document.getElementById('sheetOptionsList');
 
@@ -59,18 +79,23 @@ function renderSheetOptions(options) {
         return;
     }
 
-    container.innerHTML = options.map((opt, i) => `
-        <div class="d-flex justify-content-between align-items-center p-3 mb-2 rounded border material-item"
-             onclick='selectSheetOption(${JSON.stringify(opt)})'>
-            <div>
-                <div class="fw-semibold">${opt.label}</div>
+    container.innerHTML = options.map((opt) => `
+        <div class="d-flex justify-content-between align-items-center p-3 mb-2 rounded border material-item">
+            <div onclick='selectSheetOption(${JSON.stringify(opt)})' style="cursor:pointer; flex:1;">
+                <div class="fw-semibold">
+                    ${opt.label}
+                    ${opt.sibling_group_id ? `<span class="badge bg-light text-dark border ms-1">Reste-Paar #${opt.sibling_display_number} (${opt.sibling_position})</span>` : ''}
+                </div>
                 <small class="text-muted">
                     ${opt.length_mm ? Math.round(opt.length_mm) + ' × ' + Math.round(opt.width_mm) + ' mm' : 'Größe unbekannt'}
                 </small>
             </div>
-            <span class="badge ${opt.type === 'full' ? 'bg-success' : 'bg-info text-dark'}">
-                ${opt.type === 'full' ? 'Auf Lager: ' + opt.quantity : 'Zugeschnitten'}
-            </span>
+            <div class="d-flex align-items-center gap-2">
+                ${opt.sibling_group_id ? `<button class="btn btn-sm btn-outline-secondary" onclick='ungroupSheet(${opt.sheet_id})'>Trennen</button>` : ''}
+                <span class="badge ${opt.type === 'full' ? 'bg-success' : 'bg-info text-dark'}">
+                    ${opt.type === 'full' ? 'Auf Lager: ' + opt.quantity : 'Zugeschnitten'}
+                </span>
+            </div>
         </div>
     `).join('');
 }
@@ -117,15 +142,17 @@ function drawSheetPreview(hoverLength = null, hoverWidth = null) {
     if (cutLength > 0 && cutWidth > 0) {
         const cw = Math.min(cutLength, opt.length_mm) * scale;
         const ch = Math.min(cutWidth, opt.width_mm) * scale;
-        confirmedRectSvg = `<rect x="${x}" y="${y}" width="${cw}" height="${ch}" fill="rgba(220,53,69,0.35)" stroke="#dc3545" stroke-width="2" stroke-dasharray="4,3" />`;
+        const pos = rectPosForCorner(selectedCorner, sheetGeom, cw, ch);
+        confirmedRectSvg = `<rect x="${pos.rx}" y="${pos.ry}" width="${cw}" height="${ch}" fill="rgba(220,53,69,0.35)" stroke="#dc3545" stroke-width="2" stroke-dasharray="4,3" />`;
     }
-
+    
     let hoverRectSvg = '', hoverLabelSvg = '';
     if (hoverLength > 0 && hoverWidth > 0) {
         const hw = hoverLength * scale;
         const hh = hoverWidth * scale;
-        hoverRectSvg = `<rect x="${x}" y="${y}" width="${hw}" height="${hh}" fill="rgba(220,53,69,0.2)" stroke="#dc3545" stroke-width="1.5" style="transition: width 0.05s linear, height 0.05s linear;" />`;
-        hoverLabelSvg = `<text x="${x + hw + 6}" y="${y + hh + 14}" font-size="11" fill="#dc3545">${Math.round(hoverLength)} × ${Math.round(hoverWidth)} mm</text>`;
+        const pos = rectPosForCorner(selectedCorner, sheetGeom, hw, hh);
+        hoverRectSvg = `<rect x="${pos.rx}" y="${pos.ry}" width="${hw}" height="${hh}" fill="rgba(220,53,69,0.2)" stroke="#dc3545" stroke-width="1.5" />`;
+        hoverLabelSvg = `<text x="${pos.rx + hw + 6}" y="${pos.ry + hh + 14}" font-size="11" fill="#dc3545">${Math.round(hoverLength)} × ${Math.round(hoverWidth)} mm</text>`;
     }
 
     svgEl.innerHTML = `
@@ -158,8 +185,7 @@ function attachSheetOverlayEvents() {
     overlay.addEventListener('mousemove', (evt) => {
         if (!opt || !sheetGeom) return;
         const p = sheetSvgPointFromEvent(evt);
-        const dx = Math.min(Math.max(p.x - sheetGeom.x, 0), sheetGeom.w);
-        const dy = Math.min(Math.max(p.y - sheetGeom.y, 0), sheetGeom.h);
+        const { dx, dy } = measureFromCorner(p, sheetGeom, selectedCorner);
         const mmLength = Math.min(Math.round(dx / sheetGeom.scale), opt.length_mm);
         const mmWidth = Math.min(Math.round(dy / sheetGeom.scale), opt.width_mm);
         drawSheetPreview(mmLength, mmWidth);
@@ -170,14 +196,31 @@ function attachSheetOverlayEvents() {
     overlay.addEventListener('click', (evt) => {
         if (!opt || !sheetGeom) return;
         const p = sheetSvgPointFromEvent(evt);
-        const dx = Math.min(Math.max(p.x - sheetGeom.x, 0), sheetGeom.w);
-        const dy = Math.min(Math.max(p.y - sheetGeom.y, 0), sheetGeom.h);
+        const { dx, dy } = measureFromCorner(p, sheetGeom, selectedCorner);
         const mmLength = Math.min(Math.max(Math.round(dx / sheetGeom.scale), 1), opt.length_mm);
         const mmWidth = Math.min(Math.max(Math.round(dy / sheetGeom.scale), 1), opt.width_mm);
         document.getElementById('sheetCutLength').value = mmLength;
         document.getElementById('sheetCutWidth').value = mmWidth;
         drawSheetPreview();
     });
+}
+
+document.addEventListener('click', (e) => {
+    if (e.target.classList.contains('corner-btn')) {
+        document.querySelectorAll('.corner-btn').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        selectedCorner = e.target.dataset.corner;
+        drawSheetPreview();
+    }
+});
+
+function rectPosForCorner(corner, geom, wPx, hPx) {
+    switch (corner) {
+        case 'top-right':    return { rx: geom.x + geom.w - wPx, ry: geom.y };
+        case 'bottom-left':  return { rx: geom.x, ry: geom.y + geom.h - hPx };
+        case 'bottom-right': return { rx: geom.x + geom.w - wPx, ry: geom.y + geom.h - hPx };
+        default:              return { rx: geom.x, ry: geom.y }; // top-left
+    }
 }
 
 document.addEventListener('input', (e) => {
@@ -378,6 +421,9 @@ function renderMaterials(materials) {
             ? 'bg-secondary'
             : available > threshold ? 'bg-success' : 'bg-danger';
         const badgeText  = outOfStock ? 'Kommt gleich' : m.quantity + ' ' + (m.unit ?? 'Stk.');
+        const leftoverBadge = (window.tablarData.isHolzLager && m.leftover_sheet_count > 0)
+            ? `<span class="badge bg-secondary ms-1"><i class="bi bi-scissors me-1"></i>${m.leftover_sheet_count} Reste</span>`
+            : '';
 
         const imageTemplate = generateImageHtml(m.image, m.name);
         const orderTemplate = generateOrderHtml(m);
@@ -414,7 +460,10 @@ function renderMaterials(materials) {
                     <div class="mt-1">${orderTemplate}</div>
                 </div>
             </div>
-            <span class="badge ${badgeClass} fs-6">${badgeText}</span>
+            <span class="text-end">
+                <span class="badge ${badgeClass} fs-6">${badgeText}</span>
+                ${leftoverBadge}
+            </span>
         </div>`;
     }).join('');
 }
@@ -745,6 +794,9 @@ function filterByName() {
             ? 'openSheetModal'
             : (isReserved ? 'openReserveModal' : 'openMaterialModal');
         const badgeText  = outOfStock ? 'Kommt gleich' : m.quantity + ' ' + (m.unit ?? 'Stk.');
+        const leftoverBadge = (window.tablarData.isHolzLager && m.leftover_sheet_count > 0)
+            ? `<span class="badge bg-secondary ms-1"><i class="bi bi-scissors me-1"></i>${m.leftover_sheet_count} Reste</span>`
+            : '';
 
         const shelfHint = m.shelf
             ? `<span class="text-muted small ms-2"><i class="bi bi-geo-alt me-1"></i>${m.shelf}</span>`
@@ -771,7 +823,10 @@ function filterByName() {
                         <div class="mt-1">${orderTemplate}</div>
                     </div>
                 </div>
-                <span class="badge ${badgeClass}">${badgeText}</span>
+                <span class="text-end">
+                    <span class="badge ${badgeClass} fs-6">${badgeText}</span>
+                    ${leftoverBadge}
+                </span>
             </div>`;
         }
 
@@ -786,7 +841,10 @@ function filterByName() {
                     <div class="mt-1">${orderTemplate}</div>
                 </div>
             </div>
-            <span class="badge ${badgeClass} fs-6">${badgeText}</span>
+            <span class="text-end">
+                <span class="badge ${badgeClass} fs-6">${badgeText}</span>
+                ${leftoverBadge}
+            </span>
         </div>`;
     }).join('');
 }

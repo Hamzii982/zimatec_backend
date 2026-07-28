@@ -14,6 +14,7 @@ class MaterialSheet extends Model
         'thickness_mm',
         'status',
         'parent_sheet_id',
+        'sibling_group_id',
     ];
 
     protected $casts = [

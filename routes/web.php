@@ -149,6 +149,7 @@ Route::post('/lager/{lager_id}/tablar/reserve', [TablarController::class, 'reser
 Route::post('/lager/{lager_id}/tablar/reserve/settle', [TablarController::class, 'settleReservation'])->name('tablar.reserve.settle');
 Route::post('/lager/{lager_id}/tablar/order-request/{materialId}', [TablarController::class, 'orderRequest'])->name('tablar.order-request');
 Route::get('/lager/{lager_id}/tablar/materials/{material}/sheet-options', [TablarController::class, 'sheetOptions'])->name('tablar.sheets.options');
+Route::post('/lager/{lager_id}/tablar/sheets/ungroup', [TablarController::class, 'ungroupSiblings'])->name('tablar.sheets.ungroup');
 Route::post('/lager/{lager_id}/tablar/sheets/cut', [TablarController::class, 'cutSheet'])->name('tablar.sheets.cut');
 
 // Language routes

@@ -8,6 +8,7 @@ use App\Models\MaterialConsumption;
 use App\Models\MaterialSheet;
 use App\Models\Notification;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use function App\Helpers\new_notification;
 
@@ -29,6 +30,17 @@ class TablarController extends Controller
             ->orderBy('name')
             ->get();
 
+        // Only relevant for Holz lager — cheap no-op query result for everyone else.
+        $leftoverCounts = [];
+        if ($lager->type === 'holz') {
+            $leftoverCounts = MaterialSheet::whereIn('material_id', $materials->pluck('id'))
+                ->inStock()
+                ->cutSheets()
+                ->selectRaw('material_id, COUNT(*) as cnt')
+                ->groupBy('material_id')
+                ->pluck('cnt', 'material_id');
+        }
+
         $flatList = $materials->map(fn ($m) => [
             'id' => $m->id,
             'code' => $m->code,
@@ -45,6 +57,7 @@ class TablarController extends Controller
             'image' => $m->image,
             'order_status' => $m->order_status,
             'status' => $m->status,
+            'leftover_sheet_count' => $leftoverCounts[$m->id] ?? 0,
         ])->values();
 
         $shelves = $materials->pluck('tablar')->unique()->sort()->values();
@@ -300,11 +313,9 @@ class TablarController extends Controller
             abort(400, 'Dieses Material gehört nicht zum Holzlager.');
         }
 
-        $cutSheets = $material->sheets()
-            ->inStock()
-            ->cutSheets()
-            ->orderByDesc('created_at')
-            ->get();
+        $cutSheets = $material->sheets()->inStock()->cutSheets()->orderBy('sibling_group_id')->orderBy('id')->get();
+
+        $grouped = $cutSheets->groupBy('sibling_group_id');
 
         $referenceFullSheet = $material->sheets()->inStock()->fullSheets()->first();
 
@@ -322,16 +333,24 @@ class TablarController extends Controller
             ];
         }
 
-        foreach ($cutSheets as $s) {
-            $options[] = [
-                'type' => 'cut',
-                'sheet_id' => $s->id,
-                'label' => $s->code,
-                'quantity' => 1,
-                'length_mm' => $s->length_mm,
-                'width_mm' => $s->width_mm,
-                'thickness_mm' => $s->thickness_mm,
-            ];
+        $groupNumber = 0;
+        foreach ($grouped as $groupId => $group) {
+            $displayNumber = $groupId ? ++$groupNumber : null;
+
+            $group->values()->each(function ($s, $i) use (&$options, $groupId, $group, $displayNumber) {
+                $options[] = [
+                    'type' => 'cut',
+                    'sheet_id' => $s->id,
+                    'label' => $s->code,
+                    'quantity' => 1,
+                    'length_mm' => $s->length_mm,
+                    'width_mm' => $s->width_mm,
+                    'thickness_mm' => $s->thickness_mm,
+                    'sibling_group_id' => $groupId,
+                    'sibling_display_number' => $displayNumber,
+                    'sibling_position' => $groupId ? ($i + 1) . '/' . $group->count() : null,
+                ];
+            });
         }
 
         return response()->json([
@@ -439,6 +458,12 @@ class TablarController extends Controller
                 $material->decrement('quantity', 1);
             }
 
+            if ($remainderA && $remainderB) {
+                $groupId = (string) Str::uuid();
+                $remainderA->update(['sibling_group_id' => $groupId]);
+                $remainderB->update(['sibling_group_id' => $groupId]);
+            }
+
             MaterialConsumption::create([
                 'material_id' => $material->id,
                 'quantity' => 1,
@@ -454,5 +479,18 @@ class TablarController extends Controller
         });
 
         return response()->json($result);
+    }
+
+    public function ungroupSiblings(Request $request, int $lager_id)
+    {
+        $data = $request->validate(['sheet_id' => 'required|exists:material_sheets,id']);
+
+        $sheet = MaterialSheet::findOrFail($data['sheet_id']);
+        if ($sheet->sibling_group_id) {
+            MaterialSheet::where('sibling_group_id', $sheet->sibling_group_id)
+                ->update(['sibling_group_id' => null]);
+        }
+
+        return response()->json(['success' => true]);
     }
 }
