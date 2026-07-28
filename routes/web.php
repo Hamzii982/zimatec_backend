@@ -136,6 +136,8 @@ if (config('modules.projects')) {
             Route::post('/projects/{project}/steps/{step}/goals', [WorkflowProjectStepController::class, 'addGoal'])->name('steps.goals.store');
             Route::delete('/projects/{project}/steps/{step}/goals/{goal}', [WorkflowProjectStepController::class, 'destroyGoal'])->name('steps.goals.destroy');
             Route::post('/projects/{project}/steps/{step}/complete', [WorkflowProjectStepController::class, 'complete'])->name('steps.complete');
+            Route::post('/projects/{project}/steps/{step}/assignees', [WorkflowProjectStepController::class, 'assignStep'])->name('steps.assignees.store');
+            Route::delete('/projects/{project}/steps/{step}/assignees/{user}', [WorkflowProjectStepController::class, 'unassignStep'])->name('steps.assignees.destroy');
             Route::post('/projects/{project}/advance', [WorkflowProjectStepController::class, 'advance'])->name('advance');
             Route::post('/projects/{project}/reassign', [WorkflowProjectStepController::class, 'reassign'])->name('reassign');
         });

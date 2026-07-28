@@ -158,7 +158,7 @@ async function saveMaterial() {
     formData.append('tablar', document.getElementById('tablar').value);
     formData.append('threshold', document.getElementById('threshold').value || '');
     formData.append('type', document.getElementById('type').value || '');
-    formData.append('unit', document.getElementById('unit').value || '');
+    formData.append('unit', document.getElementById('unit').value || 'Stück');
     formData.append('order_status', document.getElementById('orderStatus').value || '');
     formData.append('is_werkzeug', document.getElementById('isWerkzeug').checked ? '1' : '0');
     formData.append('is_active', document.getElementById('isActive').checked ? '1' : '0');

@@ -3,8 +3,6 @@
 use App\Models\Project as BaseProject;
 use App\Models\User;
 use App\Models\Workflow\Activity;
-use App\Models\Workflow\Project as WorkflowProject;
-use App\Models\Workflow\ProjectStep;
 use App\Models\Workflow\Stage;
 use Database\Seeders\WorkflowStageSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -123,4 +121,53 @@ test('non-assignee non-admin user cannot advance a project', function () {
     $response = $this->postJson(route('workflow.advance', $project->id));
 
     $response->assertForbidden();
+});
+
+test('per-step assignee can complete a step; non-owner non-assignee cannot; assigning writes activity', function () {
+    $projectOwner = User::factory()->create(['role' => 'user']);
+    $perStepAssignee = User::factory()->create(['role' => 'user']);
+    $intruder = User::factory()->create(['role' => 'user']);
+
+    $office = Stage::where('key', 'office')->firstOrFail();
+
+    $project = BaseProject::factory()->create();
+    $service = app(\App\Services\Workflow\WorkflowService::class);
+
+    // Project owner attaches the project; step assignees haven't been picked yet.
+    $wp = $service->attachProject($project, $office, $projectOwner);
+
+    $firstStep = $wp->projectSteps()->first();
+
+    // The owner attaches the second user as a per-step assignee.
+    $this->actingAs($projectOwner);
+
+    $service->assignStep($wp, $firstStep, $perStepAssignee, $projectOwner);
+
+    expect(Activity::where('type', 'assignee_added')->count())->toBe(1);
+
+    // The per-step assignee can complete the step even though they're not the
+    // project's primary assignee.
+    $this->actingAs($perStepAssignee);
+
+    $response = $this->postJson(route('workflow.steps.complete', [$project->id, $firstStep->id]), [
+        'note' => 'Done by step assignee.',
+    ]);
+
+    $response->assertOk();
+
+    $firstStep->refresh();
+    expect($firstStep->status)->toBe('completed');
+    expect($firstStep->completed_by)->toBe($perStepAssignee->id);
+
+    // A different non-assignee user cannot complete another (still-open) step.
+    $secondStep = $wp->projectSteps()->skip(1)->first();
+    expect($secondStep)->not->toBeNull();
+
+    $this->actingAs($intruder);
+
+    $forbidden = $this->postJson(route('workflow.steps.complete', [$project->id, $secondStep->id]), [
+        'note' => 'Should not work',
+    ]);
+
+    $forbidden->assertForbidden();
 });

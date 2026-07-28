@@ -14,7 +14,7 @@ class WorkflowStageSeeder extends Seeder
             [
                 'key' => 'office',
                 'name' => 'Büro',
-                'color' => '#0d6efd',
+                'color' => '#002752',
                 'icon' => 'bi-building',
                 'order_index' => 1,
                 'required_role' => null,
@@ -27,7 +27,7 @@ class WorkflowStageSeeder extends Seeder
             [
                 'key' => 'design',
                 'name' => 'Konstruktion',
-                'color' => '#6f42c1',
+                'color' => '#1f6feb',
                 'icon' => 'bi-rulers',
                 'order_index' => 2,
                 'required_role' => null,
@@ -40,7 +40,7 @@ class WorkflowStageSeeder extends Seeder
             [
                 'key' => 'workshop',
                 'name' => 'Werkstatt',
-                'color' => '#fd7e14',
+                'color' => '#f0a500',
                 'icon' => 'bi-tools',
                 'order_index' => 3,
                 'required_role' => null,
@@ -53,7 +53,7 @@ class WorkflowStageSeeder extends Seeder
             [
                 'key' => 'management',
                 'name' => 'Geschäftsleitung',
-                'color' => '#198754',
+                'color' => '#1f8f5f',
                 'icon' => 'bi-clipboard-check',
                 'order_index' => 4,
                 'required_role' => 'admin',

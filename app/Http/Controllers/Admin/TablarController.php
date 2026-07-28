@@ -239,7 +239,7 @@ class TablarController extends Controller
             'code' => $request->input('code') ?: null,
             'threshold' => $request->input('threshold') ?: null,
             'type' => $request->input('type') ?: null,
-            'unit' => $request->input('unit') ?: null,
+            'unit' => $request->input('unit') ?: 'Stück',
             'order_status' => $request->input('order_status') ?: null,
             'description' => $request->input('description') ?: null,
         ]);

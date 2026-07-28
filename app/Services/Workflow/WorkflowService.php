@@ -3,13 +3,12 @@
 namespace App\Services\Workflow;
 
 use App\Models\Project as BaseProject;
+use App\Models\User;
 use App\Models\Workflow\Activity;
 use App\Models\Workflow\Project as WorkflowProject;
 use App\Models\Workflow\ProjectStep;
 use App\Models\Workflow\Stage;
-use App\Models\Workflow\Step as WorkflowStep;
 use App\Models\Workflow\StepGoal;
-use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
 class WorkflowService

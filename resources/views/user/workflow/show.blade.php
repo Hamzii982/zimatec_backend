@@ -44,14 +44,35 @@
                                     break;
                                 }
                             }
+                            $isProjectAssignee = $workflowProject->currentAssignee?->id === auth()->id();
+                            $isStepAssignee = $projectStep->assignees->contains('id', auth()->id());
+                            $stageMatchesRole = $workflowProject->currentStage?->required_role
+                                && auth()->user()->role === $workflowProject->currentStage->required_role;
                             $canCompleteStep = $isCurrent
-                                && $workflowProject->currentAssignee?->id === auth()->id()
+                                && ! $projectStep->isCompleted()
                                 && $previousDone
-                                && ! $projectStep->isCompleted();
+                                && (
+                                    auth()->user()->isAdmin()
+                                    || $isProjectAssignee
+                                    || $isStepAssignee
+                                    || $stageMatchesRole
+                                );
+
+                            $canManageAssignees = $isCurrent
+                                && (
+                                    auth()->user()->isAdmin()
+                                    || $isProjectAssignee
+                                    || $stageMatchesRole
+                                );
+
+                            $candidateUsers = \App\Models\User::orderBy('name')
+                                ->whereNotIn('id', $projectStep->assignees->pluck('id'))
+                                ->get(['id', 'name']);
                         @endphp
 
-                        <div class="workflow-step border rounded p-3 mb-2 {{ $projectStep->is_completed ? 'workflow-step--done' : '' }}"
-                             data-step-id="{{ $projectStep->id }}">
+                        <div class="workflow-step border rounded p-3 mb-2 {{ $projectStep->isCompleted() ? 'workflow-step--done' : '' }}"
+                             data-step-id="{{ $projectStep->id }}"
+                             data-workflow-step>
                             <div class="d-flex justify-content-between align-items-start">
                                 <div>
                                     <div class="fw-semibold">
@@ -76,6 +97,56 @@
                                         </button>
                                     </form>
                                 @endif
+                            </div>
+
+                            {{-- Per-step assignees (parallel work) --}}
+                            <div class="mt-3 workflow-step__assignees">
+                                <div class="small text-muted mb-1">{{ __('workflow.steps.assignees') }}</div>
+                                <div class="d-flex flex-wrap gap-2 align-items-center">
+                                    @forelse ($projectStep->assignees as $assignee)
+                                        <span class="badge rounded-pill bg-light text-dark border d-inline-flex align-items-center gap-1">
+                                            <i class="bi bi-person-circle"></i>
+                                            {{ $assignee->name }}
+                                            @if($canManageAssignees)
+                                                <button type="button"
+                                                        class="btn btn-link btn-sm p-0 text-danger ms-1"
+                                                        data-workflow-unassign
+                                                        data-step="{{ $projectStep->id }}"
+                                                        data-user="{{ $assignee->id }}"
+                                                        title="{{ __('workflow.steps.unassign') }}">
+                                                    <i class="bi bi-x-lg"></i>
+                                                </button>
+                                            @endif
+                                        </span>
+                                    @empty
+                                        <span class="small text-muted">{{ __('workflow.steps.assignee_placeholder') }}</span>
+                                    @endforelse
+
+                                    @if($canManageAssignees && $candidateUsers->isNotEmpty())
+                                        <div class="dropdown">
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-primary rounded-pill"
+                                                    data-bs-toggle="dropdown"
+                                                    aria-expanded="false"
+                                                    data-workflow-assign>
+                                                <i class="bi bi-person-plus me-1"></i>{{ __('workflow.steps.assign') }}
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end" data-workflow-assign-menu>
+                                                @foreach ($candidateUsers as $candidate)
+                                                    <li>
+                                                        <button type="button"
+                                                                class="dropdown-item small"
+                                                                data-workflow-assign-option
+                                                                data-step="{{ $projectStep->id }}"
+                                                                data-user="{{ $candidate->id }}">
+                                                            <i class="bi bi-person-plus me-1"></i>{{ $candidate->name }}
+                                                        </button>
+                                                    </li>
+                                                @endforeach
+                                            </ul>
+                                        </div>
+                                    @endif
+                                </div>
                             </div>
 
                             {{-- Goals --}}
@@ -151,6 +222,12 @@
                                         @case('goal_removed')
                                             {{ __('workflow.history.goal_removed') }}
                                             @break
+                                        @case('assignee_added')
+                                            {{ __('workflow.history.assignee_added', ['user' => $activity->payload['user_id'] ?? '?']) }}
+                                            @break
+                                        @case('assignee_removed')
+                                            {{ __('workflow.history.assignee_removed', ['user' => $activity->payload['user_id'] ?? '?']) }}
+                                            @break
                                         @case('assignee_changed')
                                             {{ __('workflow.history.assignee_changed') }}
                                             @break
@@ -175,4 +252,14 @@
         </div>
     </div>
 </div>
+
+@push('scripts')
+    <script>
+        document.body.dataset.workflowProjectId = "{{ $project->id }}";
+        window.workflowRoutes = {
+            assigneesStore: "{{ route('workflow.steps.assignees.store', ['__PROJECT__', '__STEP__']) }}",
+            assigneesDestroy: "{{ route('workflow.steps.assignees.destroy', ['__PROJECT__', '__STEP__', '__USER__']) }}",
+        };
+    </script>
+@endpush
 @stop

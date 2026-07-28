@@ -7,14 +7,12 @@ use App\Http\Requests\Workflow\CompleteStepRequest;
 use App\Http\Requests\Workflow\ReassignProjectRequest;
 use App\Http\Requests\Workflow\StoreGoalRequest;
 use App\Models\Project as BaseProject;
-use App\Models\Workflow\Project as WorkflowProject;
+use App\Models\User;
 use App\Models\Workflow\ProjectStep;
 use App\Models\Workflow\StepGoal;
-use App\Models\User;
 use App\Services\Workflow\StageAdvancer;
 use App\Services\Workflow\WorkflowService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 
 class ProjectStepController extends Controller
@@ -64,7 +62,7 @@ class ProjectStepController extends Controller
     {
         $workflowProject = $project->workflowProject()->firstOrFail();
 
-        Gate::authorize('completeStep', $workflowProject);
+        Gate::authorize('completeStep', [$workflowProject, $step]);
 
         $this->service->completeStep(
             $workflowProject,
@@ -85,6 +83,54 @@ class ProjectStepController extends Controller
         return redirect()
             ->route('workflow.show', $project->id)
             ->with('success', 'Schritt abgeschlossen.');
+    }
+
+    public function assignStep(Request $request, BaseProject $project, ProjectStep $step)
+    {
+        $workflowProject = $project->workflowProject()->firstOrFail();
+
+        $data = $request->validate([
+            'user_id' => ['required', 'integer', 'exists:users,id'],
+        ]);
+
+        Gate::authorize('assignStep', $workflowProject);
+
+        $assignee = User::findOrFail($data['user_id']);
+
+        $this->service->assignStep($workflowProject, $step, $assignee, $request->user());
+
+        if ($request->wantsJson()) {
+            $step->load('assignees');
+
+            return response()->json([
+                'step' => $step,
+            ]);
+        }
+
+        return redirect()
+            ->route('workflow.show', $project->id)
+            ->with('success', 'Bearbeiter hinzugefügt.');
+    }
+
+    public function unassignStep(Request $request, BaseProject $project, ProjectStep $step, User $user)
+    {
+        $workflowProject = $project->workflowProject()->firstOrFail();
+
+        Gate::authorize('unassignStep', $workflowProject);
+
+        $this->service->unassignStep($workflowProject, $step, $user, $request->user());
+
+        if ($request->wantsJson()) {
+            $step->load('assignees');
+
+            return response()->json([
+                'step' => $step,
+            ]);
+        }
+
+        return redirect()
+            ->route('workflow.show', $project->id)
+            ->with('success', 'Bearbeiter entfernt.');
     }
 
     public function advance(Request $request, BaseProject $project)

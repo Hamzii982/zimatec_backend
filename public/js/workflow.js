@@ -1,4 +1,4 @@
-/* Project workflow JS — fetch wrappers + Web Animations API */
+/* Project workflow JS — inline assignees + Web Animations API */
 
 (function () {
     'use strict';
@@ -29,7 +29,14 @@
         return res.json();
     }
 
+    function prefersReducedMotion() {
+        return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    }
+
     function animateOut(card) {
+        if (prefersReducedMotion()) {
+            return Promise.resolve();
+        }
         return card.animate(
             [
                 { opacity: 1, transform: 'translateX(0) scale(1)' },
@@ -40,6 +47,9 @@
     }
 
     function animateIn(card) {
+        if (prefersReducedMotion()) {
+            return Promise.resolve();
+        }
         return card.animate(
             [
                 { opacity: 0, transform: 'translateX(20px) scale(.95)' },
@@ -49,32 +59,14 @@
         ).finished;
     }
 
-    document.addEventListener('submit', async (event) => {
-        const form = event.target;
-        if (!form.matches('form[data-workflow-form]')) {
-            return;
+    function reloadOnSuccess(message) {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({ icon: 'success', title: message || 'OK', timer: 1100, showConfirmButton: false });
         }
+        setTimeout(() => window.location.reload(), 700);
+    }
 
-        event.preventDefault();
-
-        try {
-            const data = await sendJson(form.action, form.method, Object.fromEntries(new FormData(form)));
-            Swal.fire({
-                icon: 'success',
-                title: data.message || 'OK',
-                timer: 1500,
-                showConfirmButton: false,
-            });
-
-            if (data.reload) {
-                setTimeout(() => window.location.reload(), 600);
-            }
-        } catch (err) {
-            Swal.fire({ icon: 'error', title: 'Fehler', text: err.message });
-        }
-    });
-
-    // Card move on advance: animate current card out, reload page on success.
+    // Card move on advance
     document.addEventListener('click', async (event) => {
         const advanceBtn = event.target.closest('[data-workflow-advance]');
         if (!advanceBtn) {
@@ -102,19 +94,67 @@
         }
 
         try {
-            const data = await sendJson(form.action, form.method);
+            await sendJson(form.action, form.method);
+            reloadOnSuccess('Weitergegeben');
+        } catch (err) {
+            Swal.fire({ icon: 'error', title: 'Fehler', text: err.message });
+        }
+    });
 
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({ icon: 'success', title: 'Weitergegeben', timer: 1200, showConfirmButton: false });
-            }
+    // Per-step assignee: add via dropdown option click
+    document.addEventListener('click', async (event) => {
+        const option = event.target.closest('[data-workflow-assign-option]');
+        if (!option) {
+            return;
+        }
 
-            setTimeout(() => {
-                if (data.redirect) {
-                    window.location.href = data.redirect;
-                } else {
-                    window.location.reload();
-                }
-            }, 700);
+        event.preventDefault();
+
+        const stepId = option.dataset.step;
+        const userId = option.dataset.user;
+        const projectId = option.closest('[data-workflow-step]')?.dataset.projectId
+            || document.querySelector('[data-workflow-project]')?.dataset.workflowProject
+            || document.querySelector('[data-workflow-board]')?.dataset.workflowProject;
+
+        const url = `/workflow/projects/${document.body.dataset.workflowProjectId || projectId}/steps/${stepId}/assignees`;
+
+        // Prefer the global route resolver if exposed
+        const storeUrl = window.workflowRoutes?.assigneesStore
+            ? window.workflowRoutes.assigneesStore
+                .replace('__PROJECT__', document.body.dataset.workflowProjectId)
+                .replace('__STEP__', stepId)
+            : url;
+
+        try {
+            await sendJson(storeUrl, 'POST', { user_id: parseInt(userId, 10) });
+            reloadOnSuccess('Bearbeiter hinzugefügt');
+        } catch (err) {
+            Swal.fire({ icon: 'error', title: 'Fehler', text: err.message });
+        }
+    });
+
+    // Per-step assignee: remove via X button on a pill
+    document.addEventListener('click', async (event) => {
+        const btn = event.target.closest('[data-workflow-unassign]');
+        if (!btn) {
+            return;
+        }
+
+        event.preventDefault();
+
+        const stepId = btn.dataset.step;
+        const userId = btn.dataset.user;
+
+        const destroyUrl = window.workflowRoutes?.assigneesDestroy
+            ? window.workflowRoutes.assigneesDestroy
+                .replace('__PROJECT__', document.body.dataset.workflowProjectId)
+                .replace('__STEP__', stepId)
+                .replace('__USER__', userId)
+            : `/workflow/projects/${document.body.dataset.workflowProjectId}/steps/${stepId}/assignees/${userId}`;
+
+        try {
+            await sendJson(destroyUrl, 'DELETE');
+            reloadOnSuccess('Bearbeiter entfernt');
         } catch (err) {
             Swal.fire({ icon: 'error', title: 'Fehler', text: err.message });
         }

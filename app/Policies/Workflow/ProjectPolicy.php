@@ -4,6 +4,7 @@ namespace App\Policies\Workflow;
 
 use App\Models\User;
 use App\Models\Workflow\Project as WorkflowProject;
+use App\Models\Workflow\ProjectStep;
 
 class ProjectPolicy
 {
@@ -17,9 +18,29 @@ class ProjectPolicy
         return $this->canActOnStage($user, $workflowProject);
     }
 
-    public function completeStep(User $user, WorkflowProject $workflowProject): bool
+    public function completeStep(User $user, WorkflowProject $workflowProject, ?ProjectStep $projectStep = null): bool
     {
-        return $this->canActOnStage($user, $workflowProject);
+        if ($this->canActOnStage($user, $workflowProject)) {
+            return true;
+        }
+
+        if ($projectStep && $projectStep->assignees->contains('id', $user->id)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    public function assignStep(User $user, WorkflowProject $workflowProject): bool
+    {
+        return $user->isAdmin()
+            || $workflowProject->current_assignee_id === $user->id
+            || $this->canActOnStage($user, $workflowProject);
+    }
+
+    public function unassignStep(User $user, WorkflowProject $workflowProject): bool
+    {
+        return $this->assignStep($user, $workflowProject);
     }
 
     public function advance(User $user, WorkflowProject $workflowProject): bool

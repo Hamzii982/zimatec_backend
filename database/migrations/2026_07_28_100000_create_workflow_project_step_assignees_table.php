@@ -22,7 +22,7 @@ return new class extends Migration
                 ->nullOnDelete();
             $table->timestamps();
 
-            $table->unique(['workflow_project_step_id', 'user_id']);
+            $table->unique(['workflow_project_step_id', 'user_id'], 'wpsa_step_user_unique');
         });
     }
 
