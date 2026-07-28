@@ -6,6 +6,8 @@ const returnUrl     = window.tablarData.returnUrl;
 const reserveUrl    = window.tablarData.reserveUrl;
 const settleReservationUrl = window.tablarData.settleReservationUrl;
 const orderBaseUrl  = window.tablarData.orderRequestBase;
+const cancelNotificationBaseUrl = window.tablarData.cancelNotificationBase;
+const confirmDeliveryBaseUrl = window.tablarData.confirmDeliveryBase;
 
 // Group by shelf for fast lookup: { "A1": [...], "B2": [...] }
 const byShelf = {};
@@ -35,17 +37,36 @@ function generateImageHtml(image, name) {
 
 // Helper function to build order status or order button markup
 function generateOrderHtml(m) {
-    if (m.order_status) {
-        const statusText = window.tablarData.statusTranslations[m.order_status] ?? ucfirst(m.order_status);
-        const qtyText = (m.order_status === 'ordered' && m.order_quantity)
-            ? ` · ${m.order_quantity} ${m.unit ?? 'Stk.'}`
-            : '';
-        return `<span class="badge bg-warning text-dark ms-2"><i class="bi bi-clock-history me-1"></i>${statusText}${qtyText}</span>`;
+    const status = m.order_status;
+
+    if (!status) {
+        return `
+            <button class="btn btn-sm btn-outline-primary ms-2" onclick="event.stopPropagation(); triggerOrder(${m.id})">
+                Bestellen
+            </button>`;
     }
-    return `
-        <button class="btn btn-sm btn-outline-primary ms-2" onclick="event.stopPropagation(); triggerOrder(${m.id})">
-            Bestellen
-        </button>`;
+
+    const statusText = window.tablarData.statusTranslations[status] ?? ucfirst(status);
+    const qtyText = (status === 'ordered' && m.order_quantity)
+        ? ` · ${m.order_quantity} ${m.unit ?? 'Stk.'}`
+        : '';
+    const badge = `<span class="badge bg-warning text-dark ms-2"><i class="bi bi-clock-history me-1"></i>${statusText}${qtyText}</span>`;
+
+    if (status === 'notified') {
+        return `${badge}
+            <button class="btn btn-sm btn-outline-danger ms-2" onclick="event.stopPropagation(); cancelNotification(${m.id})">
+                Abbrechen
+            </button>`;
+    }
+
+    if (status === 'ordered' || status === 'delivered') {
+        return `${badge}
+            <button class="btn btn-sm btn-outline-success ms-2" onclick="event.stopPropagation(); confirmDelivery(${m.id})">
+                Bestätigen
+            </button>`;
+    }
+
+    return badge; // e.g. 'blocked' — badge only, no action
 }
 
 // ─── SHELF SELECTION ──────────────────────────────────────────────────────────
@@ -80,6 +101,44 @@ function goBackToShelves() {
     filterShelves(); // reset shelf tiles
 }
 
+async function cancelNotification(materialId) {
+    try {
+        const res = await fetch(`${cancelNotificationBaseUrl}/${materialId}/cancel-notification`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': token }
+        });
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+
+        const m = allMaterials.find(x => x.id === materialId);
+        if (m) { m.order_status = data.order_status; m.order_quantity = data.order_quantity; }
+
+        filterMaterials();
+        if (!document.getElementById('nameStep').classList.contains('d-none')) filterByName();
+    } catch (e) {
+        alert('Fehler beim Stornieren: ' + e.message);
+    }
+}
+
+async function confirmDelivery(materialId) {
+    try {
+        const res = await fetch(`${confirmDeliveryBaseUrl}/${materialId}/confirm-delivery`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': token }
+        });
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+
+        const m = allMaterials.find(x => x.id === materialId);
+        if (m) { m.order_status = data.order_status; m.order_quantity = data.order_quantity; m.quantity = data.quantity; }
+
+        filterMaterials();
+        if (!document.getElementById('nameStep').classList.contains('d-none')) filterByName();
+    } catch (e) {
+        alert('Fehler beim Bestätigen: ' + e.message);
+    }
+}
+
 // ─── MATERIAL LIST ────────────────────────────────────────────────────────────
 
 function filterMaterials() {
@@ -112,7 +171,9 @@ function renderMaterials(materials) {
         const badgeClass = outOfStock
             ? 'bg-secondary'
             : available > threshold ? 'bg-success' : 'bg-danger';
-        const badgeText  = outOfStock ? 'Kommt gleich' : m.quantity + ' ' + (m.unit ?? 'Stk.');
+            const badgeText = outOfStock
+            ? (m.order_status === 'ordered' ? 'Kommt gleich' : 'Kein Bestand')
+            : m.quantity + ' ' + (m.unit ?? 'Stk.');
 
         const imageTemplate = generateImageHtml(m.image, m.name);
         const orderTemplate = generateOrderHtml(m);
@@ -477,7 +538,9 @@ function filterByName() {
         const badgeClass = outOfStock ? 'bg-secondary'
             : available > threshold ? 'bg-success' : 'bg-danger';
         const modalType = isReserved ? 'openReserveModal' : 'openMaterialModal';
-        const badgeText  = outOfStock ? 'Kommt gleich' : m.quantity + ' ' + (m.unit ?? 'Stk.');
+        const badgeText = outOfStock
+            ? (m.order_status === 'ordered' ? 'Kommt gleich' : 'Kein Bestand')
+            : m.quantity + ' ' + (m.unit ?? 'Stk.');
 
         const shelfHint = m.shelf
             ? `<span class="text-muted small ms-2"><i class="bi bi-geo-alt me-1"></i>${m.shelf}</span>`
@@ -543,3 +606,5 @@ window.confirmReturn       = confirmReturn;
 window.triggerOrder        = triggerOrder;
 window.switchMode          = switchMode;
 window.filterByName        = filterByName;
+window.cancelNotification = cancelNotification;
+window.confirmDelivery = confirmDelivery;

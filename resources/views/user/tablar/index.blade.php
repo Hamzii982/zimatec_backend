@@ -200,6 +200,8 @@
         reserveUrl:         "{{ route('tablar.reserve', $lager->id) }}",
         settleReservationUrl: "{{ route('tablar.reserve.settle', $lager->id) }}",
         orderRequestBase:   "/lager/{{ $lager->id }}/tablar/order-request",
+        cancelNotificationBase: "/lager/{{ $lager->id }}/tablar/materials",
+        confirmDeliveryBase:    "/lager/{{ $lager->id }}/tablar/materials",
     };
 
     // Helper JavaScript function to open up the lightbox modal

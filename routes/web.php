@@ -142,6 +142,8 @@ Route::post('/lager/{lager_id}/tablar/return', [TablarController::class, 'return
 Route::post('/lager/{lager_id}/tablar/reserve', [TablarController::class, 'reserve'])->name('tablar.reserve');
 Route::post('/lager/{lager_id}/tablar/reserve/settle', [TablarController::class, 'settleReservation'])->name('tablar.reserve.settle');
 Route::post('/lager/{lager_id}/tablar/order-request/{materialId}', [TablarController::class, 'orderRequest'])->name('tablar.order-request');
+Route::post('/lager/{lager_id}/tablar/materials/{id}/cancel-notification', [TablarController::class, 'cancelNotification'])->name('tablar.order.cancel');
+Route::post('/lager/{lager_id}/tablar/materials/{id}/confirm-delivery', [TablarController::class, 'confirmDelivery'])->name('tablar.order.confirm');
 
 // Language routes
 Route::get('/language/{locale}', [LanguageController::class, 'switchLanguage'])->name('language.switch');

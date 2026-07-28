@@ -290,4 +290,60 @@ class TablarController extends Controller
             'order_status' => $material->order_status,
         ]);
     }
+
+    public function cancelNotification(int $lager_id, int $id)
+    {
+        $material = Material::where('lager_id', $lager_id)->findOrFail($id);
+
+        if ($material->order_status !== 'notified') {
+            return response()->json(['message' => 'Nur gemeldete Bedarfsanfragen können storniert werden.'], 400);
+        }
+
+        $material->order_status = null;
+        $material->order_quantity = 0;
+        $material->save();
+
+        return response()->json([
+            'success' => true,
+            'order_status' => $material->order_status,
+            'order_quantity' => $material->order_quantity,
+        ]);
+    }
+
+    public function confirmDelivery(int $lager_id, int $id)
+    {
+        $material = DB::transaction(function () use ($lager_id, $id) {
+            $material = Material::where('lager_id', $lager_id)->lockForUpdate()->findOrFail($id);
+
+            if (!in_array($material->order_status, ['ordered', 'delivered'], true)) {
+                abort(400, 'Bestätigung nur möglich, wenn Material bestellt oder geliefert wurde.');
+            }
+
+            $orderedAmount = $material->order_quantity ?? 0;
+
+            if ($orderedAmount > 0) {
+                $material->quantity += $orderedAmount;
+
+                MaterialConsumption::create([
+                    'material_id' => $material->id,
+                    'quantity' => $orderedAmount,
+                    'consumption_type' => 'delivery',
+                    'consumption_time' => now(),
+                ]);
+            }
+
+            $material->order_quantity = 0;
+            $material->order_status = null; // confirmed & merged into stock — clear the flag
+            $material->save();
+
+            return $material;
+        });
+
+        return response()->json([
+            'success' => true,
+            'order_status' => $material->order_status,
+            'order_quantity' => $material->order_quantity,
+            'quantity' => $material->quantity,
+        ]);
+    }
 }
