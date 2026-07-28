@@ -6,6 +6,8 @@ const returnUrl     = window.tablarData.returnUrl;
 const reserveUrl    = window.tablarData.reserveUrl;
 const settleReservationUrl = window.tablarData.settleReservationUrl;
 const orderBaseUrl  = window.tablarData.orderRequestBase;
+const sheetOptionsUrlBase = window.tablarData.sheetOptionsUrlBase;
+const sheetCutUrl = window.tablarData.sheetCutUrl;
 
 // Group by shelf for fast lookup: { "A1": [...], "B2": [...] }
 const byShelf = {};
@@ -19,7 +21,268 @@ let currentShelf = null;
 let currentShelfMaterials = [];
 let selectedMaterial = null;
 
+let selectedSheetMaterial = null; // { id, name }
+let selectedSheetOption = null;   // { type, sheet_id, length_mm, width_mm, thickness_mm }
+let sheetGeom = null;             // svg draw geometry for click-to-cut
+
 const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+async function openSheetModal(id, name) {
+    selectedSheetMaterial = { id, name };
+    document.getElementById('sheetModalTitle').innerText = name;
+
+    document.getElementById('sheetPickStep').classList.remove('d-none');
+    document.getElementById('sheetCutStep').classList.add('d-none');
+    document.getElementById('sheetOptionsList').innerHTML = `
+        <div class="text-center text-muted py-4">
+            <span class="spinner-border spinner-border-sm me-2"></span> Lädt...
+        </div>`;
+
+    new bootstrap.Modal(document.getElementById('sheetModal')).show();
+
+    try {
+        const res = await fetch(`${sheetOptionsUrlBase}/${id}/sheet-options`);
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        renderSheetOptions(data.options);
+    } catch (e) {
+        document.getElementById('sheetOptionsList').innerHTML = `
+            <div class="alert alert-danger">Fehler beim Laden der Plattenoptionen.</div>`;
+    }
+}
+
+function renderSheetOptions(options) {
+    const container = document.getElementById('sheetOptionsList');
+
+    if (options.length === 0) {
+        container.innerHTML = `<div class="text-center text-muted py-4">Kein Bestand vorhanden.</div>`;
+        return;
+    }
+
+    container.innerHTML = options.map((opt, i) => `
+        <div class="d-flex justify-content-between align-items-center p-3 mb-2 rounded border material-item"
+             onclick='selectSheetOption(${JSON.stringify(opt)})'>
+            <div>
+                <div class="fw-semibold">${opt.label}</div>
+                <small class="text-muted">
+                    ${opt.length_mm ? Math.round(opt.length_mm) + ' × ' + Math.round(opt.width_mm) + ' mm' : 'Größe unbekannt'}
+                </small>
+            </div>
+            <span class="badge ${opt.type === 'full' ? 'bg-success' : 'bg-info text-dark'}">
+                ${opt.type === 'full' ? 'Auf Lager: ' + opt.quantity : 'Zugeschnitten'}
+            </span>
+        </div>
+    `).join('');
+}
+
+function selectSheetOption(opt) {
+    selectedSheetOption = opt;
+
+    document.getElementById('sheetPickStep').classList.add('d-none');
+    document.getElementById('sheetCutStep').classList.remove('d-none');
+
+    document.getElementById('sheetCutTitle').innerText =
+        selectedSheetMaterial.name + (opt.type === 'full' ? ' — Volle Platte' : ' — ' + opt.label);
+    document.getElementById('sheetCutDims').innerText =
+        `${Math.round(opt.length_mm)} × ${Math.round(opt.width_mm)} mm`;
+
+    document.getElementById('sheetCutLength').value = '';
+    document.getElementById('sheetCutWidth').value = '';
+    hideSheetMessages();
+    drawSheetPreview();
+}
+
+function backToSheetPick() {
+    document.getElementById('sheetCutStep').classList.add('d-none');
+    document.getElementById('sheetPickStep').classList.remove('d-none');
+}
+
+function drawSheetPreview(hoverLength = null, hoverWidth = null) {
+    const opt = selectedSheetOption;
+    if (!opt) return;
+
+    const svgEl = document.getElementById('sheetPreviewSvg');
+    const maxW = 460, maxH = 260;
+    const scale = Math.min(maxW / opt.length_mm, maxH / opt.width_mm);
+    const w = opt.length_mm * scale;
+    const h = opt.width_mm * scale;
+    const x = (500 - w) / 2;
+    const y = (300 - h) / 2;
+
+    sheetGeom = { x, y, w, h, scale };
+
+    const cutLength = parseFloat(document.getElementById('sheetCutLength').value);
+    const cutWidth = parseFloat(document.getElementById('sheetCutWidth').value);
+    let confirmedRectSvg = '';
+    if (cutLength > 0 && cutWidth > 0) {
+        const cw = Math.min(cutLength, opt.length_mm) * scale;
+        const ch = Math.min(cutWidth, opt.width_mm) * scale;
+        confirmedRectSvg = `<rect x="${x}" y="${y}" width="${cw}" height="${ch}" fill="rgba(220,53,69,0.35)" stroke="#dc3545" stroke-width="2" stroke-dasharray="4,3" />`;
+    }
+
+    let hoverRectSvg = '', hoverLabelSvg = '';
+    if (hoverLength > 0 && hoverWidth > 0) {
+        const hw = hoverLength * scale;
+        const hh = hoverWidth * scale;
+        hoverRectSvg = `<rect x="${x}" y="${y}" width="${hw}" height="${hh}" fill="rgba(220,53,69,0.2)" stroke="#dc3545" stroke-width="1.5" style="transition: width 0.05s linear, height 0.05s linear;" />`;
+        hoverLabelSvg = `<text x="${x + hw + 6}" y="${y + hh + 14}" font-size="11" fill="#dc3545">${Math.round(hoverLength)} × ${Math.round(hoverWidth)} mm</text>`;
+    }
+
+    svgEl.innerHTML = `
+        <rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#f5deb3" stroke="#8b5e34" stroke-width="2" />
+        ${confirmedRectSvg}
+        ${hoverRectSvg}
+        ${hoverLabelSvg}
+        <rect id="sheetClickOverlay" x="${x}" y="${y}" width="${w}" height="${h}" fill="transparent" />
+        <text x="250" y="${y - 6}" text-anchor="middle" font-size="12" fill="#555">Länge: ${Math.round(opt.length_mm)} mm</text>
+        <text x="${x - 8}" y="${y + h / 2}" text-anchor="end" font-size="12" fill="#555" transform="rotate(-90 ${x - 8} ${y + h / 2})">Breite: ${Math.round(opt.width_mm)} mm</text>
+    `;
+
+    attachSheetOverlayEvents();
+}
+
+function sheetSvgPointFromEvent(evt) {
+    const svgEl = document.getElementById('sheetPreviewSvg');
+    const pt = svgEl.createSVGPoint();
+    pt.x = evt.clientX;
+    pt.y = evt.clientY;
+    const ctm = svgEl.getScreenCTM().inverse();
+    return pt.matrixTransform(ctm);
+}
+
+function attachSheetOverlayEvents() {
+    const overlay = document.getElementById('sheetClickOverlay');
+    if (!overlay) return;
+    const opt = selectedSheetOption;
+
+    overlay.addEventListener('mousemove', (evt) => {
+        if (!opt || !sheetGeom) return;
+        const p = sheetSvgPointFromEvent(evt);
+        const dx = Math.min(Math.max(p.x - sheetGeom.x, 0), sheetGeom.w);
+        const dy = Math.min(Math.max(p.y - sheetGeom.y, 0), sheetGeom.h);
+        const mmLength = Math.min(Math.round(dx / sheetGeom.scale), opt.length_mm);
+        const mmWidth = Math.min(Math.round(dy / sheetGeom.scale), opt.width_mm);
+        drawSheetPreview(mmLength, mmWidth);
+    });
+
+    overlay.addEventListener('mouseleave', () => drawSheetPreview());
+
+    overlay.addEventListener('click', (evt) => {
+        if (!opt || !sheetGeom) return;
+        const p = sheetSvgPointFromEvent(evt);
+        const dx = Math.min(Math.max(p.x - sheetGeom.x, 0), sheetGeom.w);
+        const dy = Math.min(Math.max(p.y - sheetGeom.y, 0), sheetGeom.h);
+        const mmLength = Math.min(Math.max(Math.round(dx / sheetGeom.scale), 1), opt.length_mm);
+        const mmWidth = Math.min(Math.max(Math.round(dy / sheetGeom.scale), 1), opt.width_mm);
+        document.getElementById('sheetCutLength').value = mmLength;
+        document.getElementById('sheetCutWidth').value = mmWidth;
+        drawSheetPreview();
+    });
+}
+
+document.addEventListener('input', (e) => {
+    if (e.target.id === 'sheetCutLength' || e.target.id === 'sheetCutWidth') {
+        drawSheetPreview();
+    }
+});
+
+document.addEventListener('click', (e) => {
+    if (e.target.classList.contains('sheet-preset')) {
+        const opt = selectedSheetOption;
+        if (!opt) return;
+
+        const fraction = parseFloat(e.target.dataset.fraction);
+        const applyLength = document.getElementById('sheetApplyLength').checked;
+        const applyWidth = document.getElementById('sheetApplyWidth').checked;
+
+        if (!applyLength && !applyWidth) {
+            showSheetError('Bitte mindestens Länge oder Breite auswählen.');
+            return;
+        }
+
+        document.getElementById('sheetCutLength').value = Math.round(opt.length_mm * (applyLength ? fraction : 1));
+        document.getElementById('sheetCutWidth').value = Math.round(opt.width_mm * (applyWidth ? fraction : 1));
+        drawSheetPreview();
+    }
+});
+
+function hideSheetMessages() {
+    document.getElementById('sheetCutResult').classList.add('d-none');
+    document.getElementById('sheetCutError').classList.add('d-none');
+}
+
+function showSheetError(msg) {
+    const el = document.getElementById('sheetCutError');
+    el.textContent = msg;
+    el.classList.remove('d-none');
+}
+
+async function performSheetCut() {
+    const opt = selectedSheetOption;
+    if (!opt || !selectedSheetMaterial) return;
+    hideSheetMessages();
+
+    const cutLength = parseFloat(document.getElementById('sheetCutLength').value);
+    const cutWidth = parseFloat(document.getElementById('sheetCutWidth').value);
+
+    if (!cutLength || !cutWidth || cutLength <= 0 || cutWidth <= 0) {
+        showSheetError('Bitte gültige Länge und Breite eingeben.');
+        return;
+    }
+
+    const btn = document.getElementById('btnSheetCut');
+    const originalContent = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Wird geschnitten...`;
+
+    try {
+        const res = await fetch(sheetCutUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': token },
+            body: JSON.stringify({
+                material_id: selectedSheetMaterial.id,
+                sheet_id: opt.type === 'full' ? null : opt.sheet_id,
+                cut_length: cutLength,
+                cut_width: cutWidth,
+            }),
+        });
+
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+
+        // Keep the local material cache (quantity badge) in sync
+        const m = allMaterials.find(x => x.id === selectedSheetMaterial.id);
+        if (m) m.quantity = data.new_quantity;
+        filterMaterials();
+        if (!document.getElementById('nameStep').classList.contains('d-none')) {
+            filterByName();
+        }
+
+        let msg = `Zugeschnitten: <strong>${Math.round(cutLength)} × ${Math.round(cutWidth)} mm</strong>`;
+        if (data.remainders.length > 0) {
+            data.remainders.forEach(r => {
+                msg += `<br>Restplatte gespeichert: ${Math.round(r.length_mm)} × ${Math.round(r.width_mm)} mm (${r.code})`;
+            });
+        } else {
+            msg += `<br>Keine Restplatte übrig.`;
+        }
+        document.getElementById('sheetCutResult').innerHTML = msg;
+        document.getElementById('sheetCutResult').classList.remove('d-none');
+
+        // Refresh the options list so the picker reflects new stock,
+        // then send the user back to pick their next action.
+        const refreshed = await fetch(`${sheetOptionsUrlBase}/${selectedSheetMaterial.id}/sheet-options`);
+        const refreshedData = await refreshed.json();
+        renderSheetOptions(refreshedData.options);
+        setTimeout(() => backToSheetPick(), 1200);
+
+    } catch (e) {
+        showSheetError('Fehler beim Zuschneiden: ' + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalContent;
+    }
+}
 
 // Helper function to build image markup
 function generateImageHtml(image, name) {
@@ -108,7 +371,9 @@ function renderMaterials(materials) {
         const orderQty   = m.order_quantity ?? 0;
         const available  = m.available_total ?? (m.quantity + onHold + orderQty);
         const isReserved = onHold > 0;
-        const modalType  = isReserved ? 'openReserveModal' : 'openMaterialModal';
+        const modalType = window.tablarData.isHolzLager
+            ? 'openSheetModal'
+            : (isReserved ? 'openReserveModal' : 'openMaterialModal');
         const badgeClass = outOfStock
             ? 'bg-secondary'
             : available > threshold ? 'bg-success' : 'bg-danger';
@@ -476,7 +741,9 @@ function filterByName() {
         const isReserved = m.on_hold_quantity > 0;
         const badgeClass = outOfStock ? 'bg-secondary'
             : available > threshold ? 'bg-success' : 'bg-danger';
-        const modalType = isReserved ? 'openReserveModal' : 'openMaterialModal';
+        const modalType = window.tablarData.isHolzLager
+            ? 'openSheetModal'
+            : (isReserved ? 'openReserveModal' : 'openMaterialModal');
         const badgeText  = outOfStock ? 'Kommt gleich' : m.quantity + ' ' + (m.unit ?? 'Stk.');
 
         const shelfHint = m.shelf
@@ -543,3 +810,6 @@ window.confirmReturn       = confirmReturn;
 window.triggerOrder        = triggerOrder;
 window.switchMode          = switchMode;
 window.filterByName        = filterByName;
+window.openSheetModal   = openSheetModal;
+window.backToSheetPick  = backToSheetPick;
+window.performSheetCut  = performSheetCut;

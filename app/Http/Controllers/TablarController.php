@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Lager;
 use App\Models\Material;
 use App\Models\MaterialConsumption;
+use App\Models\MaterialSheet;
 use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -289,5 +290,169 @@ class TablarController extends Controller
             'message' => 'Bestellung angefragt.',
             'order_status' => $material->order_status,
         ]);
+    }
+
+    public function sheetOptions(int $lager_id, int $material_id)
+    {
+        $material = Material::where('lager_id', $lager_id)->findOrFail($material_id);
+
+        if (!$material->isSheetMaterial()) {
+            abort(400, 'Dieses Material gehört nicht zum Holzlager.');
+        }
+
+        $cutSheets = $material->sheets()
+            ->inStock()
+            ->cutSheets()
+            ->orderByDesc('created_at')
+            ->get();
+
+        $referenceFullSheet = $material->sheets()->inStock()->fullSheets()->first();
+
+        $options = [];
+
+        if ($material->quantity > 0) {
+            $options[] = [
+                'type' => 'full',
+                'sheet_id' => null, // backend picks any available full-sheet row when cutting
+                'label' => 'Volle Platte',
+                'quantity' => $material->quantity,
+                'length_mm' => $referenceFullSheet?->length_mm,
+                'width_mm' => $referenceFullSheet?->width_mm,
+                'thickness_mm' => $referenceFullSheet?->thickness_mm,
+            ];
+        }
+
+        foreach ($cutSheets as $s) {
+            $options[] = [
+                'type' => 'cut',
+                'sheet_id' => $s->id,
+                'label' => $s->code,
+                'quantity' => 1,
+                'length_mm' => $s->length_mm,
+                'width_mm' => $s->width_mm,
+                'thickness_mm' => $s->thickness_mm,
+            ];
+        }
+
+        return response()->json([
+            'material_id' => $material->id,
+            'options' => $options,
+        ]);
+    }
+
+    // ─── CUT A SHEET (full or already-cut) ─────────────────────────────────────
+
+    public function cutSheet(Request $request, int $lager_id)
+    {
+        Lager::findOrFail($lager_id);
+
+        $data = $request->validate([
+            'material_id' => 'required|exists:materials,id',
+            'sheet_id' => 'nullable|exists:material_sheets,id', // null = take from full-sheet bucket
+            'cut_length' => 'required|numeric|min:0.1',
+            'cut_width' => 'required|numeric|min:0.1',
+        ]);
+
+        $result = DB::transaction(function () use ($data, $lager_id) {
+            $material = Material::where('lager_id', $lager_id)
+                ->lockForUpdate()
+                ->findOrFail($data['material_id']);
+
+            if (!$material->isSheetMaterial()) {
+                abort(400, 'Dieses Material gehört nicht zum Holzlager.');
+            }
+
+            if ($data['sheet_id']) {
+                $source = MaterialSheet::where('material_id', $material->id)
+                    ->where('status', 'in_stock')
+                    ->lockForUpdate()
+                    ->findOrFail($data['sheet_id']);
+            } else {
+                $source = MaterialSheet::where('material_id', $material->id)
+                    ->inStock()
+                    ->fullSheets()
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$source) {
+                    abort(400, 'Keine volle Platte mehr auf Lager.');
+                }
+            }
+
+            $cutLength = (float) $data['cut_length'];
+            $cutWidth = (float) $data['cut_width'];
+
+            if ($cutLength > (float) $source->length_mm || $cutWidth > (float) $source->width_mm) {
+                abort(422, 'Zuschnitt übersteigt die Größe der Platte.');
+            }
+
+            $wasFullSheet = $source->isFullSheet();
+
+            $source->status = 'used';
+            $source->save();
+
+            // Step 1: split along length -> leftover strip (full width)
+            $lengthLeftover = $source->length_mm - $cutLength;
+            $remainderA = null;
+
+            if ($lengthLeftover > 0.01) {
+                $remainderA = MaterialSheet::create([
+                    'material_id' => $material->id,
+                    'code' => MaterialSheet::generateCode(),
+                    'length_mm' => $lengthLeftover,
+                    'width_mm' => $source->width_mm,
+                    'thickness_mm' => $source->thickness_mm,
+                    'status' => 'in_stock',
+                    'parent_sheet_id' => $source->id,
+                ]);
+            }
+
+            // Step 2: split the slice along width -> leftover strip
+            $widthLeftover = $source->width_mm - $cutWidth;
+            $remainderB = null;
+
+            if ($widthLeftover > 0.01) {
+                $remainderB = MaterialSheet::create([
+                    'material_id' => $material->id,
+                    'code' => MaterialSheet::generateCode(),
+                    'length_mm' => $cutLength,
+                    'width_mm' => $widthLeftover,
+                    'thickness_mm' => $source->thickness_mm,
+                    'status' => 'in_stock',
+                    'parent_sheet_id' => $source->id,
+                ]);
+            }
+
+            $cutPiece = MaterialSheet::create([
+                'material_id' => $material->id,
+                'code' => MaterialSheet::generateCode(),
+                'length_mm' => $cutLength,
+                'width_mm' => $cutWidth,
+                'thickness_mm' => $source->thickness_mm,
+                'status' => 'used',
+                'parent_sheet_id' => $source->id,
+            ]);
+
+            // A full sheet that gets touched at all stops being "full" -> quantity -1.
+            // Cutting an already-cut sheet further never touches quantity (never counted there).
+            if ($wasFullSheet) {
+                $material->decrement('quantity', 1);
+            }
+
+            MaterialConsumption::create([
+                'material_id' => $material->id,
+                'quantity' => 1,
+                'consumption_type' => 'use',
+                'consumption_time' => now(),
+            ]);
+
+            return [
+                'cut_piece' => $cutPiece,
+                'remainders' => array_values(array_filter([$remainderA, $remainderB])),
+                'new_quantity' => $material->fresh()->quantity,
+            ];
+        });
+
+        return response()->json($result);
     }
 }

@@ -160,4 +160,19 @@ class Material extends Model
             default => ucfirst($this->order_status),
         };
     }
+
+    public function sheets()
+    {
+        return $this->hasMany(MaterialSheet::class);
+    }
+
+    public function sheetsInStock()
+    {
+        return $this->sheets()->inStock();
+    }
+
+    public function isSheetMaterial(): bool
+    {
+        return $this->lager?->type === 'holz';
+    }
 }

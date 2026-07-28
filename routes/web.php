@@ -30,6 +30,7 @@ use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\SchedulerController;
 use App\Http\Controllers\TablarController;
 use App\Http\Controllers\TimeRecordController;
+use App\Http\Controllers\SheetManagementController;
 use App\Http\Controllers\UserController as User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -68,6 +69,11 @@ if (config('modules.scheduler')) {
         Route::delete('/{id}', [SchedulerController::class, 'destroy'])->name('destroy');
     });
 }
+
+Route::get('/sheets', [SheetManagementController::class, 'index'])->name('sheets.index');
+Route::post('/sheets', [SheetManagementController::class, 'store'])->name('sheets.store');
+Route::post('/sheets/{id}/cut', [SheetManagementController::class, 'cut'])->name('sheets.cut');
+Route::delete('/sheets/{id}', [SheetManagementController::class, 'destroy'])->name('sheets.destroy');
 
 Route::middleware(['auth'])->group(function () {
 
@@ -142,6 +148,8 @@ Route::post('/lager/{lager_id}/tablar/return', [TablarController::class, 'return
 Route::post('/lager/{lager_id}/tablar/reserve', [TablarController::class, 'reserve'])->name('tablar.reserve');
 Route::post('/lager/{lager_id}/tablar/reserve/settle', [TablarController::class, 'settleReservation'])->name('tablar.reserve.settle');
 Route::post('/lager/{lager_id}/tablar/order-request/{materialId}', [TablarController::class, 'orderRequest'])->name('tablar.order-request');
+Route::get('/lager/{lager_id}/tablar/materials/{material}/sheet-options', [TablarController::class, 'sheetOptions'])->name('tablar.sheets.options');
+Route::post('/lager/{lager_id}/tablar/sheets/cut', [TablarController::class, 'cutSheet'])->name('tablar.sheets.cut');
 
 // Language routes
 Route::get('/language/{locale}', [LanguageController::class, 'switchLanguage'])->name('language.switch');

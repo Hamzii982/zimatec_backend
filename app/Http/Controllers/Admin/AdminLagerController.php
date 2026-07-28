@@ -24,6 +24,7 @@ class AdminLagerController extends Controller
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
+            'type' => 'required|string|in:material,werkzeug,holz',
             'is_active' => 'required|boolean',
             'status' => 'nullable|string|max:255',
         ]);
@@ -44,6 +45,7 @@ class AdminLagerController extends Controller
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
+            'type' => 'required|string|in:material,werkzeug,holz',
             'is_active' => 'required|boolean',
             'status' => 'nullable|string|max:255',
         ]);
