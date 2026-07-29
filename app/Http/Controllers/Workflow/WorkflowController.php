@@ -4,10 +4,9 @@ namespace App\Http\Controllers\Workflow;
 
 use App\Http\Controllers\Controller;
 use App\Models\Project as BaseProject;
+use App\Models\User;
 use App\Models\Workflow\Project as WorkflowProject;
 use App\Models\Workflow\Stage;
-use App\Models\Workflow\ProjectStep;
-use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -30,6 +29,15 @@ class WorkflowController extends Controller
             $query->where('current_assignee_id', Auth::id());
         }
 
+        if ($request->filled('q')) {
+            $needle = '%'.$request->input('q').'%';
+            $query->whereHas('project', function ($q) use ($needle) {
+                $q->where('project_name', 'like', $needle)
+                    ->orWhere('auftragsnummer_zf', 'like', $needle)
+                    ->orWhere('auftragsnummer_zt', 'like', $needle);
+            });
+        }
+
         $workflowProjects = $query->get();
 
         $grouped = $stages
@@ -48,7 +56,7 @@ class WorkflowController extends Controller
             'stages' => $stages,
             'grouped' => $grouped,
             'users' => $users,
-            'filters' => $request->only(['assignee_id', 'mine']),
+            'filters' => $request->only(['assignee_id', 'mine', 'q']),
         ]);
     }
 

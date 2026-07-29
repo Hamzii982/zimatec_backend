@@ -254,6 +254,7 @@
 </div>
 
 @push('scripts')
+    <script src="{{ asset('js/workflow.js') }}"></script>
     <script>
         document.body.dataset.workflowProjectId = "{{ $project->id }}";
         window.workflowRoutes = {
