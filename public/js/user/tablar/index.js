@@ -160,7 +160,12 @@ function renderMaterials(materials) {
         return;
     }
 
-    container.innerHTML = materials.map(m => {
+    // Create a sorted copy of materials based on m.name
+    const sortedMaterials = [...materials].sort((a, b) => 
+        (a.name || '').localeCompare(b.name || '', 'de', { numeric: true, sensitivity: 'base' })
+    );
+
+    container.innerHTML = sortedMaterials.map(m => {
         const outOfStock = m.quantity+m.on_hold_quantity <= 0;
         const threshold  = m.threshold ?? 0;
         const onHold     = m.on_hold_quantity ?? 0;
@@ -518,7 +523,9 @@ function filterByName() {
         return;
     }
 
-    const filtered = allMaterials.filter(m => m.name.toLowerCase().includes(q));
+    const filtered = allMaterials
+        .filter(m => m.name.toLowerCase().includes(q))
+        .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'de', { numeric: true, sensitivity: 'base' }));
 
     if (filtered.length === 0) {
         container.innerHTML = `<div class="text-center text-muted py-5">
