@@ -8,6 +8,8 @@ use App\Models\Notification;
 use App\Models\Project;
 use App\Models\TimeRecord;
 use App\Models\User;
+use App\Models\Material;
+use App\Models\Lager;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -25,7 +27,7 @@ class HomeController extends Controller
         $projectsCount = Project::count();
         $usersCount = User::count();
         $processesCount = \DB::table('processes')->count();
-
+    
         $hour = Carbon::now()->hour;
         switch (time()) {
             case time() >= strtotime('05:00') && time() < strtotime('12:00'):
@@ -40,7 +42,7 @@ class HomeController extends Controller
             default:
                 $greeting = 'Willkommen zurück';
         }
-
+    
         // --- Recent Projects (last 5) ---
         $recentProjects = Project::orderBy('start_time', 'desc')
             ->take(5)
@@ -53,7 +55,7 @@ class HomeController extends Controller
                     'status' => $project->status?->name ?? 'unknown',
                 ];
             });
-
+    
         // --- Projects Chart ---
         $projectLabels = Project::latest()
             ->take(5)
@@ -62,34 +64,50 @@ class HomeController extends Controller
                 return str_replace(['225054_', '225055_', '225056_'], '', $name); // optional cleanup
             })
             ->toArray();
-
+    
         $projectData = Project::latest()
             ->take(5)
             ->withCount('processes')
             ->pluck('processes_count')
             ->toArray();
-
+    
         // --- Users Chart (registrations per day for last 7 days) ---
         $userLabels = [];
         $userData = [];
         $start = Carbon::today()->subDays(6);
-
+    
         for ($i = 0; $i < 7; $i++) {
             $date = $start->copy()->addDays($i);
             $userLabels[] = $date->format('d M');
             $userData[] = User::whereDate('created_at', $date)->count();
         }
-
+    
         // --- Activity Summary (last 10 days) ---
         $endDate = Carbon::today();
         $startDate = $endDate->copy()->subDays(9);
-
-        // Most active machine
+    
         $mostActiveMachine = $this->getMostActiveMachine($startDate, $endDate);
-
-        // Most active user
         $mostActiveUser = $this->getMostActiveUser($startDate, $endDate);
-
+    
+        // --- Lagers / Materials summary ---
+        // NOTE: adjust model/column names below to match your actual schema
+        // (Material, MaterialInstance, Lager) — these are my best guess based
+        // on the warehouse module you described (min/reorder level per material,
+        // current stock derived from summed material_instances).
+        $lagersCount = Lager::count();
+        $materialsCount = Material::count();
+    
+        $lowStockQuery = function ($query) {
+            $query->whereRaw('quantity <= COALESCE(threshold, 0)');
+        };
+    
+        $lowStockMaterials = Material::where($lowStockQuery)
+            ->orderBy('quantity')
+            ->take(5)
+            ->get();
+    
+        $lowStockCount = Material::where($lowStockQuery)->count();
+    
         return view('admin.home.index', compact(
             'projectsCount',
             'usersCount',
@@ -101,7 +119,11 @@ class HomeController extends Controller
             'userData',
             'greeting',
             'mostActiveMachine',
-            'mostActiveUser'
+            'mostActiveUser',
+            'lagersCount',
+            'materialsCount',
+            'lowStockMaterials',
+            'lowStockCount'
         ));
     }
 

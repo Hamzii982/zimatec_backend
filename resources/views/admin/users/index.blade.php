@@ -3,11 +3,131 @@
 @section('title', 'Manage Users')
 
 @section('content')
+<style>
+    :root {
+        --brand-blue: #002752;
+        --brand-blue-hover: #001a3d;
+        --brand-blue-light: #e8edf3;
+    }
+
+    .users-card .card-header {
+        background: linear-gradient(135deg, var(--brand-blue), #2f6cb0);
+    }
+
+    .table-responsive-wrapper table td {
+        vertical-align: middle;
+    }
+
+    /* --- User cell (avatar + name/email) --- */
+    .user-cell {
+        display: flex;
+        align-items: center;
+        gap: .75rem;
+    }
+
+    .avatar-circle {
+        width: 42px;
+        height: 42px;
+        min-width: 42px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--brand-blue), #4a7fc9);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.15rem;
+        box-shadow: 0 2px 5px rgba(0, 39, 82, .25);
+    }
+
+    .user-cell .user-name {
+        font-weight: 600;
+        color: #212529;
+        line-height: 1.2;
+    }
+
+    .user-cell .user-email {
+        font-size: .8rem;
+        color: #6c757d;
+    }
+
+    /* --- Role badges --- */
+    .role-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        padding: .35rem .7rem;
+        border-radius: 20px;
+        font-size: .78rem;
+        font-weight: 600;
+    }
+
+    .role-admin {
+        background: #fff3cd;
+        color: #8a6500;
+    }
+
+    .role-user {
+        background: var(--brand-blue-light);
+        color: var(--brand-blue);
+    }
+
+    /* --- Firma badges --- */
+    .firma-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        padding: .35rem .7rem;
+        border-radius: 6px;
+        font-size: .78rem;
+        font-weight: 600;
+        border: 1px solid transparent;
+    }
+
+    .firma-zf {
+        background: var(--brand-blue-light);
+        color: var(--brand-blue);
+        border-color: rgba(0, 39, 82, .15);
+    }
+
+    .firma-other {
+        background: #eafaf1;
+        color: #1e7e4d;
+        border-color: rgba(30, 126, 77, .15);
+    }
+
+    /* --- Machine user switch --- */
+    .machine-switch .form-check-input {
+        width: 2.75em;
+        height: 1.4em;
+        cursor: pointer;
+        border: 1px solid #ced4da;
+    }
+
+    .machine-switch .form-check-input:checked {
+        background-color: var(--brand-blue);
+        border-color: var(--brand-blue);
+    }
+
+    .machine-switch .form-check-input:focus {
+        box-shadow: 0 0 0 .2rem rgba(0, 39, 82, .25);
+    }
+
+    /* --- Action buttons --- */
+    .btn-outline-brand {
+        border-color: var(--brand-blue);
+        color: var(--brand-blue);
+    }
+
+    .btn-outline-brand:hover {
+        background: var(--brand-blue);
+        color: #fff;
+    }
+</style>
+
 <div class="container mt-4">
-    <div class="card shadow-sm">
-        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Alle Benutzer</h5>
-            <a href="{{ route('admin.users.create') }}" class="btn btn-secondary btn-sm">
+    <div class="card users-card shadow-sm border-0">
+        <div class="card-header text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="bi bi-people-fill me-2"></i>Alle Benutzer</h5>
+            <a href="{{ route('admin.users.create') }}" class="btn btn-light btn-sm fw-semibold">
                 <i class="bi bi-plus-circle me-1"></i> Neue Benutzer
             </a>
         </div>
@@ -18,8 +138,7 @@
                     <thead class="table-light">
                         <tr>
                             <th>#</th>
-                            <th>Name</th>
-                            <th>Email</th>
+                            <th>Benutzer</th>
                             <th>Role</th>
                             <th>Firma</th>
                             <th>Machine Nutzer</th>
@@ -31,23 +150,52 @@
                         @forelse ($users as $user)
                             <tr>
                                 <td>{{ $loop->iteration }}</td>
-                                <td>{{ $user->name }}</td>
-                                <td>{{ $user->email }}</td>
-                                <td><span class="badge bg-{{ $user->role === 'admin' ? 'warning' : 'secondary' }}">{{ ucfirst($user->role) }}</span></td>
-                                <td><span class="badge bg-{{ $user->company === 'ZF' ? 'primary' : 'success' }}">{{ ucfirst($user->getCompanyName()) }}</span></td>
+
                                 <td>
-                                    <div class="form-check form-switch">
+                                    <div class="user-cell">
+                                        <div class="avatar-circle">
+                                            {{ $user->role === 'admin' ? '🧑‍💼' : '🙂' }}
+                                        </div>
+                                        <div>
+                                            <div class="user-name">{{ $user->name }}</div>
+                                            <div class="user-email">{{ $user->email }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+
+                                <td>
+                                    @if($user->role === 'admin')
+                                        <span class="role-badge role-admin">
+                                            <i class="bi bi-shield-lock-fill"></i> Admin
+                                        </span>
+                                    @else
+                                        <span class="role-badge role-user">
+                                            <i class="bi bi-person-fill"></i> User
+                                        </span>
+                                    @endif
+                                </td>
+
+                                <td>
+                                    <span class="firma-badge {{ $user->company === 'ZF' ? 'firma-zf' : 'firma-other' }}">
+                                        <i class="bi bi-building"></i> {{ ucfirst($user->getCompanyName()) }}
+                                    </span>
+                                </td>
+
+                                <td>
+                                    <div class="form-check form-switch machine-switch">
                                         <input type="checkbox" class="form-check-input toggle-active"
                                             data-id="{{ $user->id }}" {{ $user->machine_user ? 'checked' : '' }}>
                                     </div>
                                 </td>
+
                                 <td>{{ $user->created_at->diffForHumans() }}</td>
+
                                 <td>
                                     <a href="{{ route('admin.users.edit', $user) }}"
-                                    class="btn btn-sm btn-outline-primary">
+                                    class="btn btn-sm btn-outline-brand">
                                         <i class="bi bi-pencil-square"></i>
                                     </a>
-                                
+
                                     <form action="{{ route('admin.users.delete', $user) }}"
                                         method="POST"
                                         class="d-inline">
@@ -62,7 +210,10 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="text-center text-muted">No users found.</td>
+                                <td colspan="7" class="text-center text-muted py-4">
+                                    <i class="bi bi-people d-block mb-2" style="font-size:1.5rem;"></i>
+                                    No users found.
+                                </td>
                             </tr>
                         @endforelse
                     </tbody>
