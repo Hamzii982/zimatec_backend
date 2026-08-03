@@ -8,6 +8,7 @@ const settleReservationUrl = window.tablarData.settleReservationUrl;
 const orderBaseUrl  = window.tablarData.orderRequestBase;
 const sheetOptionsUrlBase = window.tablarData.sheetOptionsUrlBase;
 const sheetCutUrl = window.tablarData.sheetCutUrl;
+const sheetSearchUrl = window.tablarData.sheetSearchUrl;
 
 // Group by shelf for fast lookup: { "A1": [...], "B2": [...] }
 const byShelf = {};
@@ -25,6 +26,7 @@ let selectedSheetMaterial = null; // { id, name }
 let selectedSheetOption = null;   // { type, sheet_id, length_mm, width_mm, thickness_mm }
 let sheetGeom = null;             // svg draw geometry for click-to-cut
 let selectedCorner = 'top-left';
+let selectedSheetAxis = null;     // 'length' | 'width' | null (null = let backend auto-pick)
 
 const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
@@ -50,6 +52,13 @@ async function openSheetModal(id, name) {
         document.getElementById('sheetOptionsList').innerHTML = `
             <div class="alert alert-danger">Fehler beim Laden der Plattenoptionen.</div>`;
     }
+
+    const searchResult = document.getElementById('sheetSearchResult');
+    if (searchResult) searchResult.classList.add('d-none');
+    const lengthInput = document.getElementById('sheetSearchLength');
+    const widthInput = document.getElementById('sheetSearchWidth');
+    if (lengthInput) lengthInput.value = '';
+    if (widthInput) widthInput.value = '';
 }
 
 async function ungroupSheet(sheetId) {
@@ -102,6 +111,7 @@ function renderSheetOptions(options) {
 
 function selectSheetOption(opt) {
     selectedSheetOption = opt;
+    selectedSheetAxis = null;
 
     document.getElementById('sheetPickStep').classList.add('d-none');
     document.getElementById('sheetCutStep').classList.remove('d-none');
@@ -114,7 +124,46 @@ function selectSheetOption(opt) {
     document.getElementById('sheetCutLength').value = '';
     document.getElementById('sheetCutWidth').value = '';
     hideSheetMessages();
+    updateAxisGroupVisibility();
     drawSheetPreview();
+}
+
+function updateAxisGroupVisibility() {
+    const opt = selectedSheetOption;
+    const group = document.getElementById('sheetCutAxisGroup');
+    if (!group) return;
+
+    const lengthRadio = document.getElementById('sheetCutAxisLength');
+    const widthRadio = document.getElementById('sheetCutAxisWidth');
+    const hint = document.getElementById('sheetCutAxisHint');
+
+    if (!opt || opt.axis_choice_available !== true || !opt.length_mm || !opt.width_mm) {
+        group.classList.add('d-none');
+        if (lengthRadio) lengthRadio.checked = false;
+        if (widthRadio) widthRadio.checked = false;
+        return;
+    }
+
+    const cutLength = parseFloat(document.getElementById('sheetCutLength').value);
+    const cutWidth = parseFloat(document.getElementById('sheetCutWidth').value);
+
+    const bothRemainders = cutLength > 0 && cutWidth > 0
+        && cutLength < opt.length_mm
+        && cutWidth < opt.width_mm;
+
+    if (!bothRemainders) {
+        group.classList.add('d-none');
+        if (lengthRadio) lengthRadio.checked = false;
+        if (widthRadio) widthRadio.checked = false;
+        return;
+    }
+
+    group.classList.remove('d-none');
+    const autoAxis = opt.length_mm <= opt.width_mm ? 'length' : 'width';
+    const shorter = Math.min(opt.length_mm, opt.width_mm);
+    if (hint) hint.textContent = ` (empfohlen: ${Math.round(shorter)} mm)`;
+    if (lengthRadio) lengthRadio.checked = autoAxis === 'length';
+    if (widthRadio) widthRadio.checked = autoAxis === 'width';
 }
 
 function backToSheetPick() {
@@ -201,6 +250,7 @@ function attachSheetOverlayEvents() {
         const mmWidth = Math.min(Math.max(Math.round(dy / sheetGeom.scale), 1), opt.width_mm);
         document.getElementById('sheetCutLength').value = mmLength;
         document.getElementById('sheetCutWidth').value = mmWidth;
+        updateAxisGroupVisibility();
         drawSheetPreview();
     });
 }
@@ -225,7 +275,22 @@ function rectPosForCorner(corner, geom, wPx, hPx) {
 
 document.addEventListener('input', (e) => {
     if (e.target.id === 'sheetCutLength' || e.target.id === 'sheetCutWidth') {
+        updateAxisGroupVisibility();
         drawSheetPreview();
+    }
+});
+
+document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    if (e.target.id === 'sheetSearchLength' || e.target.id === 'sheetSearchWidth') {
+        e.preventDefault();
+        runSheetSearch();
+    }
+});
+
+document.addEventListener('change', (e) => {
+    if (e.target.name === 'sheetCutAxis') {
+        selectedSheetAxis = e.target.value;
     }
 });
 
@@ -279,19 +344,26 @@ async function performSheetCut() {
     btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Wird geschnitten...`;
 
     try {
+        const body = {
+            material_id: selectedSheetMaterial.id,
+            sheet_id: opt.type === 'full' ? null : opt.sheet_id,
+            cut_length: cutLength,
+            cut_width: cutWidth,
+        };
+        if (selectedSheetAxis !== null) {
+            body.cut_axis = selectedSheetAxis;
+        }
+
         const res = await fetch(sheetCutUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': token },
-            body: JSON.stringify({
-                material_id: selectedSheetMaterial.id,
-                sheet_id: opt.type === 'full' ? null : opt.sheet_id,
-                cut_length: cutLength,
-                cut_width: cutWidth,
-            }),
+            body: JSON.stringify(body),
         });
 
         if (!res.ok) throw new Error(await res.text());
         const data = await res.json();
+
+        selectedSheetAxis = null;
 
         // Keep the local material cache (quantity badge) in sync
         const m = allMaterials.find(x => x.id === selectedSheetMaterial.id);
@@ -321,6 +393,72 @@ async function performSheetCut() {
 
     } catch (e) {
         showSheetError('Fehler beim Zuschneiden: ' + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalContent;
+    }
+}
+
+async function runSheetSearch() {
+    if (!selectedSheetMaterial) return;
+
+    const lengthInput = document.getElementById('sheetSearchLength');
+    const widthInput = document.getElementById('sheetSearchWidth');
+    const resultEl = document.getElementById('sheetSearchResult');
+    const lengthMm = parseFloat(lengthInput.value);
+    const widthMm = parseFloat(widthInput.value);
+
+    if (!lengthMm || !widthMm || lengthMm <= 0 || widthMm <= 0) {
+        resultEl.className = 'alert alert-warning mb-0 mt-2';
+        resultEl.textContent = 'Bitte gültige Länge und Breite eingeben.';
+        resultEl.classList.remove('d-none');
+        return;
+    }
+
+    const btn = document.getElementById('btnSheetSearch');
+    const originalContent = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span>`;
+
+    try {
+        const res = await fetch(`${sheetSearchUrl}/${selectedSheetMaterial.id}/sheet-search`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': token },
+            body: JSON.stringify({
+                material_id: selectedSheetMaterial.id,
+                length_mm: lengthMm,
+                width_mm: widthMm,
+            }),
+        });
+
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+
+        if (!data.sheet) {
+            resultEl.className = 'alert alert-warning mb-0 mt-2';
+            resultEl.textContent = 'Kein passendes Stück gefunden.';
+            resultEl.classList.remove('d-none');
+            return;
+        }
+
+        // Build an option object compatible with selectSheetOption().
+        const opt = {
+            type: data.sheet.type,
+            sheet_id: data.sheet.sheet_id,
+            label: data.sheet.code ?? (data.sheet.type === 'full' ? 'Volle Platte' : 'Zugeschnitten'),
+            length_mm: data.sheet.length_mm,
+            width_mm: data.sheet.width_mm,
+            thickness_mm: data.sheet.thickness_mm,
+            quantity: data.sheet.quantity,
+            axis_choice_available: !!data.sheet.axis_choice_available,
+        };
+
+        resultEl.classList.add('d-none');
+        selectSheetOption(opt);
+    } catch (e) {
+        resultEl.className = 'alert alert-danger mb-0 mt-2';
+        resultEl.textContent = 'Fehler bei der Suche: ' + e.message;
+        resultEl.classList.remove('d-none');
     } finally {
         btn.disabled = false;
         btn.innerHTML = originalContent;
@@ -871,3 +1009,4 @@ window.filterByName        = filterByName;
 window.openSheetModal   = openSheetModal;
 window.backToSheetPick  = backToSheetPick;
 window.performSheetCut  = performSheetCut;
+window.runSheetSearch   = runSheetSearch;

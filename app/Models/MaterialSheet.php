@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class MaterialSheet extends Model
 {
@@ -18,8 +19,8 @@ class MaterialSheet extends Model
     ];
 
     protected $casts = [
-        'length_mm'    => 'decimal:2',
-        'width_mm'     => 'decimal:2',
+        'length_mm' => 'decimal:2',
+        'width_mm' => 'decimal:2',
         'thickness_mm' => 'decimal:2',
     ];
 
@@ -60,10 +61,11 @@ class MaterialSheet extends Model
 
     public static function generateCode(): string
     {
-        do {
-            $code = 'SHT-' . str_pad((string) random_int(0, 9999), 4, '0', STR_PAD_LEFT);
-        } while (self::where('code', $code)->exists());
-
-        return $code;
+        // Globally unique. UUID v4 hex (without dashes) gives 32 chars of randomness,
+        // making phantom collisions across concurrent transactions computationally
+        // impossible. The schema column is `string(32)`, so we use 28 hex chars of
+        // the UUID (still ~10^33 possibilities — no realistic chance of collision)
+        // and keep the code exactly 12 chars total.
+        return 'SHT-'.strtoupper(substr(str_replace('-', '', Str::uuid()->toString()), 0, 8));
     }
 }

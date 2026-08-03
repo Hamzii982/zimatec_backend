@@ -190,6 +190,25 @@
                 {{-- STEP 1: pick which physical sheet --}}
                 <div id="sheetPickStep">
                     <p class="text-muted small mb-2">Welche Platte möchtest du zuschneiden?</p>
+
+                    <div class="border rounded p-2 mb-3 bg-light">
+                        <label class="form-label mb-1 small fw-semibold">Suche nach Zuschnitt (mm)</label>
+                        <div class="row g-2 align-items-end">
+                            <div class="col-4">
+                                <input type="number" id="sheetSearchLength" class="form-control form-control-sm" min="1" step="any" placeholder="Länge">
+                            </div>
+                            <div class="col-4">
+                                <input type="number" id="sheetSearchWidth" class="form-control form-control-sm" min="1" step="any" placeholder="Breite">
+                            </div>
+                            <div class="col-4">
+                                <button id="btnSheetSearch" type="button" class="btn btn-primary btn-sm w-100" onclick="runSheetSearch()">
+                                    <i class="bi bi-search me-1"></i> Suchen
+                                </button>
+                            </div>
+                        </div>
+                        <div id="sheetSearchResult" class="alert alert-warning mb-0 mt-2 d-none"></div>
+                    </div>
+
                     <div id="sheetOptionsList"></div>
                 </div>
 
@@ -205,6 +224,21 @@
                     </div>
 
                     <div class="border rounded p-2 mb-3 bg-light text-center">
+                        <div id="sheetCutAxisGroup" class="mb-2 d-none text-start">
+                            <label class="form-label small mb-1 fw-semibold">Schnittreihenfolge:</label>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="sheetCutAxis" id="sheetCutAxisLength" value="length">
+                                <label class="form-check-label small" for="sheetCutAxisLength">
+                                    Schnitt zuerst entlang Länge
+                                    <small class="text-muted ms-1" id="sheetCutAxisHint"></small>
+                                </label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="sheetCutAxis" id="sheetCutAxisWidth" value="width">
+                                <label class="form-check-label small" for="sheetCutAxisWidth">Schnitt zuerst entlang Breite</label>
+                            </div>
+                        </div>
+
                         <div class="btn-group w-100 mb-2" role="group">
                             <button type="button" class="btn btn-outline-secondary btn-sm corner-btn active" data-corner="top-left">↖ Oben Links</button>
                             <button type="button" class="btn btn-outline-secondary btn-sm corner-btn" data-corner="top-right">↗ Oben Rechts</button>
@@ -283,6 +317,7 @@
         orderRequestBase:   "/lager/{{ $lager->id }}/tablar/order-request",
         sheetOptionsUrlBase: "/lager/{{ $lager->id }}/tablar/materials",
         sheetCutUrl:        "{{ route('tablar.sheets.cut', $lager->id) }}",
+        sheetSearchUrl:     "/lager/{{ $lager->id }}/tablar/materials",
         ungroupUrl:         "{{ route('tablar.sheets.ungroup', $lager->id) }}",
     };
 

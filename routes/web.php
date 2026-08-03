@@ -151,6 +151,7 @@ Route::post('/lager/{lager_id}/tablar/order-request/{materialId}', [TablarContro
 Route::get('/lager/{lager_id}/tablar/materials/{material}/sheet-options', [TablarController::class, 'sheetOptions'])->name('tablar.sheets.options');
 Route::post('/lager/{lager_id}/tablar/sheets/ungroup', [TablarController::class, 'ungroupSiblings'])->name('tablar.sheets.ungroup');
 Route::post('/lager/{lager_id}/tablar/sheets/cut', [TablarController::class, 'cutSheet'])->name('tablar.sheets.cut');
+Route::post('/lager/{lager_id}/tablar/materials/{material_id}/sheet-search', [TablarController::class, 'findSheetForSize'])->name('tablar.sheets.search');
 
 // Language routes
 Route::get('/language/{locale}', [LanguageController::class, 'switchLanguage'])->name('language.switch');
