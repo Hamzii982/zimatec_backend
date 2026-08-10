@@ -20,6 +20,8 @@ use App\Http\Controllers\Admin\SupplierProjectController;
 use App\Http\Controllers\Admin\TablarController as AdminTablarController;
 use App\Http\Controllers\Admin\TimeController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\Workflow\AssignmentController as AdminWorkflowAssignmentController;
+use App\Http\Controllers\Admin\Workflow\StageController as AdminWorkflowStageController;
 use App\Http\Controllers\FeedbackController as PublicFeedbackController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\LanguageController;
@@ -32,6 +34,8 @@ use App\Http\Controllers\TablarController;
 use App\Http\Controllers\TimeRecordController;
 use App\Http\Controllers\SheetManagementController;
 use App\Http\Controllers\UserController as User;
+use App\Http\Controllers\Workflow\ProjectStepController as WorkflowProjectStepController;
+use App\Http\Controllers\Workflow\WorkflowController as WorkflowWorkflowController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -124,6 +128,26 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/reply', [PrinterProblemEmailController::class, 'storeReply'])->name('reply');
         });
 });
+
+// Project workflow routes (auth + workflow.access)
+if (config('modules.projects')) {
+    Route::middleware(['auth', 'workflow.access'])
+        ->prefix('workflow')
+        ->name('workflow.')
+        ->group(function () {
+            Route::get('/', [WorkflowWorkflowController::class, 'index'])->name('index');
+            Route::get('/projects/{project}', [WorkflowWorkflowController::class, 'show'])->name('show');
+            Route::get('/projects/{project}/history', [WorkflowWorkflowController::class, 'history'])->name('history');
+
+            Route::post('/projects/{project}/steps/{step}/goals', [WorkflowProjectStepController::class, 'addGoal'])->name('steps.goals.store');
+            Route::delete('/projects/{project}/steps/{step}/goals/{goal}', [WorkflowProjectStepController::class, 'destroyGoal'])->name('steps.goals.destroy');
+            Route::post('/projects/{project}/steps/{step}/complete', [WorkflowProjectStepController::class, 'complete'])->name('steps.complete');
+            Route::post('/projects/{project}/steps/{step}/assignees', [WorkflowProjectStepController::class, 'assignStep'])->name('steps.assignees.store');
+            Route::delete('/projects/{project}/steps/{step}/assignees/{user}', [WorkflowProjectStepController::class, 'unassignStep'])->name('steps.assignees.destroy');
+            Route::post('/projects/{project}/advance', [WorkflowProjectStepController::class, 'advance'])->name('advance');
+            Route::post('/projects/{project}/reassign', [WorkflowProjectStepController::class, 'reassign'])->name('reassign');
+        });
+}
 
 // Time Recording Routes
 Route::prefix('time-records')->name('time-records.')->group(function () {
@@ -396,5 +420,24 @@ Route::middleware(['auth', 'role:admin'])
         // Supplier Routes
         if (config('modules.feedback')) {
             Route::get('feedback', [FeedbackController::class, 'index'])->name('feedback.index');
+        }
+
+        // Project workflow admin settings
+        if (config('modules.projects')) {
+            Route::prefix('workflow')->name('workflow.')->group(function () {
+                Route::get('/settings', [AdminWorkflowStageController::class, 'index'])->name('settings');
+
+                Route::post('/stages', [AdminWorkflowStageController::class, 'storeStage'])->name('stages.store');
+                Route::put('/stages/{stage}', [AdminWorkflowStageController::class, 'updateStage'])->name('stages.update');
+                Route::delete('/stages/{stage}', [AdminWorkflowStageController::class, 'destroyStage'])->name('stages.destroy');
+
+                Route::post('/stages/{stage}/steps', [AdminWorkflowStageController::class, 'storeStep'])->name('stages.steps.store');
+                Route::put('/steps/{step}', [AdminWorkflowStageController::class, 'updateStep'])->name('steps.update');
+                Route::delete('/steps/{step}', [AdminWorkflowStageController::class, 'destroyStep'])->name('steps.destroy');
+
+                Route::post('/projects/attach', [AdminWorkflowAssignmentController::class, 'attachProjectSelection'])->name('projects.attach');
+                Route::post('/projects/{project}/attach', [AdminWorkflowAssignmentController::class, 'attach'])->name('projects.attach.project');
+                Route::post('/projects/{project}/assign', [AdminWorkflowAssignmentController::class, 'assign'])->name('projects.assign');
+            });
         }
     });

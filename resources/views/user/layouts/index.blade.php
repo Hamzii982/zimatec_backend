@@ -66,6 +66,15 @@
                     </li>
 
                     @auth
+                        {{-- Projekt-Workflow --}}
+                        <li class="nav-item mx-2 my-1 my-lg-0">
+                            <a href="{{ route('workflow.index') }}" class="nav-link {{ request()->routeIs('workflow.*') ? 'active fw-bold text-navitem' : '' }}">
+                                <i class="bi bi-kanban me-1"></i> Projekt-Workflow
+                            </a>
+                        </li>
+                    @endauth
+
+                    @auth
                         @if(Auth::user()->role === 'admin')
                             <li class="nav-item mx-2 my-1 my-lg-0">
                                 <a href="{{ route('admin.dashboard') }}" class="nav-link">

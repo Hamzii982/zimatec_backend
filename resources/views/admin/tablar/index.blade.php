@@ -356,7 +356,7 @@
                             <label class="form-label">
                                 Einheit <span class="text-muted">(optional)</span>
                             </label>
-                            <input type="text" id="unit" class="form-control" value="stück" placeholder="z.B. Stk, m, kg, Rolle">
+                            <input type="text" id="unit" class="form-control" placeholder="z.B. Stk, m, kg, Rolle" value="Stück">
                         </div>
 
                         <!-- TABLAR -->

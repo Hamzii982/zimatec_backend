@@ -1,0 +1,341 @@
+/* Project Workflow — brand-aligned (navy) + modern glassy aesthetic */
+
+:root {
+    --wf-primary: #002752;
+    --wf-primary-strong: #001a3d;
+    --wf-primary-soft: rgba(0, 39, 82, .06);
+    --wf-primary-tint: rgba(0, 39, 82, .04);
+    --wf-stage-tint: rgba(0, 39, 82, .03);
+    --wf-shadow-sm: 0 .125rem .5rem rgba(0, 39, 82, .06);
+    --wf-shadow-md: 0 .25rem 1rem rgba(0, 39, 82, .10);
+    --wf-shadow-lg: 0 .5rem 2rem rgba(0, 39, 82, .12);
+    --wf-radius: 1rem;
+    --wf-radius-lg: 1.25rem;
+    --wf-radius-sm: .75rem;
+}
+
+/* ============ BOARD (user index) ============ */
+
+.workflow-board {
+    align-items: stretch;
+}
+
+.workflow-column {
+    background: rgba(255, 255, 255, .85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(0, 0, 0, .04);
+    border-top: 4px solid var(--stage-color, var(--wf-primary));
+    border-radius: var(--wf-radius);
+    box-shadow: var(--wf-shadow-md);
+    display: flex;
+    flex-direction: column;
+    min-height: 60vh;
+    transition: box-shadow .25s ease, transform .25s ease;
+}
+
+.workflow-column:hover {
+    box-shadow: var(--wf-shadow-lg);
+}
+
+.workflow-column__header {
+    background: linear-gradient(180deg, rgba(255, 255, 255, .9), rgba(255, 255, 255, .65));
+    border-bottom: 1px solid rgba(0, 0, 0, .04);
+    border-top-left-radius: calc(var(--wf-radius) - 1px);
+    border-top-right-radius: calc(var(--wf-radius) - 1px);
+}
+
+.workflow-column__body {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    min-height: 8rem;
+    background-color: var(--wf-stage-tint);
+    padding: .75rem;
+    transition: background-color .25s ease;
+}
+
+.workflow-column__body.is-drop-target {
+    background-color: var(--wf-primary-soft);
+    outline: 2px dashed var(--stage-color, var(--wf-primary));
+    outline-offset: -6px;
+}
+
+.workflow-empty {
+    border: 2px dashed rgba(0, 39, 82, .12);
+    border-radius: var(--wf-radius-sm);
+    padding: 1.5rem 1rem;
+    color: rgba(0, 39, 82, .45);
+    text-align: center;
+    font-size: .85rem;
+    background: rgba(255, 255, 255, .4);
+}
+
+/* ============ CARDS ============ */
+
+.workflow-card {
+    background: #fff;
+    border-radius: var(--wf-radius-sm);
+    border: 1px solid rgba(0, 0, 0, .04);
+    box-shadow: var(--wf-shadow-sm);
+    transition: transform .25s ease, box-shadow .25s ease, opacity .25s ease;
+    will-change: transform, opacity;
+    overflow: hidden;
+}
+
+.workflow-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--wf-shadow-md);
+}
+
+.workflow-card.is-leaving {
+    opacity: 0;
+    transform: translateX(-20px) scale(.95);
+}
+
+.workflow-card.is-entering {
+    animation: workflow-card-in .35s ease;
+}
+
+@keyframes workflow-card-in {
+    from { opacity: 0; transform: translateX(20px) scale(.95); }
+    to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+@keyframes workflow-card-out {
+    from { opacity: 1; transform: translateX(0) scale(1); }
+    to   { opacity: 0; transform: translateX(-20px) scale(.95); }
+}
+
+.workflow-card__head {
+    padding: .75rem .9rem .25rem;
+}
+
+.workflow-card__body {
+    padding: 0 .9rem .5rem;
+}
+
+.workflow-card__foot {
+    padding: .5rem .9rem .9rem;
+    display: flex;
+    gap: .5rem;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.workflow-card__auftrag {
+    font-size: .7rem;
+    color: rgba(0, 39, 82, .55);
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    font-weight: 600;
+}
+
+.workflow-card__name {
+    font-weight: 600;
+    color: var(--wf-primary-strong);
+    text-decoration: none;
+    line-height: 1.25;
+    display: block;
+    margin-top: .15rem;
+}
+
+.workflow-card__name:hover {
+    text-decoration: underline;
+}
+
+.workflow-card__avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--wf-primary);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: .75rem;
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .3);
+}
+
+.workflow-card__assigned-badge {
+    background: var(--wf-primary-soft);
+    color: var(--wf-primary-strong);
+    font-size: .65rem;
+    padding: .15rem .5rem;
+    border-radius: 999px;
+    border: 1px solid rgba(0, 39, 82, .12);
+    font-weight: 600;
+    letter-spacing: .02em;
+}
+
+/* ============ STEPS (project show) ============ */
+
+.workflow-step {
+    background: #fff;
+    border-radius: var(--wf-radius-sm);
+    border: 1px solid rgba(0, 0, 0, .06);
+    box-shadow: var(--wf-shadow-sm);
+    padding: 1rem;
+    transition: background-color .2s ease, border-color .2s ease, box-shadow .2s ease;
+}
+
+.workflow-step:hover {
+    box-shadow: var(--wf-shadow-md);
+}
+
+.workflow-step--done {
+    background-color: rgba(31, 143, 95, .05);
+    border-color: rgba(31, 143, 95, .25);
+}
+
+.workflow-step__assignees {
+    background: var(--wf-primary-tint);
+    border-radius: var(--wf-radius-sm);
+    padding: .5rem .65rem;
+    border: 1px dashed rgba(0, 39, 82, .12);
+}
+
+.workflow-step__assignees .badge {
+    background: #fff;
+    color: var(--wf-primary-strong);
+    border: 1px solid rgba(0, 39, 82, .12);
+    font-weight: 500;
+    padding: .35rem .65rem;
+}
+
+/* ============ PROGRESS + STAGE PILL ============ */
+
+.workflow-progress {
+    height: 6px;
+    background: rgba(0, 39, 82, .06);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.workflow-progress__bar {
+    height: 100%;
+    border-radius: 999px;
+    transition: width .5s cubic-bezier(.4, .2, .2, 1);
+}
+
+.workflow-stage-pill {
+    font-size: .78rem;
+    padding: .4em .8em;
+    font-weight: 600;
+    letter-spacing: .02em;
+    box-shadow: 0 2px 4px rgba(0, 39, 82, .1);
+}
+
+/* ============ HISTORY PANEL ============ */
+
+.workflow-history li {
+    animation: workflow-history-pulse .4s ease;
+    border-color: rgba(0, 39, 82, .06) !important;
+}
+
+.workflow-history li:hover {
+    background-color: var(--wf-primary-tint);
+}
+
+@keyframes workflow-history-pulse {
+    from { background-color: var(--wf-primary-soft); }
+    to   { background-color: transparent; }
+}
+
+/* ============ ADMIN SETTINGS ============ */
+
+.workflow-settings-card {
+    border-radius: var(--wf-radius);
+    border: 1px solid rgba(0, 0, 0, .04);
+    box-shadow: var(--wf-shadow-sm);
+    background: #fff;
+}
+
+.workflow-settings-card .card-body {
+    padding: 1.25rem;
+}
+
+.workflow-settings-card .form-floating > label {
+    color: rgba(0, 39, 82, .55);
+}
+
+.workflow-settings-card .btn-group-icon > .btn {
+    border-radius: 999px !important;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ============ BUTTONS (navy override) ============ */
+
+.btn-wechsel,
+.btn-primary,
+.btn-primary:focus {
+    background-color: var(--wf-primary) !important;
+    border-color: var(--wf-primary-strong) !important;
+    color: #fff !important;
+}
+
+.btn-wechsel:hover,
+.btn-primary:hover {
+    background-color: var(--wf-primary-strong) !important;
+    border-color: var(--wf-primary-strong) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 .25rem .75rem rgba(0, 39, 82, .25);
+}
+
+.btn-outline-primary {
+    color: var(--wf-primary);
+    border-color: var(--wf-primary);
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--wf-primary);
+    border-color: var(--wf-primary-strong);
+    color: #fff;
+}
+
+/* ============ FILTER + TOOLBAR ============ */
+
+.workflow-toolbar {
+    background: rgba(255, 255, 255, .7);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(0, 0, 0, .04);
+    border-radius: var(--wf-radius);
+    padding: .65rem .85rem;
+    box-shadow: var(--wf-shadow-sm);
+}
+
+.workflow-toolbar .form-control,
+.workflow-toolbar .form-select {
+    border-radius: 999px;
+    border-color: rgba(0, 39, 82, .12);
+}
+
+.workflow-toolbar .form-control:focus,
+.workflow-toolbar .form-select:focus {
+    border-color: var(--wf-primary);
+    box-shadow: 0 0 0 .2rem rgba(0, 39, 82, .12);
+}
+
+/* ============ REDUCED MOTION ============ */
+
+@media (prefers-reduced-motion: reduce) {
+    .workflow-card,
+    .workflow-column,
+    .workflow-step {
+        transition: none !important;
+    }
+    .workflow-card.is-entering,
+    .workflow-card.is-leaving {
+        animation: none !important;
+        transform: none !important;
+        opacity: 1 !important;
+    }
+    .workflow-history li {
+        animation: none !important;
+    }
+}
