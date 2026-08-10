@@ -166,6 +166,90 @@ function updateAxisGroupVisibility() {
     if (widthRadio) widthRadio.checked = autoAxis === 'width';
 }
 
+function renderCutResultImage(remainders) {
+    const resultEl = document.getElementById('sheetCutResult');
+    resultEl.classList.remove('alert', 'alert-success'); // repurposing this container for a richer layout
+    resultEl.classList.remove('d-none');
+
+    if (remainders.length === 0) {
+        resultEl.innerHTML = `
+            <div class="border rounded p-3 bg-light text-center">
+                <p class="mb-2 fw-semibold text-success">Zuschnitt abgeschlossen</p>
+                <p class="text-muted small mb-3">Keine Restplatte übrig — die gesamte Platte wurde verwendet.</p>
+                <button class="btn btn-sm btn-primary" onclick="backToSheetPick()">Weiter</button>
+            </div>`;
+        return;
+    }
+
+    const cards = remainders.map(r => {
+        const maxW = 200, maxH = 130;
+        const scale = Math.min(maxW / r.length_mm, maxH / r.width_mm);
+        const w = r.length_mm * scale;
+        const h = r.width_mm * scale;
+        const rectX = (maxW - w) / 2;
+        const rectY = (maxH - h) / 2;
+    
+        const code = r.code;
+        // Rough monospace-ish estimate: ~0.6em average character width
+        const fitFontSize = (availableWidth, text, maxSize, minSize) => {
+            const estCharWidth = 0.6;
+            const size = Math.min(maxSize, availableWidth / (text.length * estCharWidth));
+            return Math.max(minSize, Math.floor(size));
+        };
+    
+        const codePadding = 10; // px margin inside the rect before text touches the edge
+        const availableWidth = Math.max(w - codePadding, 0);
+        const codeFontSize = fitFontSize(availableWidth, code, 13, 8);
+        const dimsFontSize = Math.max(codeFontSize - 2, 7);
+    
+        // Does the code fit inside the rect even at minimum size? If not, place it below instead.
+        const estimatedCodeWidth = code.length * codeFontSize * 0.6;
+        const codeFitsInside = estimatedCodeWidth <= (w - codePadding) && h >= (codeFontSize * 2 + dimsFontSize + 6);
+    
+        let labelsSvg;
+        if (codeFitsInside) {
+            labelsSvg = `
+                <text x="${maxW / 2}" y="${maxH / 2 - 4}" text-anchor="middle" font-size="${codeFontSize}" font-weight="bold" fill="#4a2e14">
+                    ${code}
+                </text>
+                <text x="${maxW / 2}" y="${maxH / 2 + codeFontSize}" text-anchor="middle" font-size="${dimsFontSize}" fill="#6b4a2b">
+                    ${Math.round(r.length_mm)} × ${Math.round(r.width_mm)} mm
+                </text>`;
+        } else {
+            // Label doesn't fit inside — place it just below the rectangle instead.
+            labelsSvg = `
+                <text x="${maxW / 2}" y="${rectY + h + 16}" text-anchor="middle" font-size="12" font-weight="bold" fill="#4a2e14">
+                    ${code}
+                </text>
+                <text x="${maxW / 2}" y="${rectY + h + 30}" text-anchor="middle" font-size="10" fill="#6b4a2b">
+                    ${Math.round(r.length_mm)} × ${Math.round(r.width_mm)} mm
+                </text>`;
+        }
+    
+        // Extra viewBox height reserved for below-rect labels when needed
+        const svgHeight = codeFitsInside ? maxH : maxH + 34;
+    
+        return `
+            <div class="text-center">
+                <svg width="${maxW}" height="${svgHeight}" viewBox="0 0 ${maxW} ${svgHeight}">
+                    <rect x="${rectX}" y="${rectY}" width="${w}" height="${h}"
+                          fill="#f5deb3" stroke="#8b5e34" stroke-width="2" rx="2" />
+                    ${labelsSvg}
+                </svg>
+            </div>`;
+    }).join('');
+
+    resultEl.innerHTML = `
+        <div class="border rounded p-3 bg-light">
+            <p class="mb-2 fw-semibold text-success text-center">Zuschnitt abgeschlossen</p>
+            <p class="text-muted small text-center mb-2">Restplatte(n) — bitte mit diesem Code beschriften:</p>
+            <div class="d-flex justify-content-center gap-3 flex-wrap">${cards}</div>
+            <div class="text-center mt-3">
+                <button class="btn btn-sm btn-primary" onclick="backToSheetPick()">Weiter</button>
+            </div>
+        </div>`;
+}
+
 function backToSheetPick() {
     document.getElementById('sheetCutStep').classList.add('d-none');
     document.getElementById('sheetPickStep').classList.remove('d-none');
@@ -315,7 +399,9 @@ document.addEventListener('click', (e) => {
 });
 
 function hideSheetMessages() {
-    document.getElementById('sheetCutResult').classList.add('d-none');
+    const resultEl = document.getElementById('sheetCutResult');
+    resultEl.classList.add('d-none');
+    resultEl.className = 'alert alert-success d-none'; // reset back to default alert styling for next use
     document.getElementById('sheetCutError').classList.add('d-none');
 }
 
@@ -373,23 +459,13 @@ async function performSheetCut() {
             filterByName();
         }
 
-        let msg = `Zugeschnitten: <strong>${Math.round(cutLength)} × ${Math.round(cutWidth)} mm</strong>`;
-        if (data.remainders.length > 0) {
-            data.remainders.forEach(r => {
-                msg += `<br>Restplatte gespeichert: ${Math.round(r.length_mm)} × ${Math.round(r.width_mm)} mm (${r.code})`;
-            });
-        } else {
-            msg += `<br>Keine Restplatte übrig.`;
-        }
-        document.getElementById('sheetCutResult').innerHTML = msg;
-        document.getElementById('sheetCutResult').classList.remove('d-none');
+        renderCutResultImage(data.remainders);
 
         // Refresh the options list so the picker reflects new stock,
         // then send the user back to pick their next action.
         const refreshed = await fetch(`${sheetOptionsUrlBase}/${selectedSheetMaterial.id}/sheet-options`);
         const refreshedData = await refreshed.json();
         renderSheetOptions(refreshedData.options);
-        setTimeout(() => backToSheetPick(), 1200);
 
     } catch (e) {
         showSheetError('Fehler beim Zuschneiden: ' + e.message);
