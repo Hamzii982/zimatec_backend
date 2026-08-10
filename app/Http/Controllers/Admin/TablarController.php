@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Lager;
 use App\Models\Material;
 use App\Models\MaterialConsumption;
+use App\Models\MaterialSheet;
 use App\Models\Supplier;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -119,9 +120,12 @@ class TablarController extends Controller
         $data = $request->validate([
             'quantity' => 'required|integer|min:0',
             'reason' => 'nullable|in:add,audit',
+            'sheet_length_mm' => 'nullable|numeric|min:1',
+            'sheet_width_mm' => 'nullable|numeric|min:1',
+            'sheet_thickness_mm' => 'nullable|numeric|min:0.1',
         ]);
 
-        $material = DB::transaction(function () use ($data, $lager_id, $id) {
+        $material = DB::transaction(function () use ($data, $lager_id, $id, $request) {
             $material = Material::where('lager_id', $lager_id)
                 ->lockForUpdate()
                 ->findOrFail($id);
@@ -144,6 +148,10 @@ class TablarController extends Controller
                     'consumption_type' => $type,
                     'consumption_time' => now(),
                 ]);
+
+                if ($delta > 0 && $type === 'restock') {
+                    $this->createFullSheets($material, $delta, $request->all());
+                }
             }
 
             return $material;
@@ -258,6 +266,9 @@ class TablarController extends Controller
             'is_werkzeug' => 'nullable|boolean',
             'is_active' => 'nullable|boolean',
             'image' => 'nullable|image|max:4096',
+            'sheet_length_mm' => 'nullable|numeric|min:1',
+            'sheet_width_mm' => 'nullable|numeric|min:1',
+            'sheet_thickness_mm' => 'nullable|numeric|min:0.1',
         ]);
 
         $data['lager_id'] = $lager_id;
@@ -278,6 +289,8 @@ class TablarController extends Controller
                 'consumption_type' => 'restock',
                 'consumption_time' => now(),
             ]);
+
+            $this->createFullSheets($material, $material->quantity, $request->all());
         }
 
         return response()->json($material);
@@ -309,6 +322,9 @@ class TablarController extends Controller
             'is_werkzeug' => 'nullable|boolean',
             'is_active' => 'nullable|boolean',
             'image' => 'nullable|image|max:4096',
+            'sheet_length_mm' => 'nullable|numeric|min:1',
+            'sheet_width_mm' => 'nullable|numeric|min:1',
+            'sheet_thickness_mm' => 'nullable|numeric|min:0.1',
         ]);
 
         $data['lager_id'] = $lager_id;
@@ -335,6 +351,10 @@ class TablarController extends Controller
                 'consumption_type' => $delta > 0 ? 'restock' : 'audit_adjust',
                 'consumption_time' => now(),
             ]);
+
+            if ($delta > 0) {
+                $this->createFullSheets($material, $delta, $request->all());
+            }
         }
 
         return response()->json($material);
@@ -422,5 +442,28 @@ class TablarController extends Controller
             'lager', 'totalMaterials', 'lowStockMaterials', 'highestStock',
             'lowestStock', 'topUsed10Days', 'topUsed30Days', 'recentLogs', 'shelfActivity'
         ));
+    }
+
+    private function createFullSheets(Material $material, int $qty, array $data): void
+    {
+        if ($qty <= 0 || $material->lager?->type !== 'holz') {
+            return;
+        }
+
+        if (empty($data['sheet_length_mm']) || empty($data['sheet_width_mm']) || empty($data['sheet_thickness_mm'])) {
+            abort(422, 'Plattengröße (Länge, Breite, Dicke) ist für dieses Lager erforderlich.');
+        }
+
+        for ($i = 0; $i < $qty; $i++) {
+            MaterialSheet::create([
+                'material_id' => $material->id,
+                'code' => MaterialSheet::generateCode(),
+                'length_mm' => $data['sheet_length_mm'],
+                'width_mm' => $data['sheet_width_mm'],
+                'thickness_mm' => $data['sheet_thickness_mm'],
+                'status' => 'in_stock',
+                'parent_sheet_id' => null,
+            ]);
+        }
     }
 }

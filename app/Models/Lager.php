@@ -11,6 +11,7 @@ class Lager extends Model
     protected $fillable = [
         'name',
         'description',
+        'type',
         'is_active',
         'status',
     ];

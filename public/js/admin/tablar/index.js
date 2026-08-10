@@ -137,8 +137,11 @@ async function saveMaterial() {
     const originalText = btn.innerHTML;
 
     const addQty     = parseInt(document.getElementById('addQuantity')?.value || 0);
+    const isHolzLager = document.getElementById('sheetLengthMm') !== null;
     const currentQty = parseInt(document.getElementById('currentQuantity')?.value || 0);
     const name       = document.getElementById('name').value;
+
+    console.log("Is Holz Lager:", isHolzLager);
 
     if (!name) {
         showAlert("Bitte alle Felder korrekt ausfüllen");
@@ -148,6 +151,19 @@ async function saveMaterial() {
     if (editMode && addQty < 0) {
         showAlert("Ungültige Menge");
         return;
+    }
+
+    console.log("Add Quantity:", addQty);
+
+    if (isHolzLager && addQty > 0) {
+        const len = document.getElementById('sheetLengthMm').value;
+        const wid = document.getElementById('sheetWidthMm').value;
+        const thk = document.getElementById('sheetThicknessMm').value;
+
+        if (!len || !wid || !thk) {
+            showAlert("Bitte Plattengröße (Länge, Breite, Dicke) angeben");
+            return;
+        }
     }
 
     const formData = new FormData();
@@ -162,6 +178,12 @@ async function saveMaterial() {
     formData.append('order_status', document.getElementById('orderStatus').value || '');
     formData.append('is_werkzeug', document.getElementById('isWerkzeug').checked ? '1' : '0');
     formData.append('is_active', document.getElementById('isActive').checked ? '1' : '0');
+
+    if (isHolzLager && addQty > 0) {
+        formData.append('sheet_length_mm', document.getElementById('sheetLengthMm').value);
+        formData.append('sheet_width_mm', document.getElementById('sheetWidthMm').value);
+        formData.append('sheet_thickness_mm', document.getElementById('sheetThicknessMm').value);
+    }
 
     const imageFile = document.getElementById('image').files[0];
     const imageCaptured = document.getElementById('imageCaptured').value;

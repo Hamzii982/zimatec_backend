@@ -367,6 +367,28 @@
                             <input type="text" id="tablar" class="form-control">
                         </div>
 
+                        {{-- SHEET SIZE (Holz lager only) --}}
+                        @if(($lager->type ?? null) === 'holz')
+                        <div id="sheetSizeFields" class="border rounded p-3 mb-3 bg-light">
+                            <p class="text-muted small text-uppercase fw-semibold mb-2">Plattengröße (neue volle Platten)</p>
+                            <div class="row g-2">
+                                <div class="col-4">
+                                    <label class="form-label mb-1">Länge (mm)</label>
+                                    <input type="number" id="sheetLengthMm" class="form-control form-control-sm" min="1">
+                                </div>
+                                <div class="col-4">
+                                    <label class="form-label mb-1">Breite (mm)</label>
+                                    <input type="number" id="sheetWidthMm" class="form-control form-control-sm" min="1">
+                                </div>
+                                <div class="col-4">
+                                    <label class="form-label mb-1">Dicke (mm)</label>
+                                    <input type="number" id="sheetThicknessMm" class="form-control form-control-sm" min="0.1" step="0.1">
+                                </div>
+                            </div>
+                            <small class="text-muted">Nur nötig, wenn "Hinzufügen (+ Menge)" &gt; 0 ist.</small>
+                        </div>
+                        @endif
+
                         <!-- THRESHOLD -->
                         <div class="mb-3">
                             <label class="form-label">

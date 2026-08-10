@@ -22,6 +22,16 @@
                 </div>
 
                 <div class="mb-3">
+                    <label for="type" class="form-label">Lager Typ</label>
+                    <select class="form-select" id="type" name="type" required>
+                        <option value="">Bitte wählen</option>
+                        <option value="material">Material Lager</option>
+                        <option value="werkzeug">Werkzeug Lager</option>
+                        <option value="holz">Holz Lager</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
                     <label for="is_active" class="form-label">Aktiv</label>
                     <select class="form-select" id="is_active" name="is_active" required>
                         <option value="1">Ja</option>

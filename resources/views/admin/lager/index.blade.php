@@ -20,6 +20,7 @@
                             <th>Beschreibung</th>
                             <th>Aktiv</th>
                             <th>Status</th>
+                            <th>Type</th>
                             <th class="text-end">Aktionen</th>
                         </tr>
                     </thead>
@@ -30,6 +31,7 @@
                                 <td>{{ $lager->description }}</td>
                                 <td>{{ $lager->is_active ? 'Ja' : 'Nein' }}</td>
                                 <td>{{ $lager->status }}</td>
+                                <td>{{ $lager->type }}</td>
                                 <td class="text-end">
                                     <a href="{{ route('admin.lager.show', $lager) }}" class="btn btn-outline-secondary btn-sm">
                                         <i class="bi bi-eye"></i>

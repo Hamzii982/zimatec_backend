@@ -176,6 +176,120 @@
 
         </div>
     </div>
+</div>`
+
+<div class="modal fade" id="sheetModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 id="sheetModalTitle" class="mb-0"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+
+                {{-- STEP 1: pick which physical sheet --}}
+                <div id="sheetPickStep">
+                    <p class="text-muted small mb-2">Welche Platte möchtest du zuschneiden?</p>
+
+                    <div class="border rounded p-2 mb-3 bg-light">
+                        <label class="form-label mb-1 small fw-semibold">Suche nach Zuschnitt (mm)</label>
+                        <div class="row g-2 align-items-end">
+                            <div class="col-4">
+                                <input type="number" id="sheetSearchLength" class="form-control form-control-sm" min="1" step="any" placeholder="Länge">
+                            </div>
+                            <div class="col-4">
+                                <input type="number" id="sheetSearchWidth" class="form-control form-control-sm" min="1" step="any" placeholder="Breite">
+                            </div>
+                            <div class="col-4">
+                                <button id="btnSheetSearch" type="button" class="btn btn-primary btn-sm w-100" onclick="runSheetSearch()">
+                                    <i class="bi bi-search me-1"></i> Suchen
+                                </button>
+                            </div>
+                        </div>
+                        <div id="sheetSearchResult" class="alert alert-warning mb-0 mt-2 d-none"></div>
+                    </div>
+
+                    <div id="sheetOptionsList"></div>
+                </div>
+
+                {{-- STEP 2: cutting workspace --}}
+                <div id="sheetCutStep" class="d-none">
+                    <button class="btn btn-sm btn-outline-secondary mb-2" onclick="backToSheetPick()">
+                        ← Andere Platte wählen
+                    </button>
+
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 id="sheetCutTitle" class="mb-0"></h6>
+                        <span id="sheetCutDims" class="badge bg-secondary"></span>
+                    </div>
+
+                    <div class="border rounded p-2 mb-3 bg-light text-center">
+                        <div id="sheetCutAxisGroup" class="mb-2 d-none text-start">
+                            <label class="form-label small mb-1 fw-semibold">Schnittreihenfolge:</label>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="sheetCutAxis" id="sheetCutAxisLength" value="length">
+                                <label class="form-check-label small" for="sheetCutAxisLength">
+                                    Schnitt zuerst entlang Länge
+                                    <small class="text-muted ms-1" id="sheetCutAxisHint"></small>
+                                </label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="sheetCutAxis" id="sheetCutAxisWidth" value="width">
+                                <label class="form-check-label small" for="sheetCutAxisWidth">Schnitt zuerst entlang Breite</label>
+                            </div>
+                        </div>
+
+                        <div class="btn-group w-100 mb-2" role="group">
+                            <button type="button" class="btn btn-outline-secondary btn-sm corner-btn active" data-corner="top-left">↖ Oben Links</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm corner-btn" data-corner="top-right">↗ Oben Rechts</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm corner-btn" data-corner="bottom-left">↙ Unten Links</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm corner-btn" data-corner="bottom-right">↘ Unten Rechts</button>
+                        </div>
+                        <svg id="sheetPreviewSvg" width="100%" height="300" viewBox="0 0 500 300" style="cursor: crosshair;"></svg>
+                        <small class="text-muted d-block mt-1">Klicke auf die Platte, um den Zuschnitt festzulegen.</small>
+                    </div>
+
+                    <div class="row g-2 align-items-end mb-2">
+                        <div class="col-4">
+                            <label class="form-label mb-1">Länge (mm)</label>
+                            <input type="number" id="sheetCutLength" class="form-control form-control-sm" min="1">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label mb-1">Breite (mm)</label>
+                            <input type="number" id="sheetCutWidth" class="form-control form-control-sm" min="1">
+                        </div>
+                        <div class="col-4">
+                            <button id="btnSheetCut" class="btn btn-danger btn-sm w-100" onclick="performSheetCut()">
+                                <i class="bi bi-scissors"></i> Schneiden
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label mb-1 d-block">Zuschnitt anwenden auf:</label>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="checkbox" id="sheetApplyLength" checked>
+                            <label class="form-check-label" for="sheetApplyLength">Länge</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="checkbox" id="sheetApplyWidth">
+                            <label class="form-check-label" for="sheetApplyWidth">Breite</label>
+                        </div>
+                    </div>
+
+                    <div class="btn-group w-100 mb-3" role="group">
+                        <button type="button" class="btn btn-outline-secondary btn-sm sheet-preset" data-fraction="1">Ganze Platte</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm sheet-preset" data-fraction="0.5">Halbe Platte</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm sheet-preset" data-fraction="0.25">Viertel Platte</button>
+                    </div>
+
+                    <div id="sheetCutResult" class="alert alert-success d-none"></div>
+                    <div id="sheetCutError" class="alert alert-danger d-none"></div>
+                </div>
+
+            </div>
+        </div>
+    </div>
 </div>
 
 <div class="modal fade" id="imageLightboxModal" tabindex="-1" aria-hidden="true">
@@ -195,6 +309,7 @@
         storagePath: "{{ asset('storage/') }}",
         statusTranslations: @json($statusTranslations),
         lagerId:            {{ $lager->id }},
+        isHolzLager:        {{ $lager->type === 'holz' ? 'true' : 'false' }},
         consumeUrl:         "{{ route('tablar.consume', $lager->id) }}",
         returnUrl:          "{{ route('tablar.return', $lager->id) }}",
         reserveUrl:         "{{ route('tablar.reserve', $lager->id) }}",
@@ -202,6 +317,10 @@
         orderRequestBase:   "/lager/{{ $lager->id }}/tablar/order-request",
         cancelNotificationBase: "/lager/{{ $lager->id }}/tablar/materials",
         confirmDeliveryBase:    "/lager/{{ $lager->id }}/tablar/materials",
+        sheetOptionsUrlBase: "/lager/{{ $lager->id }}/tablar/materials",
+        sheetCutUrl:        "{{ route('tablar.sheets.cut', $lager->id) }}",
+        sheetSearchUrl:     "/lager/{{ $lager->id }}/tablar/materials",
+        ungroupUrl:         "{{ route('tablar.sheets.ungroup', $lager->id) }}",
     };
 
     // Helper JavaScript function to open up the lightbox modal

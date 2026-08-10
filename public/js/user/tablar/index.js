@@ -8,6 +8,9 @@ const settleReservationUrl = window.tablarData.settleReservationUrl;
 const orderBaseUrl  = window.tablarData.orderRequestBase;
 const cancelNotificationBaseUrl = window.tablarData.cancelNotificationBase;
 const confirmDeliveryBaseUrl = window.tablarData.confirmDeliveryBase;
+const sheetOptionsUrlBase = window.tablarData.sheetOptionsUrlBase;
+const sheetCutUrl = window.tablarData.sheetCutUrl;
+const sheetSearchUrl = window.tablarData.sheetSearchUrl;
 
 // Group by shelf for fast lookup: { "A1": [...], "B2": [...] }
 const byShelf = {};
@@ -21,7 +24,524 @@ let currentShelf = null;
 let currentShelfMaterials = [];
 let selectedMaterial = null;
 
+let selectedSheetMaterial = null; // { id, name }
+let selectedSheetOption = null;   // { type, sheet_id, length_mm, width_mm, thickness_mm }
+let sheetGeom = null;             // svg draw geometry for click-to-cut
+let selectedCorner = 'top-left';
+let selectedSheetAxis = null;     // 'length' | 'width' | null (null = let backend auto-pick)
+
 const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+async function openSheetModal(id, name) {
+    selectedSheetMaterial = { id, name };
+    document.getElementById('sheetModalTitle').innerText = name;
+
+    document.getElementById('sheetPickStep').classList.remove('d-none');
+    document.getElementById('sheetCutStep').classList.add('d-none');
+    document.getElementById('sheetOptionsList').innerHTML = `
+        <div class="text-center text-muted py-4">
+            <span class="spinner-border spinner-border-sm me-2"></span> Lädt...
+        </div>`;
+
+    new bootstrap.Modal(document.getElementById('sheetModal')).show();
+
+    try {
+        const res = await fetch(`${sheetOptionsUrlBase}/${id}/sheet-options`);
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        renderSheetOptions(data.options);
+    } catch (e) {
+        document.getElementById('sheetOptionsList').innerHTML = `
+            <div class="alert alert-danger">Fehler beim Laden der Plattenoptionen.</div>`;
+    }
+
+    const searchResult = document.getElementById('sheetSearchResult');
+    if (searchResult) searchResult.classList.add('d-none');
+    const lengthInput = document.getElementById('sheetSearchLength');
+    const widthInput = document.getElementById('sheetSearchWidth');
+    if (lengthInput) lengthInput.value = '';
+    if (widthInput) widthInput.value = '';
+}
+
+async function ungroupSheet(sheetId) {
+    await fetch(window.tablarData.ungroupUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': token },
+        body: JSON.stringify({ sheet_id: sheetId }),
+    });
+    const res = await fetch(`${sheetOptionsUrlBase}/${selectedSheetMaterial.id}/sheet-options`);
+    const data = await res.json();
+    renderSheetOptions(data.options);
+}
+
+function measureFromCorner(p, geom, corner) {
+    const dxLeft = Math.min(Math.max(p.x - geom.x, 0), geom.w);
+    const dyTop  = Math.min(Math.max(p.y - geom.y, 0), geom.h);
+    const dx = (corner === 'top-right' || corner === 'bottom-right') ? geom.w - dxLeft : dxLeft;
+    const dy = (corner === 'bottom-left' || corner === 'bottom-right') ? geom.h - dyTop : dyTop;
+    return { dx, dy };
+}
+
+function renderSheetOptions(options) {
+    const container = document.getElementById('sheetOptionsList');
+
+    if (options.length === 0) {
+        container.innerHTML = `<div class="text-center text-muted py-4">Kein Bestand vorhanden.</div>`;
+        return;
+    }
+
+    container.innerHTML = options.map((opt) => `
+        <div class="d-flex justify-content-between align-items-center p-3 mb-2 rounded border material-item">
+            <div onclick='selectSheetOption(${JSON.stringify(opt)})' style="cursor:pointer; flex:1;">
+                <div class="fw-semibold">
+                    ${opt.label}
+                    ${opt.sibling_group_id ? `<span class="badge bg-light text-dark border ms-1">Reste-Paar #${opt.sibling_display_number} (${opt.sibling_position})</span>` : ''}
+                </div>
+                <small class="text-muted">
+                    ${opt.length_mm ? Math.round(opt.length_mm) + ' × ' + Math.round(opt.width_mm) + ' mm' : 'Größe unbekannt'}
+                </small>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                ${opt.sibling_group_id ? `<button class="btn btn-sm btn-outline-secondary" onclick='ungroupSheet(${opt.sheet_id})'>Trennen</button>` : ''}
+                <span class="badge ${opt.type === 'full' ? 'bg-success' : 'bg-info text-dark'}">
+                    ${opt.type === 'full' ? 'Auf Lager: ' + opt.quantity : 'Zugeschnitten'}
+                </span>
+            </div>
+        </div>
+    `).join('');
+}
+
+function selectSheetOption(opt) {
+    selectedSheetOption = opt;
+    selectedSheetAxis = null;
+
+    document.getElementById('sheetPickStep').classList.add('d-none');
+    document.getElementById('sheetCutStep').classList.remove('d-none');
+
+    document.getElementById('sheetCutTitle').innerText =
+        selectedSheetMaterial.name + (opt.type === 'full' ? ' — Volle Platte' : ' — ' + opt.label);
+    document.getElementById('sheetCutDims').innerText =
+        `${Math.round(opt.length_mm)} × ${Math.round(opt.width_mm)} mm`;
+
+    document.getElementById('sheetCutLength').value = '';
+    document.getElementById('sheetCutWidth').value = '';
+    hideSheetMessages();
+    updateAxisGroupVisibility();
+    drawSheetPreview();
+}
+
+function updateAxisGroupVisibility() {
+    const opt = selectedSheetOption;
+    const group = document.getElementById('sheetCutAxisGroup');
+    if (!group) return;
+
+    const lengthRadio = document.getElementById('sheetCutAxisLength');
+    const widthRadio = document.getElementById('sheetCutAxisWidth');
+    const hint = document.getElementById('sheetCutAxisHint');
+
+    if (!opt || opt.axis_choice_available !== true || !opt.length_mm || !opt.width_mm) {
+        group.classList.add('d-none');
+        if (lengthRadio) lengthRadio.checked = false;
+        if (widthRadio) widthRadio.checked = false;
+        return;
+    }
+
+    const cutLength = parseFloat(document.getElementById('sheetCutLength').value);
+    const cutWidth = parseFloat(document.getElementById('sheetCutWidth').value);
+
+    const bothRemainders = cutLength > 0 && cutWidth > 0
+        && cutLength < opt.length_mm
+        && cutWidth < opt.width_mm;
+
+    if (!bothRemainders) {
+        group.classList.add('d-none');
+        if (lengthRadio) lengthRadio.checked = false;
+        if (widthRadio) widthRadio.checked = false;
+        return;
+    }
+
+    group.classList.remove('d-none');
+    const autoAxis = opt.length_mm <= opt.width_mm ? 'length' : 'width';
+    const shorter = Math.min(opt.length_mm, opt.width_mm);
+    if (hint) hint.textContent = ` (empfohlen: ${Math.round(shorter)} mm)`;
+    if (lengthRadio) lengthRadio.checked = autoAxis === 'length';
+    if (widthRadio) widthRadio.checked = autoAxis === 'width';
+}
+
+function renderCutResultImage(remainders) {
+    const resultEl = document.getElementById('sheetCutResult');
+    resultEl.classList.remove('alert', 'alert-success'); // repurposing this container for a richer layout
+    resultEl.classList.remove('d-none');
+
+    if (remainders.length === 0) {
+        resultEl.innerHTML = `
+            <div class="border rounded p-3 bg-light text-center">
+                <p class="mb-2 fw-semibold text-success">Zuschnitt abgeschlossen</p>
+                <p class="text-muted small mb-3">Keine Restplatte übrig — die gesamte Platte wurde verwendet.</p>
+                <button class="btn btn-sm btn-primary" onclick="backToSheetPick()">Weiter</button>
+            </div>`;
+        return;
+    }
+
+    const cards = remainders.map(r => {
+        const maxW = 200, maxH = 130;
+        const scale = Math.min(maxW / r.length_mm, maxH / r.width_mm);
+        const w = r.length_mm * scale;
+        const h = r.width_mm * scale;
+        const rectX = (maxW - w) / 2;
+        const rectY = (maxH - h) / 2;
+    
+        const code = r.code;
+        // Rough monospace-ish estimate: ~0.6em average character width
+        const fitFontSize = (availableWidth, text, maxSize, minSize) => {
+            const estCharWidth = 0.6;
+            const size = Math.min(maxSize, availableWidth / (text.length * estCharWidth));
+            return Math.max(minSize, Math.floor(size));
+        };
+    
+        const codePadding = 10; // px margin inside the rect before text touches the edge
+        const availableWidth = Math.max(w - codePadding, 0);
+        const codeFontSize = fitFontSize(availableWidth, code, 13, 8);
+        const dimsFontSize = Math.max(codeFontSize - 2, 7);
+    
+        // Does the code fit inside the rect even at minimum size? If not, place it below instead.
+        const estimatedCodeWidth = code.length * codeFontSize * 0.6;
+        const codeFitsInside = estimatedCodeWidth <= (w - codePadding) && h >= (codeFontSize * 2 + dimsFontSize + 6);
+    
+        let labelsSvg;
+        if (codeFitsInside) {
+            labelsSvg = `
+                <text x="${maxW / 2}" y="${maxH / 2 - 4}" text-anchor="middle" font-size="${codeFontSize}" font-weight="bold" fill="#4a2e14">
+                    ${code}
+                </text>
+                <text x="${maxW / 2}" y="${maxH / 2 + codeFontSize}" text-anchor="middle" font-size="${dimsFontSize}" fill="#6b4a2b">
+                    ${Math.round(r.length_mm)} × ${Math.round(r.width_mm)} mm
+                </text>`;
+        } else {
+            // Label doesn't fit inside — place it just below the rectangle instead.
+            labelsSvg = `
+                <text x="${maxW / 2}" y="${rectY + h + 16}" text-anchor="middle" font-size="12" font-weight="bold" fill="#4a2e14">
+                    ${code}
+                </text>
+                <text x="${maxW / 2}" y="${rectY + h + 30}" text-anchor="middle" font-size="10" fill="#6b4a2b">
+                    ${Math.round(r.length_mm)} × ${Math.round(r.width_mm)} mm
+                </text>`;
+        }
+    
+        // Extra viewBox height reserved for below-rect labels when needed
+        const svgHeight = codeFitsInside ? maxH : maxH + 34;
+    
+        return `
+            <div class="text-center">
+                <svg width="${maxW}" height="${svgHeight}" viewBox="0 0 ${maxW} ${svgHeight}">
+                    <rect x="${rectX}" y="${rectY}" width="${w}" height="${h}"
+                          fill="#f5deb3" stroke="#8b5e34" stroke-width="2" rx="2" />
+                    ${labelsSvg}
+                </svg>
+            </div>`;
+    }).join('');
+
+    resultEl.innerHTML = `
+        <div class="border rounded p-3 bg-light">
+            <p class="mb-2 fw-semibold text-success text-center">Zuschnitt abgeschlossen</p>
+            <p class="text-muted small text-center mb-2">Restplatte(n) — bitte mit diesem Code beschriften:</p>
+            <div class="d-flex justify-content-center gap-3 flex-wrap">${cards}</div>
+            <div class="text-center mt-3">
+                <button class="btn btn-sm btn-primary" onclick="backToSheetPick()">Weiter</button>
+            </div>
+        </div>`;
+}
+
+function backToSheetPick() {
+    document.getElementById('sheetCutStep').classList.add('d-none');
+    document.getElementById('sheetPickStep').classList.remove('d-none');
+}
+
+function drawSheetPreview(hoverLength = null, hoverWidth = null) {
+    const opt = selectedSheetOption;
+    if (!opt) return;
+
+    const svgEl = document.getElementById('sheetPreviewSvg');
+    const maxW = 460, maxH = 260;
+    const scale = Math.min(maxW / opt.length_mm, maxH / opt.width_mm);
+    const w = opt.length_mm * scale;
+    const h = opt.width_mm * scale;
+    const x = (500 - w) / 2;
+    const y = (300 - h) / 2;
+
+    sheetGeom = { x, y, w, h, scale };
+
+    const cutLength = parseFloat(document.getElementById('sheetCutLength').value);
+    const cutWidth = parseFloat(document.getElementById('sheetCutWidth').value);
+    let confirmedRectSvg = '';
+    if (cutLength > 0 && cutWidth > 0) {
+        const cw = Math.min(cutLength, opt.length_mm) * scale;
+        const ch = Math.min(cutWidth, opt.width_mm) * scale;
+        const pos = rectPosForCorner(selectedCorner, sheetGeom, cw, ch);
+        confirmedRectSvg = `<rect x="${pos.rx}" y="${pos.ry}" width="${cw}" height="${ch}" fill="rgba(220,53,69,0.35)" stroke="#dc3545" stroke-width="2" stroke-dasharray="4,3" />`;
+    }
+    
+    let hoverRectSvg = '', hoverLabelSvg = '';
+    if (hoverLength > 0 && hoverWidth > 0) {
+        const hw = hoverLength * scale;
+        const hh = hoverWidth * scale;
+        const pos = rectPosForCorner(selectedCorner, sheetGeom, hw, hh);
+        hoverRectSvg = `<rect x="${pos.rx}" y="${pos.ry}" width="${hw}" height="${hh}" fill="rgba(220,53,69,0.2)" stroke="#dc3545" stroke-width="1.5" />`;
+        hoverLabelSvg = `<text x="${pos.rx + hw + 6}" y="${pos.ry + hh + 14}" font-size="11" fill="#dc3545">${Math.round(hoverLength)} × ${Math.round(hoverWidth)} mm</text>`;
+    }
+
+    svgEl.innerHTML = `
+        <rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#f5deb3" stroke="#8b5e34" stroke-width="2" />
+        ${confirmedRectSvg}
+        ${hoverRectSvg}
+        ${hoverLabelSvg}
+        <rect id="sheetClickOverlay" x="${x}" y="${y}" width="${w}" height="${h}" fill="transparent" />
+        <text x="250" y="${y - 6}" text-anchor="middle" font-size="12" fill="#555">Länge: ${Math.round(opt.length_mm)} mm</text>
+        <text x="${x - 8}" y="${y + h / 2}" text-anchor="end" font-size="12" fill="#555" transform="rotate(-90 ${x - 8} ${y + h / 2})">Breite: ${Math.round(opt.width_mm)} mm</text>
+    `;
+
+    attachSheetOverlayEvents();
+}
+
+function sheetSvgPointFromEvent(evt) {
+    const svgEl = document.getElementById('sheetPreviewSvg');
+    const pt = svgEl.createSVGPoint();
+    pt.x = evt.clientX;
+    pt.y = evt.clientY;
+    const ctm = svgEl.getScreenCTM().inverse();
+    return pt.matrixTransform(ctm);
+}
+
+function attachSheetOverlayEvents() {
+    const overlay = document.getElementById('sheetClickOverlay');
+    if (!overlay) return;
+    const opt = selectedSheetOption;
+
+    overlay.addEventListener('mousemove', (evt) => {
+        if (!opt || !sheetGeom) return;
+        const p = sheetSvgPointFromEvent(evt);
+        const { dx, dy } = measureFromCorner(p, sheetGeom, selectedCorner);
+        const mmLength = Math.min(Math.round(dx / sheetGeom.scale), opt.length_mm);
+        const mmWidth = Math.min(Math.round(dy / sheetGeom.scale), opt.width_mm);
+        drawSheetPreview(mmLength, mmWidth);
+    });
+
+    overlay.addEventListener('mouseleave', () => drawSheetPreview());
+
+    overlay.addEventListener('click', (evt) => {
+        if (!opt || !sheetGeom) return;
+        const p = sheetSvgPointFromEvent(evt);
+        const { dx, dy } = measureFromCorner(p, sheetGeom, selectedCorner);
+        const mmLength = Math.min(Math.max(Math.round(dx / sheetGeom.scale), 1), opt.length_mm);
+        const mmWidth = Math.min(Math.max(Math.round(dy / sheetGeom.scale), 1), opt.width_mm);
+        document.getElementById('sheetCutLength').value = mmLength;
+        document.getElementById('sheetCutWidth').value = mmWidth;
+        updateAxisGroupVisibility();
+        drawSheetPreview();
+    });
+}
+
+document.addEventListener('click', (e) => {
+    if (e.target.classList.contains('corner-btn')) {
+        document.querySelectorAll('.corner-btn').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        selectedCorner = e.target.dataset.corner;
+        drawSheetPreview();
+    }
+});
+
+function rectPosForCorner(corner, geom, wPx, hPx) {
+    switch (corner) {
+        case 'top-right':    return { rx: geom.x + geom.w - wPx, ry: geom.y };
+        case 'bottom-left':  return { rx: geom.x, ry: geom.y + geom.h - hPx };
+        case 'bottom-right': return { rx: geom.x + geom.w - wPx, ry: geom.y + geom.h - hPx };
+        default:              return { rx: geom.x, ry: geom.y }; // top-left
+    }
+}
+
+document.addEventListener('input', (e) => {
+    if (e.target.id === 'sheetCutLength' || e.target.id === 'sheetCutWidth') {
+        updateAxisGroupVisibility();
+        drawSheetPreview();
+    }
+});
+
+document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    if (e.target.id === 'sheetSearchLength' || e.target.id === 'sheetSearchWidth') {
+        e.preventDefault();
+        runSheetSearch();
+    }
+});
+
+document.addEventListener('change', (e) => {
+    if (e.target.name === 'sheetCutAxis') {
+        selectedSheetAxis = e.target.value;
+    }
+});
+
+document.addEventListener('click', (e) => {
+    if (e.target.classList.contains('sheet-preset')) {
+        const opt = selectedSheetOption;
+        if (!opt) return;
+
+        const fraction = parseFloat(e.target.dataset.fraction);
+        const applyLength = document.getElementById('sheetApplyLength').checked;
+        const applyWidth = document.getElementById('sheetApplyWidth').checked;
+
+        if (!applyLength && !applyWidth) {
+            showSheetError('Bitte mindestens Länge oder Breite auswählen.');
+            return;
+        }
+
+        document.getElementById('sheetCutLength').value = Math.round(opt.length_mm * (applyLength ? fraction : 1));
+        document.getElementById('sheetCutWidth').value = Math.round(opt.width_mm * (applyWidth ? fraction : 1));
+        drawSheetPreview();
+    }
+});
+
+function hideSheetMessages() {
+    const resultEl = document.getElementById('sheetCutResult');
+    resultEl.classList.add('d-none');
+    resultEl.className = 'alert alert-success d-none'; // reset back to default alert styling for next use
+    document.getElementById('sheetCutError').classList.add('d-none');
+}
+
+function showSheetError(msg) {
+    const el = document.getElementById('sheetCutError');
+    el.textContent = msg;
+    el.classList.remove('d-none');
+}
+
+async function performSheetCut() {
+    const opt = selectedSheetOption;
+    if (!opt || !selectedSheetMaterial) return;
+    hideSheetMessages();
+
+    const cutLength = parseFloat(document.getElementById('sheetCutLength').value);
+    const cutWidth = parseFloat(document.getElementById('sheetCutWidth').value);
+
+    if (!cutLength || !cutWidth || cutLength <= 0 || cutWidth <= 0) {
+        showSheetError('Bitte gültige Länge und Breite eingeben.');
+        return;
+    }
+
+    const btn = document.getElementById('btnSheetCut');
+    const originalContent = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Wird geschnitten...`;
+
+    try {
+        const body = {
+            material_id: selectedSheetMaterial.id,
+            sheet_id: opt.type === 'full' ? null : opt.sheet_id,
+            cut_length: cutLength,
+            cut_width: cutWidth,
+        };
+        if (selectedSheetAxis !== null) {
+            body.cut_axis = selectedSheetAxis;
+        }
+
+        const res = await fetch(sheetCutUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': token },
+            body: JSON.stringify(body),
+        });
+
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+
+        selectedSheetAxis = null;
+
+        // Keep the local material cache (quantity badge) in sync
+        const m = allMaterials.find(x => x.id === selectedSheetMaterial.id);
+        if (m) m.quantity = data.new_quantity;
+        filterMaterials();
+        if (!document.getElementById('nameStep').classList.contains('d-none')) {
+            filterByName();
+        }
+
+        renderCutResultImage(data.remainders);
+
+        // Refresh the options list so the picker reflects new stock,
+        // then send the user back to pick their next action.
+        const refreshed = await fetch(`${sheetOptionsUrlBase}/${selectedSheetMaterial.id}/sheet-options`);
+        const refreshedData = await refreshed.json();
+        renderSheetOptions(refreshedData.options);
+
+    } catch (e) {
+        showSheetError('Fehler beim Zuschneiden: ' + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalContent;
+    }
+}
+
+async function runSheetSearch() {
+    if (!selectedSheetMaterial) return;
+
+    const lengthInput = document.getElementById('sheetSearchLength');
+    const widthInput = document.getElementById('sheetSearchWidth');
+    const resultEl = document.getElementById('sheetSearchResult');
+    const lengthMm = parseFloat(lengthInput.value);
+    const widthMm = parseFloat(widthInput.value);
+
+    if (!lengthMm || !widthMm || lengthMm <= 0 || widthMm <= 0) {
+        resultEl.className = 'alert alert-warning mb-0 mt-2';
+        resultEl.textContent = 'Bitte gültige Länge und Breite eingeben.';
+        resultEl.classList.remove('d-none');
+        return;
+    }
+
+    const btn = document.getElementById('btnSheetSearch');
+    const originalContent = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span>`;
+
+    try {
+        const res = await fetch(`${sheetSearchUrl}/${selectedSheetMaterial.id}/sheet-search`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': token },
+            body: JSON.stringify({
+                material_id: selectedSheetMaterial.id,
+                length_mm: lengthMm,
+                width_mm: widthMm,
+            }),
+        });
+
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+
+        if (!data.sheet) {
+            resultEl.className = 'alert alert-warning mb-0 mt-2';
+            resultEl.textContent = 'Kein passendes Stück gefunden.';
+            resultEl.classList.remove('d-none');
+            return;
+        }
+
+        // Build an option object compatible with selectSheetOption().
+        const opt = {
+            type: data.sheet.type,
+            sheet_id: data.sheet.sheet_id,
+            label: data.sheet.code ?? (data.sheet.type === 'full' ? 'Volle Platte' : 'Zugeschnitten'),
+            length_mm: data.sheet.length_mm,
+            width_mm: data.sheet.width_mm,
+            thickness_mm: data.sheet.thickness_mm,
+            quantity: data.sheet.quantity,
+            axis_choice_available: !!data.sheet.axis_choice_available,
+        };
+
+        resultEl.classList.add('d-none');
+        selectSheetOption(opt);
+    } catch (e) {
+        resultEl.className = 'alert alert-danger mb-0 mt-2';
+        resultEl.textContent = 'Fehler bei der Suche: ' + e.message;
+        resultEl.classList.remove('d-none');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalContent;
+    }
+}
 
 // Helper function to build image markup
 function generateImageHtml(image, name) {
@@ -172,13 +692,18 @@ function renderMaterials(materials) {
         const orderQty   = m.order_quantity ?? 0;
         const available  = m.available_total ?? (m.quantity + onHold + orderQty);
         const isReserved = onHold > 0;
-        const modalType  = isReserved ? 'openReserveModal' : 'openMaterialModal';
+        const modalType = window.tablarData.isHolzLager
+            ? 'openSheetModal'
+            : (isReserved ? 'openReserveModal' : 'openMaterialModal');
         const badgeClass = outOfStock
             ? 'bg-secondary'
             : available > threshold ? 'bg-success' : 'bg-danger';
             const badgeText = outOfStock
             ? (m.order_status === 'ordered' ? 'Kommt gleich' : 'Kein Bestand')
             : m.quantity + ' ' + (m.unit ?? 'Stk.');
+        const leftoverBadge = (window.tablarData.isHolzLager && m.leftover_sheet_count > 0)
+            ? `<span class="badge bg-secondary ms-1"><i class="bi bi-scissors me-1"></i>${m.leftover_sheet_count} Reste</span>`
+            : '';
 
         const imageTemplate = generateImageHtml(m.image, m.name);
         const orderTemplate = generateOrderHtml(m);
@@ -215,7 +740,10 @@ function renderMaterials(materials) {
                     <div class="mt-1">${orderTemplate}</div>
                 </div>
             </div>
-            <span class="badge ${badgeClass} fs-6">${badgeText}</span>
+            <span class="text-end">
+                <span class="badge ${badgeClass} fs-6">${badgeText}</span>
+                ${leftoverBadge}
+            </span>
         </div>`;
     }).join('');
 }
@@ -544,10 +1072,15 @@ function filterByName() {
         const isReserved = m.on_hold_quantity > 0;
         const badgeClass = outOfStock ? 'bg-secondary'
             : available > threshold ? 'bg-success' : 'bg-danger';
-        const modalType = isReserved ? 'openReserveModal' : 'openMaterialModal';
+        const modalType = window.tablarData.isHolzLager
+            ? 'openSheetModal'
+            : (isReserved ? 'openReserveModal' : 'openMaterialModal');
         const badgeText = outOfStock
             ? (m.order_status === 'ordered' ? 'Kommt gleich' : 'Kein Bestand')
             : m.quantity + ' ' + (m.unit ?? 'Stk.');
+        const leftoverBadge = (window.tablarData.isHolzLager && m.leftover_sheet_count > 0)
+            ? `<span class="badge bg-secondary ms-1"><i class="bi bi-scissors me-1"></i>${m.leftover_sheet_count} Reste</span>`
+            : '';
 
         const shelfHint = m.shelf
             ? `<span class="text-muted small ms-2"><i class="bi bi-geo-alt me-1"></i>${m.shelf}</span>`
@@ -574,7 +1107,10 @@ function filterByName() {
                         <div class="mt-1">${orderTemplate}</div>
                     </div>
                 </div>
-                <span class="badge ${badgeClass}">${badgeText}</span>
+                <span class="text-end">
+                    <span class="badge ${badgeClass} fs-6">${badgeText}</span>
+                    ${leftoverBadge}
+                </span>
             </div>`;
         }
 
@@ -589,7 +1125,10 @@ function filterByName() {
                     <div class="mt-1">${orderTemplate}</div>
                 </div>
             </div>
-            <span class="badge ${badgeClass} fs-6">${badgeText}</span>
+            <span class="text-end">
+                <span class="badge ${badgeClass} fs-6">${badgeText}</span>
+                ${leftoverBadge}
+            </span>
         </div>`;
     }).join('');
 }
@@ -615,3 +1154,7 @@ window.switchMode          = switchMode;
 window.filterByName        = filterByName;
 window.cancelNotification = cancelNotification;
 window.confirmDelivery = confirmDelivery;
+window.openSheetModal   = openSheetModal;
+window.backToSheetPick  = backToSheetPick;
+window.performSheetCut  = performSheetCut;
+window.runSheetSearch   = runSheetSearch;
