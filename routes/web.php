@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\ProjectOfferController;
 use App\Http\Controllers\Admin\Settings\EmailTemplateController;
 use App\Http\Controllers\Admin\Settings\MachineController;
 use App\Http\Controllers\Admin\Settings\MachineSettingsController;
+use App\Http\Controllers\Admin\Settings\MaterialThresholdController;
 use App\Http\Controllers\Admin\Settings\ProjectServicesController;
 use App\Http\Controllers\Admin\Settings\ProjectSettingsController;
 use App\Http\Controllers\Admin\SupplierController;
@@ -414,6 +415,19 @@ Route::middleware(['auth', 'role:admin'])
 
                 // Email Templates
                 Route::resource('email_templates', EmailTemplateController::class);
+
+                // Material Thresholds
+                Route::get('/material-thresholds', [MaterialThresholdController::class, 'index'])
+                    ->name('material-thresholds');
+
+                Route::get('/material-thresholds/show/{id}', [MaterialThresholdController::class, 'show'])
+                    ->name('material-thresholds.show');
+
+                Route::post('/material-thresholds/update/{id}', [MaterialThresholdController::class, 'update'])
+                    ->name('material-thresholds.update');
+
+                Route::delete('/material-thresholds/{id}', [MaterialThresholdController::class, 'destroy'])
+                    ->name('material-thresholds.destroy');
             });
         }
 

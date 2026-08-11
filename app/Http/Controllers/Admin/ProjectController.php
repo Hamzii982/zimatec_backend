@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Project;
 use App\Models\ProjectStatus;
+use App\Services\Workflow\WorkflowService;
 use App\Traits\HandleFiles;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -70,6 +71,7 @@ class ProjectController extends Controller
             'project_status_id' => 'required|exists:project_statuses,id',
             'start_time' => 'nullable|date',
             'end_time' => 'nullable|date|after_or_equal:start_time',
+            'attach_to_workflow' => 'sometimes|boolean',
         ]);
 
         $projectData = $request->only([
@@ -85,7 +87,17 @@ class ProjectController extends Controller
         $projectData['from_machine_logs'] = 0;
 
         if ($request->has('save_to_db')) {
-            Project::createOrFirst($projectData);
+            $project = Project::createOrFirst($projectData);
+
+            if ($request->boolean('attach_to_workflow') && $project) {
+                try {
+                    app(WorkflowService::class)->attachProject($project, null, $request->user());
+                } catch (\RuntimeException $e) {
+                    // No active workflow stages configured — silently skip; the admin
+                    // can attach the project manually via Admin\Workflow\AssignmentController.
+                    \Log::warning('Workflow auto-attach skipped for project '.$project->id.': '.$e->getMessage());
+                }
+            }
         }
 
         // Create folder structure

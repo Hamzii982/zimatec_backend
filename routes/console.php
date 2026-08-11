@@ -9,4 +9,3 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('parse:drilllog storage/app/public/LOGFILE.OLD --save=false')->everyMinute();
-Schedule::command('test:scheduler')->everyMinute();

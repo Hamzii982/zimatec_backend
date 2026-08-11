@@ -68,6 +68,18 @@
                     </div> --}}
                     <input type="hidden" name="save_to_db" value="1">
 
+                    <div class="form-check form-switch mb-4">
+                        <input class="form-check-input" type="checkbox" role="switch"
+                               id="attach_to_workflow" name="attach_to_workflow" value="1" checked>
+                        <label class="form-check-label fw-semibold" for="attach_to_workflow">
+                            Workflow zuordnen
+                        </label>
+                        <small class="form-text text-muted d-block">
+                            Ordnet das neue Projekt automatisch der ersten aktiven Workflow-Stufe zu.
+                            Wenn keine Workflow-Stufen konfiguriert sind, wird diese Option ignoriert.
+                        </small>
+                    </div>
+
                     <div class="text-end">
                         <button type="submit" class="btn btn-wechsel">Projekt Erstellen</button>
                     </div>

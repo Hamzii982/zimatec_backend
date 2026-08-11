@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Project as BaseProject;
+use App\Models\ProjectStatus;
 use App\Models\User;
 use App\Models\Workflow\Activity;
 use App\Models\Workflow\Stage;
@@ -170,4 +171,48 @@ test('per-step assignee can complete a step; non-owner non-assignee cannot; assi
     ]);
 
     $forbidden->assertForbidden();
+});
+
+test('admin project create with attach_to_workflow attaches the project to the workflow', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $status = ProjectStatus::firstOrCreate(['name' => 'Neu']);
+    $this->actingAs($admin);
+
+    $response = $this->post(route('admin.projects.store'), [
+        'project_name' => 'Test-Projekt Workflow',
+        'project_status_id' => $status->id,
+        'auftragsnummer_zt' => 'ZT-WF-001',
+        'auftragsnummer_zf' => 'ZF-WF-001',
+        'start_time' => now()->format('Y-m-d\TH:i'),
+        'end_time' => now()->addDays(7)->format('Y-m-d\TH:i'),
+        'save_to_db' => '1',
+        'attach_to_workflow' => '1',
+    ]);
+
+    $response->assertRedirect(route('admin.projects'));
+
+    $project = BaseProject::where('project_name', 'Test-Projekt Workflow')->firstOrFail();
+    expect($project->workflowProject)->not->toBeNull();
+    expect($project->workflowProject->current_stage_id)->not->toBeNull();
+    expect($project->workflowProject->currentStage->is_active)->toBeTrue();
+});
+
+test('admin project create without attach_to_workflow leaves the project off the board', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $status = ProjectStatus::firstOrCreate(['name' => 'Neu']);
+    $this->actingAs($admin);
+
+    $this->post(route('admin.projects.store'), [
+        'project_name' => 'Test-Projekt Ohne Workflow',
+        'project_status_id' => $status->id,
+        'auftragsnummer_zt' => 'ZT-NOWF-001',
+        'auftragsnummer_zf' => 'ZF-NOWF-001',
+        'start_time' => now()->format('Y-m-d\TH:i'),
+        'end_time' => now()->addDays(7)->format('Y-m-d\TH:i'),
+        'save_to_db' => '1',
+        // no attach_to_workflow
+    ])->assertRedirect(route('admin.projects'));
+
+    $project = BaseProject::where('project_name', 'Test-Projekt Ohne Workflow')->firstOrFail();
+    expect($project->workflowProject)->toBeNull();
 });
