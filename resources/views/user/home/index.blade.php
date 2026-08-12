@@ -64,7 +64,11 @@
                             <p class="card-text text-muted small">
                                 {{ $leistung['description'] }}
                             </p>
-                            <a href="{{ route($leistung['route']) }}" class="stretched-link"></a>
+                            @isset($leistung['url'])
+                                <a href="{{ $leistung['url'] }}" target="_blank" rel="noopener noreferrer" class="stretched-link"></a>
+                            @else
+                                <a href="{{ route($leistung['route']) }}" class="stretched-link"></a>
+                            @endisset
                         </div>
                     </div>
                 </div>
