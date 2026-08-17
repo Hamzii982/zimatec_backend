@@ -94,17 +94,17 @@
                         </a>
                         <ul class="dropdown-menu" aria-labelledby="platformenDropdown">
                             <li>
-                                <a class="dropdown-item" href="{{ config('services.zimaboard.url') }}" target="_blank" rel="noopener">
+                                <a class="dropdown-item" href="{{ config('services.zimaboard.url') }}" rel="noopener">
                                     <i class="bi bi-chat-dots-fill me-1"></i> Zimaboard
                                 </a>
                             </li>
                             <li>
-                                <a class="dropdown-item" href="{{ config('services.zimatec_ai.url') }}" target="_blank" rel="noopener">
+                                <a class="dropdown-item" href="{{ config('services.zimatec_ai.url') }}" rel="noopener">
                                     <i class="bi bi-robot me-1"></i> Zimatec AI
                                 </a>
                             </li>
                             <li>
-                                <a class="dropdown-item" href="{{ config('services.feedback.url') }}" target="_blank" rel="noopener">
+                                <a class="dropdown-item" href="{{ config('services.feedback.url') }}" rel="noopener">
                                     <i class="bi bi-megaphone-fill me-1"></i> Feedback Portal
                                 </a>
                             </li>

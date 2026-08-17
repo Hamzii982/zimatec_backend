@@ -65,7 +65,7 @@
                                 {{ $leistung['description'] }}
                             </p>
                             @isset($leistung['url'])
-                                <a href="{{ $leistung['url'] }}" target="_blank" rel="noopener noreferrer" class="stretched-link"></a>
+                                <a href="{{ $leistung['url'] }}" rel="noopener noreferrer" class="stretched-link"></a>
                             @else
                                 <a href="{{ route($leistung['route']) }}" class="stretched-link"></a>
                             @endisset
