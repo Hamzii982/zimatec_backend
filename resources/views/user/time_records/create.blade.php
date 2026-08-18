@@ -1,6 +1,66 @@
 @extends('user.layouts.index')
 
 @section('content')
+    <style>
+    /* Page-local uniform selection styles for time-records page */
+    :root{
+        --tz-primary: #0b3d91; /* dark blue */
+        --tz-muted: #545b61; /* updated muted for better contrast */
+        --tz-light: #f5f6f8;
+    }
+
+    /* ensure small muted texts use the page's muted variable for consistent contrast */
+    .text-muted { color: var(--tz-muted) !important; }
+
+    .btn-unselected {
+        background-color: transparent !important;
+        color: #212529 !important;
+        border: 1px solid rgba(33,37,41,0.06) !important;
+        box-shadow: none !important;
+        transition: background-color .12s ease, color .12s ease, box-shadow .12s ease, border-color .12s ease;
+        border-radius: 0.5rem;
+    }
+
+    .btn-selected {
+        background-color: var(--tz-primary) !important;
+        color: #ffffff !important;
+        border-color: var(--tz-primary) !important;
+        box-shadow: 0 10px 30px rgba(11,61,145,0.12) !important;
+        border-radius: 0.5rem;
+    }
+
+    .project-wrapper .project-auftrag {
+        color: var(--tz-muted) !important;
+        transition: color .12s ease;
+    }
+
+    .project-btn.btn-selected .project-auftrag {
+        color: rgba(255,255,255,0.92) !important;
+    }
+
+    /* Ensure labels for status radios show selected state */
+    input[name="status_id"] + label {
+        transition: background-color .12s ease, color .12s ease, border-color .12s ease;
+        border-radius: 0.5rem;
+    }
+    input[name="status_id"]:checked + label {
+        background-color: var(--tz-primary) !important;
+        color: #fff !important;
+        border-color: var(--tz-primary) !important;
+        box-shadow: 0 8px 24px rgba(11,61,145,0.10) !important;
+    }
+
+    /* Focus styles for keyboard users */
+    .btn-selected:focus,
+    input[name="status_id"]:checked + label:focus {
+        outline: 3px solid rgba(11,61,145,0.14);
+        outline-offset: 2px;
+    }
+    @media (max-width: 576px) {
+        .project-list-container { max-height: 220px; }
+    }
+</style>
+
 <div class="container mt-4">
     <div class="card">
         <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
@@ -22,7 +82,7 @@
                             @foreach($users as $user)
                                 <div class="col-md-3">
                                     <button type="button"
-                                            class="btn btn-outline-dark w-100 user-btn"
+                                            class="btn-unselected w-100 user-btn btn"
                                             data-user-id="{{ $user->id }}"
                                             data-company="{{ $user->company }}">
                                         <i class="bi bi-person"></i> {{ $user->name }}
@@ -39,9 +99,11 @@
                                             $isActive = isset($selectedUser) && $selectedUser->id == $user->id;
                                         @endphp
                                         <button type="button"
-                                                class="btn {{ $isActive ? 'btn-primary active' : 'btn-outline-dark' }} w-100 user-btn"
+                                                class="btn-selected active w-100 user-btn btn"
                                                 data-user-id="{{ $user->id }}"
-                                                data-company="{{ $user->company }}">
+                                                data-company="{{ $user->company }}"
+                                                disabled
+                                                aria-disabled="true">
                                             <i class="bi bi-person"></i> {{ $user->name }}
                                         </button>
                                     </div>
@@ -71,7 +133,7 @@
                             <!-- project-wrapper with data-search attribute for JS filtering -->
                             <div class="col-md-4 project-wrapper" data-search="{{ strtolower($project->project_name . ' ' . $project->auftragsnummer_zt . ' ' . $project->auftragsnummer_zf) }}">
                                 <button type="button"
-                                        class="btn btn-outline-primary w-100 project-btn py-3"
+                                        class="btn-unselected btn w-100 project-btn py-3"
                                         data-project-id="{{ $project->id }}"
                                         data-zt="{{ $project->auftragsnummer_zt }}"
                                         data-zf="{{ $project->auftragsnummer_zf }}"
@@ -115,7 +177,7 @@
                         @foreach($machines as $machine)
                             <div class="col-md-3">
                                 <button type="button"
-                                        class="btn btn-outline-dark w-100 machine-btn"
+                                        class="btn-unselected btn w-100 machine-btn"
                                         data-id="{{ $machine->id }}">
                                     <i class="bi bi-cpu"></i> {{ $machine->name }}
                                 </button>
@@ -140,8 +202,8 @@
                                     id="status-{{ $status->id }}"
                                     value="{{ $status->id }}"
                                     required>
-                    
-                                <label class="btn btn-outline-dark"
+
+                                <label class="btn btn-unselected"
                                     for="status-{{ $status->id }}">
                                     {{ $status->name }}
                                 </label>
@@ -183,24 +245,44 @@
 
 <script>
     let selectedCompany = null;
-
     /* ========== UTIL HELPERS ========== */
     function activateButton(button, selector) {
         document.querySelectorAll(selector).forEach(b => {
-            b.classList.remove('btn-primary', 'btn-success', 'btn-dark', 'active');
-            b.classList.add('btn-outline-dark');
+            b.classList.remove(
+                'btn-primary', 'btn-success', 'btn-dark', 'active',
+                'btn-outline-dark', 'btn-outline-primary', 'btn-outline-secondary', 'btn-outline-info',
+                'btn-selected'
+            );
+            if (!b.classList.contains('btn-unselected')) {
+                b.classList.add('btn-unselected');
+            }
         });
 
-        button.classList.remove('btn-outline-dark');
-        button.classList.add('btn-primary', 'active');
+        button.classList.remove('btn-unselected');
+        button.classList.add('btn-selected', 'active');
     }
+
+    // Normalize buttons on load so visual state is consistent
+    document.addEventListener('DOMContentLoaded', () => {
+        ['.user-btn', '.project-btn', '.position-btn', '.machine-btn'].forEach(sel => {
+            document.querySelectorAll(sel).forEach(b => {
+                b.classList.remove('btn-primary', 'btn-success', 'btn-dark', 'btn-outline-dark', 'btn-outline-primary', 'btn-outline-secondary', 'btn-outline-info');
+                if (!b.classList.contains('btn-unselected') && !b.classList.contains('btn-selected')) {
+                    b.classList.add('btn-unselected');
+                }
+            });
+        });
+    });
     
     document.querySelectorAll('.user-btn').forEach(btn => {
         btn.addEventListener('click', () => {
+            // ignore clicks on disabled (pre-selected) user
+            if (btn.disabled) return;
+
             activateButton(btn, '.user-btn');
             document.getElementById('user_id').value = btn.dataset.userId;
             selectedCompany = btn.dataset.company;
-            
+
             // Update project labels AFTER user selection
             document.querySelectorAll('.project-btn').forEach(projectBtn => {
                 const label = projectBtn.querySelector('.project-auftrag');
@@ -208,9 +290,9 @@
                     ? `(ZF: ${projectBtn.dataset.zf ?? '—'})`
                     : `(ZT: ${projectBtn.dataset.zt ?? '—'})`;
             });
-    
+
             document.getElementById('step-project').classList.remove('d-none');
-            
+
             // Auto-focus search input if on a device with keyboard, skip for pure touch
             const searchInput = document.getElementById('project-search');
             if(searchInput && window.innerWidth > 768) {
@@ -234,7 +316,7 @@
                 container.insertAdjacentHTML('beforeend', `
                     <div class="col-md-4">
                         <button type="button"
-                                class="btn btn-outline-secondary w-100 position-btn py-2"
+                                class="btn btn-unselected w-100 position-btn py-2"
                                 data-id="${pos.id}">
                             ${pos.name}
                         </button>
