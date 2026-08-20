@@ -35,4 +35,16 @@ return [
         ],
     ],
 
+    'zimaboard' => [
+        'url' => env('ZIMABOARD_URL', '#'),
+    ],
+
+    'zimatec_ai' => [
+        'url' => env('ZIMATEC_AI_URL', '#'),
+    ],
+
+    'feedback' => [
+        'url' => env('FEEDBACK_FORM_URL', '#'),
+    ],
+
 ];

@@ -67,6 +67,18 @@ class HomeController extends Controller
                 'image' => 'images/cards/scheduler_card.png',
                 'route' => 'scheduler.index',
             ],
+            [
+                'name' => 'Zimaboard',
+                'description' => 'Unser Kommunikationskanal für persönliche Chats und Broadcast-Nachrichten an alle.',
+                'image' => 'images/cards/zimaboard card.jpg',
+                'url' => config('services.zimaboard.url'),
+            ],
+            [
+                'name' => 'Zimatec AI',
+                'description' => 'Interne Chatbots und KI-Agenten für alle KI-bezogenen Aufgaben.',
+                'image' => 'images/cards/zimatec-ai card.jpg',
+                'url' => config('services.zimatec_ai.url'),
+            ],
         ];
 
         return view('user.home.index', compact('leistungen', 'stats'));

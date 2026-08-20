@@ -51,18 +51,64 @@
                         </a>
                     </li>
 
-                    {{-- Mann Zeiten --}}
+                    {{-- Projekte --}}
                     <li class="nav-item mx-2 my-1 my-lg-0">
-                        <a href="{{ route('time-records.list') }}" class="nav-link {{ request()->routeIs('time-records.*') ? 'active fw-bold text-navitem' : '' }}">
-                            <i class="bi bi-clock-history me-1"></i> Mann Zeiten
+                        <a href="{{ route('projects') }}" class="nav-link {{ request()->routeIs('projects') ? 'active fw-bold text-navitem' : '' }}">
+                            <i class="bi bi-kanban-fill me-1"></i> Projekte
                         </a>
                     </li>
 
-                    {{-- Machine Logs --}}
-                    <li class="nav-item mx-2 my-1 my-lg-0">
-                        <a href="{{ route('projects.logs') }}" class="nav-link {{ request()->routeIs('projects.*') ? 'active fw-bold text-navitem' : '' }}">
-                            <i class="bi bi-cpu-fill me-1"></i> Machine Logs
+                    {{-- Leistungen Dropdown --}}
+                    <li class="nav-item dropdown mx-2 my-1 my-lg-0">
+                        <a class="nav-link dropdown-toggle {{ request()->routeIs(['lager.*', 'time-records.*', 'printer-problems.*', 'scheduler.*']) ? 'active fw-bold text-navitem' : '' }}" href="#" id="leistungenDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-gear-fill me-1"></i> Leistungen
                         </a>
+                        <ul class="dropdown-menu" aria-labelledby="leistungenDropdown">
+                            <li>
+                                <a class="dropdown-item {{ request()->routeIs('lager.*') ? 'active fw-bold' : '' }}" href="{{ route('lager.select') }}">
+                                    <i class="bi bi-box-seam me-1"></i> Lagerverwaltung
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {{ request()->routeIs('time-records.*') ? 'active fw-bold' : '' }}" href="{{ route('time-records.list') }}">
+                                    <i class="bi bi-clock-history me-1"></i> Zeit Erfassung
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {{ request()->routeIs('printer-problems.*') ? 'active fw-bold' : '' }}" href="{{ route('printer-problems.index') }}">
+                                    <i class="bi bi-exclamation-triangle-fill me-1"></i> Druckprobleme Erfassung
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {{ request()->routeIs('scheduler.*') ? 'active fw-bold' : '' }}" href="{{ route('scheduler.index') }}">
+                                    <i class="bi bi-calendar3 me-1"></i> Resource Planung
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+
+                    {{-- Platformen Dropdown --}}
+                    <li class="nav-item dropdown mx-2 my-1 my-lg-0">
+                        <a class="nav-link dropdown-toggle" href="#" id="platformenDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-grid-fill me-1"></i> Platformen
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="platformenDropdown">
+                            <li>
+                                <a class="dropdown-item" href="{{ config('services.zimaboard.url') }}" rel="noopener">
+                                    <i class="bi bi-chat-dots-fill me-1"></i> Zimaboard
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{{ config('services.zimatec_ai.url') }}" rel="noopener">
+                                    <i class="bi bi-robot me-1"></i> Zimatec AI
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{{ config('services.feedback.url') }}" rel="noopener">
+                                    <i class="bi bi-megaphone-fill me-1"></i> Feedback Portal
+                                </a>
+                            </li>
+                        </ul>
                     </li>
 
                     @auth

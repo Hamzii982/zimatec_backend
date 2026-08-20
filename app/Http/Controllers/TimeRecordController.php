@@ -76,7 +76,12 @@ class TimeRecordController extends Controller
     {
         $users = User::where('machine_user', true)->get();
 
+        $exceptStatuses = ['Abgeschlossen', 'Geliefert', 'Komplett'];
+
         $projects = Project::with('positions')
+            ->whereHas('status', function ($query) use ($exceptStatuses) {
+                $query->whereNotIn('name', $exceptStatuses);
+            })
             ->orderBy('created_at', 'desc')
             ->get();
 

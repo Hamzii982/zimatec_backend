@@ -103,7 +103,7 @@
                     const mitAufsicht = secondsToHMS(record.mit_aufsicht_seconds);
                     const gesamtzeit = secondsToHMS(parseInt(record.rustzeit_seconds) + parseInt(record.mit_aufsicht_seconds));
 
-                    const rowClass = record.company === 'ZT' ? 'bg-success bg-opacity-10' : 'bg-primary bg-opacity-10';
+                    const rowClass = record.company === 'ZT' ? 'bg-success bg-opacity-10' : 'bg-info bg-opacity-10';
 
                     tableHtml += `
                         <tr>
