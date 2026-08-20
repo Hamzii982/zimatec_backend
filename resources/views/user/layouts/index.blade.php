@@ -30,20 +30,108 @@
 
     {{-- ========== NAVBAR ========== --}}
     <nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom shadow-sm mb-0">
-        <div class="container">
+        <div class="container flex-wrap">
+
             {{-- Brand / Logo --}}
             <a class="navbar-brand d-flex align-items-center" href="{{ route('home') }}">
                 <img src="{{ asset('images/logo-team-zimmermann.png') }}" alt="Company Logo" height="40" class="me-2">
             </a>
 
-            {{-- Navbar Toggler (for mobile) --}}
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMenu">
-                <span class="navbar-toggler-icon"></span>
-            </button>
+            {{-- Right-side cluster: pill + hamburger. order-lg-3 keeps it last on desktop;
+                on mobile it stays on the same row as the brand (never hides inside the collapse). --}}
+            <div class="d-flex align-items-center order-lg-3 gap-2">
 
-            {{-- Navbar Links --}}
-            <div class="collapse navbar-collapse" id="navbarMenu">
+                {{-- ===== Account / Language Pill ===== --}}
+                <div class="navbar-account-pill">
+
+                    @auth
+                        {{-- Logged-in: avatar + dropdown --}}
+                        <div class="dropdown">
+                            <a class="pill-account-trigger" href="#" id="userDropdown" role="button"
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                                <span class="pill-avatar">{{ Auth::user()->initials() }}</span>
+                                <i class="bi bi-chevron-down pill-caret"></i>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                                @if(Auth::user()->role === 'admin')
+                                    <li>
+                                        <a class="dropdown-item" href="{{ route('admin.dashboard') }}">
+                                            <i class="bi bi-speedometer2 me-1"></i> Admin Dashboard
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="{{ route('admin.profile') }}">
+                                            <i class="bi bi-person-badge me-1"></i> Profil
+                                        </a>
+                                    </li>
+                                @else
+                                    <li>
+                                        <a class="dropdown-item" href="{{ route('profile') }}">
+                                            <i class="bi bi-person-gear me-1"></i> Profil
+                                        </a>
+                                    </li>
+                                @endif
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <form action="{{ route('logout') }}" method="POST" class="m-0">
+                                        @csrf
+                                        <button class="dropdown-item text-danger" type="submit">
+                                            <i class="bi bi-box-arrow-right me-1"></i> Abmelden
+                                        </button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </div>
+                    @endauth
+
+                    @guest
+                        {{-- Guest: login link, same pill padding so nothing jumps --}}
+                        <a class="pill-guest-trigger" href="{{ route('login') }}">
+                            <i class="bi bi-box-arrow-in-right"></i>
+                            <span class="pill-guest-label">Anmelden</span>
+                        </a>
+                    @endguest
+
+                    <span class="pill-divider"></span>
+
+                    {{-- ===== Language toggle (always visible, both auth states) ===== --}}
+                    <div class="lang-toggle dropdown">
+                        {{-- Desktop: inline EN/DE segmented control --}}
+                        <a href="{{ route('language.switch', 'en') }}"
+                        class="lang-option d-none d-md-inline-block {{ app()->getLocale() === 'en' ? 'active' : '' }}">EN</a>
+                        <a href="{{ route('language.switch', 'de') }}"
+                        class="lang-option d-none d-md-inline-block {{ app()->getLocale() === 'de' ? 'active' : '' }}">DE</a>
+
+                        {{-- Mobile: single globe icon that opens a tiny popover --}}
+                        <a href="#" class="lang-globe d-md-none" id="langDropdownMobile"
+                        role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-globe2"></i>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end d-md-none" aria-labelledby="langDropdownMobile">
+                            <li>
+                                <a class="dropdown-item {{ app()->getLocale() === 'en' ? 'active' : '' }}"
+                                href="{{ route('language.switch', 'en') }}">English</a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {{ app()->getLocale() === 'de' ? 'active' : '' }}"
+                                href="{{ route('language.switch', 'de') }}">Deutsch</a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                {{-- ===== End Pill ===== --}}
+
+                {{-- Navbar Toggler (for mobile) --}}
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMenu">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+            </div>
+
+            {{-- Main nav links — order-lg-2 puts this between brand and pill on desktop;
+                on mobile flex-wrap drops it to its own full-width row below. --}}
+            <div class="collapse navbar-collapse order-lg-2" id="navbarMenu">
                 <ul class="navbar-nav ms-auto w-100 justify-content-end text-start align-items-lg-center mt-3 mt-lg-0">
+
                     {{-- Home --}}
                     <li class="nav-item mx-2 my-1 my-lg-0">
                         <a href="{{ route('home') }}" class="nav-link {{ request()->routeIs('home') ? 'active fw-bold text-navitem' : '' }}">
@@ -52,10 +140,24 @@
                     </li>
 
                     {{-- Projekte --}}
-                    <li class="nav-item mx-2 my-1 my-lg-0">
-                        <a href="{{ route('projects') }}" class="nav-link {{ request()->routeIs('projects') ? 'active fw-bold text-navitem' : '' }}">
+                    <li class="nav-item dropdown mx-2 my-1 my-lg-0">
+                        <a class="nav-link dropdown-toggle {{ request()->routeIs(['projects', 'workflow.*']) ? 'active fw-bold text-navitem' : '' }}" href="#" id="projectDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="bi bi-kanban-fill me-1"></i> Projekte
                         </a>
+                        <ul class="dropdown-menu" aria-labelledby="projectDropdown">
+                            <li>
+                                <a class="dropdown-item {{ request()->routeIs('projects') ? 'active fw-bold' : '' }}" href="{{ route('projects') }}">
+                                    <i class="bi bi-kanban-fill me-1"></i> Übersicht
+                                </a>
+                            </li>
+                            @auth
+                                <li>
+                                    <a class="dropdown-item {{ request()->routeIs('workflow.*') ? 'active fw-bold' : '' }}" href="{{ route('workflow.index') }}">
+                                        <i class="bi bi-diagram-3 me-1"></i> Workflows
+                                    </a>
+                                </li>
+                            @endauth
+                        </ul>
                     </li>
 
                     {{-- Leistungen Dropdown --}}
@@ -111,69 +213,9 @@
                         </ul>
                     </li>
 
-                    @auth
-                        {{-- Projekt-Workflow --}}
-                        <li class="nav-item mx-2 my-1 my-lg-0">
-                            <a href="{{ route('workflow.index') }}" class="nav-link {{ request()->routeIs('workflow.*') ? 'active fw-bold text-navitem' : '' }}">
-                                <i class="bi bi-kanban me-1"></i> Projekt-Workflow
-                            </a>
-                        </li>
-                    @endauth
-
-                    @auth
-                        @if(Auth::user()->role === 'admin')
-                            <li class="nav-item mx-2 my-1 my-lg-0">
-                                <a href="{{ route('admin.dashboard') }}" class="nav-link">
-                                    <i class="bi bi-speedometer me-1"></i> Admin
-                                </a>
-                            </li>
-                        @else
-                            <li class="nav-item mx-2 my-1 my-lg-0">
-                                <a href="{{ route('profile') }}" class="nav-link">
-                                    <i class="bi bi-person-circle me-1"></i> Profil
-                                </a>
-                            </li>
-                        @endif
-                    @endauth
-
-                    {{-- Responsive Separator --}}
-                    <li class="nav-item mx-lg-3 my-2 my-lg-0 border-top border-lg-end border-secondary-subtle" style="height: 1px; min-height: 1px;">
-                        <div class="d-none d-lg-block" style="height: 24px; width: 1px;"></div>
-                    </li>
-
-                    {{-- Auth --}}
-                    @auth
-                        <li class="nav-item mx-2 my-1 my-lg-0 d-inline-flex justify-content-start">
-                            <form method="POST" action="{{ route('logout') }}">
-                                @csrf
-                                <button type="submit" class="btn btn-outline-login btn-sm d-flex align-items-center">
-                                    <i class="bi bi-box-arrow-right me-1"></i> Logout
-                                </button>
-                            </form>
-                        </li>
-                    @endauth
-
-                    @guest
-                        <li class="nav-item mx-2 my-1 my-lg-0">
-                            <a href="{{ route('login') }}" class="btn btn-outline-login btn-sm d-flex align-items-center">
-                                <i class="bi bi-box-arrow-in-right me-1"></i> Login
-                            </a>
-                        </li>
-                    @endguest
-
-                    {{-- Language Dropdown (Far Right) --}}
-                    <li class="nav-item dropdown mx-2">
-                        <button class="btn btn-sm dropdown-toggle" type="button" id="languageDropdown"
-                                data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="bi bi-translate me-1"></i> {{ strtoupper(app()->getLocale()) }}
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="languageDropdown">
-                            <li><a class="dropdown-item" href="{{ route('language.switch', 'en') }}">English</a></li>
-                            <li><a class="dropdown-item" href="{{ route('language.switch', 'de') }}">Deutsch</a></li>
-                        </ul>
-                    </li>
                 </ul>
             </div>
+
         </div>
     </nav>
 
@@ -246,5 +288,113 @@
                 .catch(error => console.warn('Keep-alive ping failed:', error));
         }, 10 * 60 * 1000);
     </script>
+    {{-- ========== PILL STYLES ========== --}}
+    <style>
+        /* Keep brand + pill + toggler on one row on mobile; nav links wrap to their own row */
+        .navbar .container.flex-wrap {
+            row-gap: .5rem;
+        }
+    
+        .navbar-account-pill {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #f1f3f5;
+            border-radius: 999px;
+            padding: 4px 8px 4px 12px;
+        }
+    
+        .pill-divider {
+            width: 1px;
+            height: 18px;
+            background: #dee2e6;
+            border-radius: 0; /* single-sided line, never round this */
+        }
+    
+        /* Logged-in trigger */
+        .pill-account-trigger {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .pill-avatar {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: #1F4E5F;
+            color: #fff;
+            font-size: 11px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .pill-caret {
+            font-size: .7rem;
+            color: #6c757d;
+        }
+    
+        /* Guest trigger */
+        .pill-guest-trigger {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            text-decoration: none;
+            font-size: .8rem;
+            font-weight: 500;
+            color: #212529;
+            white-space: nowrap;
+        }
+        .pill-guest-label {
+            display: inline-block;
+        }
+    
+        /* Language segmented control (desktop) */
+        .lang-toggle {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+        }
+        .lang-option {
+            padding: 4px 9px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 600;
+            text-decoration: none;
+            color: #6c757d;
+        }
+        .lang-option.active {
+            background: #fff;
+            border: 1px solid #dee2e6;
+            color: #212529;
+        }
+    
+        /* Language globe (mobile) */
+        .lang-globe {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 26px;
+            height: 26px;
+            color: #6c757d;
+            text-decoration: none;
+            font-size: 1rem;
+        }
+    
+        /* Small-screen tightening so the pill never forces horizontal scroll */
+        @media (max-width: 400px) {
+            .navbar-account-pill {
+                gap: 6px;
+                padding: 4px 6px 4px 8px;
+            }
+            .pill-avatar {
+                width: 24px;
+                height: 24px;
+            }
+        }
+    </style>
 </body>
 </html>

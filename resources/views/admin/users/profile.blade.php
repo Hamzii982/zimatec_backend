@@ -13,9 +13,6 @@
         </div>
 
         <div class="card-body">
-            @if(session('success'))
-                <div class="alert alert-success">{{ session('success') }}</div>
-            @endif
 
             <div class="mb-3">
                 <strong>Name:</strong>

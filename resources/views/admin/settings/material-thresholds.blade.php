@@ -10,9 +10,6 @@
         </div>
 
         <div class="card-body">
-            @if (session('success'))
-                <div class="alert alert-success">{{ session('success') }}</div>
-            @endif
 
             <p class="text-muted">
                 Schwellenwert = der verfügbare Bestand (Menge + Reserviert + Bestellt),

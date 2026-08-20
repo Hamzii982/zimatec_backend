@@ -104,4 +104,12 @@ class User extends Authenticatable
     {
         return $this->company === 'ZT';
     }
+
+    public function initials(): string
+    {
+        return collect(explode(' ', $this->name))
+            ->map(fn ($n) => mb_substr($n, 0, 1))
+            ->take(2)
+            ->implode('');
+    }
 }
