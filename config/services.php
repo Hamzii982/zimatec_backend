@@ -47,4 +47,8 @@ return [
         'url' => env('FEEDBACK_FORM_URL', '#'),
     ],
 
+    'ai_backend' => [
+        'url' => env('AI_BACKEND_URL', 'http://localhost:8001'),
+    ]
+
 ];

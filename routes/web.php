@@ -39,6 +39,7 @@ use App\Http\Controllers\Workflow\ProjectStepController as WorkflowProjectStepCo
 use App\Http\Controllers\Workflow\WorkflowController as WorkflowWorkflowController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AiChatController;
 
 Auth::routes();
 
@@ -48,7 +49,7 @@ Route::get('/ping', function () {
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/home', [HomeController::class, 'index']);
-Route::post('/assistant/ask-recommendations', [HomeController::class, 'askRecommendations'])->name('assistant.recommendations');
+Route::post('/assistant/ask-recommendations', [AiChatController::class, 'ask'])->name('assistant.recommendations');
 
 // Project routes
 Route::get('/projects/index', [ProjectController::class, 'index'])->name('projects');

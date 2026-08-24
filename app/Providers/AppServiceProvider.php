@@ -7,6 +7,7 @@ use Illuminate\Filesystem\Filesystem;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
+use App\Services\AI\AiToolRegistry;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -17,6 +18,14 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->singleton('files', function ($app) {
             return new Filesystem;
+        });
+
+        $this->app->singleton(AiToolRegistry::class, function () {
+            $registry = new AiToolRegistry();
+            foreach (config('ai_tools') as $toolClass) {
+                $registry->register(app($toolClass));
+            }
+            return $registry;
         });
     }
 

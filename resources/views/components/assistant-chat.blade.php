@@ -35,148 +35,148 @@
 </style>
 
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    const offcanvasEl = document.getElementById('assistantOffcanvas');
-    const bsOffcanvas = new bootstrap.Offcanvas(offcanvasEl);
-    const chatHistory = document.getElementById('chatHistory');
-    const chatInput = document.getElementById('chatInput');
-    const sendBtn = document.getElementById('sendBtn');
-    const clearChatBtn = document.getElementById('clearChatBtn');
-    const welcomeMessage = document.getElementById('welcomeMessage');
-
-    // Load existing history from sessionStorage, or initialize empty array
-    let historyStack = JSON.parse(sessionStorage.getItem('assistant_chat_history')) || [];
-
-    // Initialize UI on page load
-    renderSavedHistory();
+    document.addEventListener('DOMContentLoaded', function () {
+        const offcanvasEl = document.getElementById('assistantOffcanvas');
+        const bsOffcanvas = new bootstrap.Offcanvas(offcanvasEl);
+        const chatHistory = document.getElementById('chatHistory');
+        const chatInput = document.getElementById('chatInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const clearChatBtn = document.getElementById('clearChatBtn');
+        const welcomeMessage = document.getElementById('welcomeMessage');
     
-    // Toggle UI open
-    document.getElementById('assistantBtn').addEventListener('click', () => bsOffcanvas.show());
-
-    // Trigger on static local FAQ clicks
-    document.querySelectorAll('.faq-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            const assistantAnswer = this.getAttribute('data-answer');
-            appendMessage(this.innerText, 'human');
-            saveToHistory('human', this.innerText);
-
-            setTimeout(() => {
-                appendMessage(assistantAnswer, 'ai');
-                saveToHistory('ai', assistantAnswer);
-            }, 200);
+        // historyStack is now ONLY for re-rendering the visual chat log on page
+        // reload — it is no longer sent to the server. The server keeps the real
+        // conversation state itself, tracked here just by an id.
+        let historyStack = JSON.parse(sessionStorage.getItem('assistant_chat_history')) || [];
+        let conversationId = sessionStorage.getItem('assistant_conversation_id') || null;
+    
+        renderSavedHistory();
+    
+        document.getElementById('assistantBtn').addEventListener('click', () => bsOffcanvas.show());
+    
+        document.querySelectorAll('.faq-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const assistantAnswer = this.getAttribute('data-answer');
+                appendMessage(this.innerText, 'human');
+                saveToHistory('human', this.innerText);
+    
+                setTimeout(() => {
+                    appendMessage(assistantAnswer, 'ai');
+                    saveToHistory('ai', assistantAnswer);
+                }, 200);
+            });
         });
-    });
-
-    // Send on click or when Enter key is pressed
-    sendBtn.addEventListener('click', sendUserQuery);
-    chatInput.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') sendUserQuery();
-    });
-
-    // Clear Chat Action
-    clearChatBtn.addEventListener('click', function() {
-        if (confirm("Möchten Sie den Chatverlauf wirklich löschen?")) {
-            sessionStorage.removeItem('assistant_chat_history');
-            historyStack = [];
-            
-            // Reset Chat History UI to just show the welcome message
-            chatHistory.innerHTML = '';
-            if (welcomeMessage) {
-                chatHistory.appendChild(welcomeMessage);
+    
+        sendBtn.addEventListener('click', sendUserQuery);
+        chatInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') sendUserQuery();
+        });
+    
+        clearChatBtn.addEventListener('click', function() {
+            if (confirm("Möchten Sie den Chatverlauf wirklich löschen?")) {
+                sessionStorage.removeItem('assistant_chat_history');
+                sessionStorage.removeItem('assistant_conversation_id'); // <-- forget the old conversation too
+                historyStack = [];
+                conversationId = null; // next message starts a fresh conversation server-side
+    
+                chatHistory.innerHTML = '';
+                if (welcomeMessage) {
+                    chatHistory.appendChild(welcomeMessage);
+                } else {
+                    chatHistory.innerHTML = `
+                        <div id="welcomeMessage" class="p-2 mb-3 bg-light rounded text-secondary">
+                            Hallo! Ich bin Ihr virtueller Assistent. Klicken Sie auf eine der untenstehenden häufigen Fragen oder schreiben Sie mir direkt eine Nachricht!
+                        </div>
+                    `;
+                }
+            }
+        });
+    
+        function sendUserQuery() {
+            const queryText = chatInput.value.trim();
+            if (!queryText) return;
+    
+            appendMessage(queryText, 'human');
+            chatInput.value = '';
+    
+            const loadingId = 'loading-' + Date.now();
+            chatHistory.innerHTML += `
+                <div class="text-start mb-2" id="${loadingId}">
+                    <div class="p-2 bg-light rounded text-muted d-inline-block">
+                        <span class="spinner-border spinner-border-sm me-2" role="status"></span>ZimaTec Assistant antwortet...
+                    </div>
+                </div>
+            `;
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+    
+            fetch("{{ route('assistant.recommendations') }}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                },
+                body: JSON.stringify({
+                    message: queryText,
+                    conversation_id: conversationId, // null on first message — server generates one
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById(loadingId).remove();
+                if (data.success) {
+                    appendMessage(data.reply, 'ai');
+    
+                    // Persist the conversation id the server gave us, so the
+                    // NEXT message continues the same server-side session history.
+                    conversationId = data.conversation_id;
+                    sessionStorage.setItem('assistant_conversation_id', conversationId);
+    
+                    saveToHistory('human', queryText);
+                    saveToHistory('ai', data.reply);
+                } else {
+                    appendMessage("❌ Fehler: " + data.message, 'ai');
+                }
+            })
+            .catch(err => {
+                if (document.getElementById(loadingId)) {
+                    document.getElementById(loadingId).remove();
+                }
+                appendMessage("❌ Verbindung zum Server fehlgeschlagen.", 'ai');
+            });
+        }
+    
+        function saveToHistory(role, content) {
+            historyStack.push({ role: role, content: content });
+            sessionStorage.setItem('assistant_chat_history', JSON.stringify(historyStack));
+        }
+    
+        function renderSavedHistory() {
+            if (historyStack.length > 0) {
+                historyStack.forEach(msg => {
+                    appendMessage(msg.content, msg.role);
+                });
+            }
+        }
+    
+        function appendMessage(text, sender) {
+            if (sender === 'human') {
+                chatHistory.innerHTML += `
+                    <div class="text-end mb-2">
+                        <span class="badge bg-primary text-wrap text-start p-2" style="max-width: 85%; font-weight: normal; font-size:0.9rem;">
+                            ${text}
+                        </span>
+                    </div>
+                `;
             } else {
-                chatHistory.innerHTML = `
-                    <div id="welcomeMessage" class="p-2 mb-3 bg-light rounded text-secondary">
-                        Hallo! Ich bin Ihr virtueller Assistent. Klicken Sie auf eine der untenstehenden häufigen Fragen oder schreiben Sie mir direkt eine Nachricht!
+                chatHistory.innerHTML += `
+                    <div class="text-start mb-2">
+                        <div class="p-2 bg-light rounded text-dark d-inline-block" style="max-width: 85%; font-size: 0.9rem; white-space: pre-line;">
+                            ${text}
+                        </div>
                     </div>
                 `;
             }
+            chatHistory.scrollTop = chatHistory.scrollHeight;
         }
     });
-
-    // Main JS API Calling function
-    function sendUserQuery() {
-        const queryText = chatInput.value.trim();
-        if (!queryText) return;
-
-        // Display user's question locally
-        appendMessage(queryText, 'human');
-        chatInput.value = '';
-        // historyStack.push({ role: 'human', content: queryText });
-        // Temporary tracking ID for a loading visual spinner
-        const loadingId = 'loading-' + Date.now();
-        chatHistory.innerHTML += `
-            <div class="text-start mb-2" id="${loadingId}">
-                <div class="p-2 bg-light rounded text-muted d-inline-block">
-                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>ZimaTec Assistant antwortet...
-                </div>
-            </div>
-        `;
-        chatHistory.scrollTop = chatHistory.scrollHeight;
-
-        // JavaScript AJAX Route Call
-        fetch("{{ route('assistant.recommendations') }}", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "X-CSRF-TOKEN": "{{ csrf_token() }}"
-            },
-            body: JSON.stringify({ message: queryText, history: historyStack })
-        })
-        .then(res => res.json())
-        .then(data => {
-            document.getElementById(loadingId).remove();
-            if (data.success) {
-                appendMessage(data.reply, 'ai');
-
-                // Save both chunks to persistent state
-                saveToHistory('human', queryText);
-                saveToHistory('ai', data.reply);
-            } else {
-                appendMessage("❌ Fehler: " + data.message, 'ai');
-            }
-        })
-        .catch(err => {
-            if (document.getElementById(loadingId)) {
-                document.getElementById(loadingId).remove();
-            }
-            appendMessage("❌ Verbindung zum Server fehlgeschlagen.", 'ai');
-        });
-    }
-
-    // Central logic to add to array state and dump to sessionStorage
-    function saveToHistory(role, content) {
-        historyStack.push({ role: role, content: content });
-        sessionStorage.setItem('assistant_chat_history', JSON.stringify(historyStack));
-    }
-
-    // Build the structural visual log if elements are already saved
-    function renderSavedHistory() {
-        if (historyStack.length > 0) {
-            historyStack.forEach(msg => {
-                appendMessage(msg.content, msg.role);
-            });
-        }
-    }
-
-    function appendMessage(text, sender) {
-        if (sender === 'human') {
-            chatHistory.innerHTML += `
-                <div class="text-end mb-2">
-                    <span class="badge bg-primary text-wrap text-start p-2" style="max-width: 85%; font-weight: normal; font-size:0.9rem;">
-                        ${text}
-                    </span>
-                </div>
-            `;
-        } else {
-            chatHistory.innerHTML += `
-                <div class="text-start mb-2">
-                    <div class="p-2 bg-light rounded text-dark d-inline-block" style="max-width: 85%; font-size: 0.9rem; white-space: pre-line;">
-                        ${text}
-                    </div>
-                </div>
-            `;
-        }
-        chatHistory.scrollTop = chatHistory.scrollHeight;
-    }
-});
 </script>
