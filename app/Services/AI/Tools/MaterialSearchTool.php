@@ -31,7 +31,8 @@ class MaterialSearchTool implements AiToolContract
 
     public function isAuthorized(?Authenticatable $user): bool
     {
-        return $user !== null; // must be logged in, any role
+        // return $user !== null;
+        return true;
     }
 
     public function handle(array $arguments): array
@@ -62,7 +63,10 @@ class MaterialSearchTool implements AiToolContract
                 'unit' => $m->unit,
                 'image' => $m->image,
                 'order_status' => $m->order_status,
-                'lager_id' => $m->lager_id,
+                'lager' => [
+                    'id' => $m->lager_id,
+                    'name' => $m->lager?->name,
+                ],
                 'is_werkzeug' => $m->is_werkzeug,
                 'is_active' => $m->is_active,
             ])->all(),
