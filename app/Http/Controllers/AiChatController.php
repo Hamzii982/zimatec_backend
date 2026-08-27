@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Services\AI\AiConversationOrchestrator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class AiChatController extends Controller
 {
@@ -24,7 +25,19 @@ class AiChatController extends Controller
 
             return response()->json(['success' => true] + $result);
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => 'Fehler: '.$e->getMessage()], 500);
+            Log::error('AI assistant error', [
+                'message' => $e->getMessage(),
+                'exception' => get_class($e),
+                'trace' => $e->getTraceAsString(),
+                'user_id' => $request->user()?->id,
+                'conversation_id' => $request->input('conversation_id'),
+                'user_message' => $request->input('message'),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Der Assistent ist derzeit nicht erreichbar. Bitte versuchen Sie es in ein paar Minuten erneut.',
+            ], 500);
         }
     }
 }

@@ -18,6 +18,20 @@
             <div class="p-2 mb-3 bg-light rounded text-secondary">
                 Hallo! Ich bin Ihr virtueller Assistent. Klicken Sie auf eine der untenstehenden häufigen Fragen oder schreiben Sie mir direkt eine Nachricht!
             </div>
+            <div class="d-flex flex-column gap-2 mb-3" id="faqButtons">
+                <button type="button" class="btn btn-outline-secondary btn-sm text-start faq-btn"
+                        data-answer="Mit dem Chat können Sie Materialien suchen, Projekte abfragen und Empfehlungen erhalten. Sie können z. B. fragen: 'Zeig mir alle HSS Bohrer' oder 'Welche Projekte laufen gerade?'">
+                    Was kann diese chatbot machen?
+                </button>
+                <button type="button" class="btn btn-outline-secondary btn-sm text-start faq-btn"
+                        data-answer="Sie können den Materialbestand direkt über den Chat abfragen, z. B. 'Zeig mir alle HSS Bohrer'.">
+                    Wie finde ich Materialien?
+                </button>
+                <button type="button" class="btn btn-outline-secondary btn-sm text-start faq-btn"
+                        data-answer="Sie können Projekte über den Chat abfragen, z. B. 'Zeig mir alle Projekte'.">
+                    Wie finde ich Projekte?
+                </button>
+            </div>
         </div>
 
         <div class="input-group">
@@ -33,6 +47,9 @@
         background-color: #0a192f;
     }
 </style>
+
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
@@ -141,7 +158,7 @@
                 if (document.getElementById(loadingId)) {
                     document.getElementById(loadingId).remove();
                 }
-                appendMessage("❌ Verbindung zum Server fehlgeschlagen.", 'ai');
+                appendMessage("❌ Verbindung zum Server fehlgeschlagen. Bitte versuchen Sie es erneut.", 'ai');
             });
         }
     
@@ -163,20 +180,31 @@
                 chatHistory.innerHTML += `
                     <div class="text-end mb-2">
                         <span class="badge bg-primary text-wrap text-start p-2" style="max-width: 85%; font-weight: normal; font-size:0.9rem;">
-                            ${text}
+                            ${escapeHtml(text)}
                         </span>
                     </div>
                 `;
             } else {
                 chatHistory.innerHTML += `
                     <div class="text-start mb-2">
-                        <div class="p-2 bg-light rounded text-dark d-inline-block" style="max-width: 85%; font-size: 0.9rem; white-space: pre-line;">
-                            ${text}
+                        <div class="p-2 bg-light rounded text-dark d-inline-block markdown-body" style="max-width: 85%; font-size: 0.9rem;">
+                            ${renderAiContent(text)}
                         </div>
                     </div>
                 `;
             }
             chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+
+        function renderAiContent(markdownText) {
+            const rawHtml = marked.parse(markdownText, { breaks: true });
+            return DOMPurify.sanitize(rawHtml);
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
         }
     });
 </script>

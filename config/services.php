@@ -49,6 +49,10 @@ return [
 
     'ai_backend' => [
         'url' => env('AI_BACKEND_URL', 'http://localhost:8001'),
-    ]
+    ],
+
+    'tavily' => [
+        'api_key' => env('TAVILY_API_KEY'),
+    ],
 
 ];

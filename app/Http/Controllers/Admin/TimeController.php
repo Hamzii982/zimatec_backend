@@ -555,6 +555,14 @@ class TimeController extends Controller
                 DB::raw('COALESCE(pt.process_count,0) as process_count'),
 
                 'u.name as user_name',
+
+                DB::raw("
+                    CASE
+                        WHEN u.company = 'ZF' THEN p.auftragsnummer_zf
+                        ELSE p.auftragsnummer_zt
+                    END as auftragsnummer
+                "),
+
                 'p.project_name',
                 'pos.name as position_name',
                 'm.name as machine_name',
@@ -593,7 +601,7 @@ class TimeController extends Controller
             $comparison[] = [
                 'record' => (object) [
                     'user' => (object) ['name' => $g->user_name],
-                    'project' => (object) ['project_name' => $g->project_name],
+                    'project' => (object) ['project_name' => $g->project_name, 'auftragsnummer' => $g->auftragsnummer],
                     'Position' => (object) ['name' => $g->position_name],
                     'machine' => (object) ['name' => $g->machine_name],
                 ],

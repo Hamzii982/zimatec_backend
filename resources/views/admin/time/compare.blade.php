@@ -49,7 +49,7 @@
                             <tr>
                                 <td><i class="bi bi-person"></i></td>
                                 <td>{{ $item['record']->user->name }}</td>
-                                <td>{{ $item['record']->project->project_name }}</td>
+                                <td>{{ $item['record']->project->project_name }} <small class="text-muted">({{ $item['record']->project->auftragsnummer }})</small></td>
                                 <td>{{ $item['record']->Position->name }}</td>
                                 <td>{{ $item['record']->machine->name }}</td>
                                 <td>{{ $item['total_user_time'] }}</td>

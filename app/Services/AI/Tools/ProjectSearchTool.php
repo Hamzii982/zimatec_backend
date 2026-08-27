@@ -50,7 +50,7 @@ class ProjectSearchTool implements AiToolContract
         return true;
     }
 
-    public function handle(array $arguments): array
+    public function handle(array $arguments, ?Authenticatable $user = null): array
     {
         $query = Project::query();
 
