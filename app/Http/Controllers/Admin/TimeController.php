@@ -7,6 +7,7 @@ use App\Models\Machine;
 use App\Models\MachineStatus;
 use App\Models\Position;
 use App\Models\Project;
+use App\Models\Process;
 use App\Models\TimeChangeRequest;
 use App\Models\TimeLog;
 use App\Models\TimeRecord;
@@ -449,189 +450,232 @@ class TimeController extends Controller
 
     public function compare(Request $request)
     {
-
-        $comparison = [];
-
-        $weeks = [];
         $today = Carbon::now();
         $selectedWeek = $request->get('week', $today->format('oW'));
         $maxWeeks = 5;
-
+    
+        $weeks = [];
         $i = 0;
         while (true) {
             $weekStart = (clone $today)->startOfWeek()->subWeeks($i);
             $weekNumber = $weekStart->format('oW');
-
+    
             $weeks[] = [
                 'label' => 'KW '.$weekStart->format('W').' / '.$weekStart->format('o'),
                 'value' => $weekNumber,
             ];
-
+    
             $i++;
-
-            if (
-                count($weeks) >= $maxWeeks &&
-                in_array($selectedWeek, array_column($weeks, 'value'))
-            ) {
+    
+            if (count($weeks) >= $maxWeeks && in_array($selectedWeek, array_column($weeks, 'value'))) {
                 break;
             }
-
+    
             if ($weekNumber === $selectedWeek) {
                 break;
             }
         }
-
+    
         $year = substr($selectedWeek, 0, 4);
         $week = substr($selectedWeek, 4, 2);
-
         $fromDate = Carbon::now()->setISODate($year, $week)->startOfWeek();
         $toDate = Carbon::now()->setISODate($year, $week)->endOfWeek();
-
-        $processTotals = DB::table('processes as pr')
-            ->leftJoin('process_pauses as pp', 'pp.process_id', '=', 'pr.id')
-
-            ->select([
-                'pr.project_id',
-                'pr.position_id',
-                'pr.machine_id',
-
-                DB::raw('SUM(TIMESTAMPDIFF(SECOND, pr.start_time, pr.end_time)) as process_seconds'),
-
-                DB::raw('
-                    COALESCE(SUM(
-                        GREATEST(
-                            0,
-                            TIMESTAMPDIFF(
-                                SECOND,
-                                GREATEST(pp.pause_start, pr.start_time),
-                                LEAST(COALESCE(pp.pause_end, pr.end_time), pr.end_time)
-                            )
-                        )
-                    ), 0) as pause_seconds
-                '),
-
-                DB::raw('COUNT(pr.id) as process_count'),
+    
+        // 1) Every user session (TimeRecord) this week, with its status logs and
+        //    any processes that are directly FK-linked to it.
+        $timeRecords = TimeRecord::query()
+            ->with([
+                'user:id,name,company',
+                'project:id,project_name,auftragsnummer_zf,auftragsnummer_zt',
+                'position:id,name',
+                'machine:id,name',
+                'logs' => fn ($q) => $q->whereNotNull('end_time')->with('status:id,name'),
+                'processes' => fn ($q) => $q->whereNotNull('end_time')->with('pauses'),
             ])
-            ->whereNotNull('pr.end_time')
-            ->whereBetween('pr.start_time', [$fromDate, $toDate])
-            ->groupBy('pr.project_id', 'pr.position_id', 'pr.machine_id');
-
-        $logTotals = DB::table('time_logs as tl')
-            ->join('time_records as tr', 'tr.id', '=', 'tl.time_record_id')
-
-            ->select([
-                'tr.user_id',
-                'tr.project_id',
-                'tr.position_id',
-                'tr.machine_id',
-
-                DB::raw('SUM(TIMESTAMPDIFF(SECOND, tl.start_time, tl.end_time)) as log_seconds'),
-            ])
-            ->whereNotNull('tl.end_time')
-            ->whereBetween('tl.start_time', [$fromDate, $toDate])
-            ->groupBy('tr.user_id', 'tr.project_id', 'tr.position_id', 'tr.machine_id');
-
-        $groups = DB::query()
-            ->fromSub($logTotals, 'lt')
-
-            ->leftJoinSub($processTotals, 'pt', function ($join) {
-                $join->on('pt.project_id', '=', 'lt.project_id')
-                    ->on('pt.position_id', '=', 'lt.position_id')
-                    ->on('pt.machine_id', '=', 'lt.machine_id');
-            })
-            ->join('users as u', 'u.id', '=', 'lt.user_id')
-            ->join('projects as p', 'p.id', '=', 'lt.project_id')
-            ->join('positions as pos', 'pos.id', '=', 'lt.position_id')
-            ->join('machines as m', 'm.id', '=', 'lt.machine_id')
-
-            ->select([
-                'lt.user_id',
-                'lt.project_id',
-                'lt.position_id',
-                'lt.machine_id',
-
-                DB::raw('COALESCE(lt.log_seconds,0) as user_seconds'),
-                DB::raw('COALESCE(pt.process_seconds - pt.pause_seconds,0) as machine_seconds'),
-                DB::raw('COALESCE(pt.process_count,0) as process_count'),
-
-                'u.name as user_name',
-
-                DB::raw("
-                    CASE
-                        WHEN u.company = 'ZF' THEN p.auftragsnummer_zf
-                        ELSE p.auftragsnummer_zt
-                    END as auftragsnummer
-                "),
-
-                'p.project_name',
-                'pos.name as position_name',
-                'm.name as machine_name',
-            ])
-            ->get();
-
-        $processRows = DB::table('processes')
-            ->select('id', 'project_id', 'position_id', 'machine_id',
-                'name', 'start_time', 'end_time')
             ->whereBetween('start_time', [$fromDate, $toDate])
+            ->get();
+    
+        // 2) Processes read straight from the machine log (time_record_id null) this week.
+        $unlinkedProcesses = Process::query()
+            ->with(['pauses', 'project:id,project_name,auftragsnummer_zf,auftragsnummer_zt', 'position:id,name', 'machine:id,name'])
+            ->whereNull('time_record_id')
             ->whereNotNull('end_time')
-            ->get()
-            ->groupBy(fn ($r) => "$r->project_id-$r->position_id-$r->machine_id"
+            ->whereBetween('start_time', [$fromDate, $toDate])
+            ->get();
+    
+        // 3) Try to attach each unlinked process to an overlapping session on the same job;
+        //    whatever's left over is truly unattended.
+        $unattendedByKey = [];
+    
+        foreach ($unlinkedProcesses->groupBy(fn ($p) => "{$p->project_id}-{$p->position_id}-{$p->machine_id}") as $key => $processes) {
+            $candidates = $timeRecords->filter(
+                fn ($r) => "{$r->project_id}-{$r->position_id}-{$r->machine_id}" === $key
             );
-
-        $logRows = DB::table('time_logs as tl')
-            ->join('time_records as tr', 'tr.id', '=', 'tl.time_record_id')
-            ->join('machine_statuses as ms', 'ms.id', '=', 'tl.machine_status_id')
-
-            ->select(
-                'tr.user_id', 'tr.project_id', 'tr.position_id', 'tr.machine_id',
-                'ms.name as status',
-                'tl.start_time', 'tl.end_time'
-            )
-            ->whereBetween('tl.start_time', [$fromDate, $toDate])
-            ->whereNotNull('tl.end_time')
-            ->get()
-            ->groupBy(fn ($r) => "$r->user_id-$r->project_id-$r->position_id-$r->machine_id"
-            );
-
-        foreach ($groups as $g) {
-
-            $procKey = "$g->project_id-$g->position_id-$g->machine_id";
-            $logKey = "$g->user_id-$g->project_id-$g->position_id-$g->machine_id";
-
-            $comparison[] = [
-                'record' => (object) [
-                    'user' => (object) ['name' => $g->user_name],
-                    'project' => (object) ['project_name' => $g->project_name, 'auftragsnummer' => $g->auftragsnummer],
-                    'Position' => (object) ['name' => $g->position_name],
-                    'machine' => (object) ['name' => $g->machine_name],
-                ],
-
-                'total_user_time' => $this->hms($g->user_seconds),
-                'total_machine_time' => $this->hms($g->machine_seconds),
-                'process_count' => $g->process_count,
-
-                'processes' => ($processRows[$procKey] ?? collect())
-                    ->map(fn ($p) => [
-                        'process_name' => $p->name,
-                        'start_time' => $p->start_time,
-                        'end_time' => $p->end_time,
-                    ])->values()->all(),
-
-                'logs' => ($logRows[$logKey] ?? collect())
-                    ->map(fn ($l) => [
-                        'status' => $l->status,
-                        'start_time' => $l->start_time,
-                        'end_time' => $l->end_time,
-                    ])->values()->all(),
-            ];
+    
+            foreach ($processes as $process) {
+                $match = $candidates->first(function ($record) use ($process) {
+                    $recordEnd = $record->end_time ?? Carbon::now();
+    
+                    return $process->start_time < $recordEnd && $process->end_time > $record->start_time;
+                });
+    
+                if ($match) {
+                    $match->setRelation('processes', $match->processes->push($process));
+                } else {
+                    $unattendedByKey[$key][] = $process;
+                }
+            }
         }
-
-        return view('admin.time.compare', compact('comparison', 'weeks', 'selectedWeek'));
+    
+        // 4) Session-level rows.
+        $sessions = $timeRecords->map(function ($record) {
+            $statusSeconds = $record->logs
+                ->groupBy(fn ($log) => $log->status->name ?? 'Unbekannt')
+                ->map(fn ($logs) => $logs->sum(fn ($l) => $this->seconds($l->start_time, $l->end_time)));
+    
+            $machineSeconds = $record->processes->sum(
+                fn ($p) => $this->seconds($p->start_time, $p->end_time) - $this->pauseSeconds($p)
+            );
+    
+            return [
+                'project_id' => $record->project_id,
+                'position_id' => $record->position_id,
+                'machine_id' => $record->machine_id,
+                'record' => (object) [
+                    'user' => (object) ['name' => $record->user->name ?? null],
+                    'project' => (object) [
+                        'project_name' => $record->project->project_name ?? null,
+                        'auftragsnummer' => $this->auftragsnummer($record->project, $record->user->company ?? null),
+                    ],
+                    'Position' => (object) ['name' => $record->position->name ?? null],
+                    'machine' => (object) ['name' => $record->machine->name ?? null],
+                ],
+                'total_user_time' => $this->hms($statusSeconds->sum()),
+                'status_seconds' => [
+                    'ruestzeit' => $statusSeconds->get('Rüstzeit', 0),
+                    'mit_aufsicht' => $statusSeconds->get('Mit Aufsicht', 0),
+                    'ohne_aufsicht' => $statusSeconds->get('Ohne Aufsicht', 0),
+                ],
+                'total_machine_time' => $this->hms($machineSeconds),
+                'process_count' => $record->processes->count(),
+                'processes' => $record->processes->map(fn ($p) => [
+                    'process_name' => $p->name,
+                    'start_time' => $p->start_time,
+                    'end_time' => $p->end_time,
+                    'source' => $p->time_record_id !== null ? 'manuell' : 'überlappend erkannt',
+                ])->values()->all(),
+                'logs' => $record->logs->map(fn ($l) => [
+                    'status' => $l->status->name ?? null,
+                    'start_time' => $l->start_time,
+                    'end_time' => $l->end_time,
+                ])->values()->all(),
+            ];
+        });
+    
+        // 5) Fully unattended machine-only rows (one per project/position/machine).
+        $unattendedRows = collect($unattendedByKey)->map(function ($processes) {
+            $first = $processes[0];
+            $machineSeconds = collect($processes)->sum(
+                fn ($p) => $this->seconds($p->start_time, $p->end_time) - $this->pauseSeconds($p)
+            );
+    
+            return [
+                'project_id' => $first->project_id,
+                'position_id' => $first->position_id,
+                'machine_id' => $first->machine_id,
+                'record' => (object) [
+                    'user' => (object) ['name' => null],
+                    'project' => (object) [
+                        'project_name' => $first->project->project_name ?? null,
+                        // No user attached, so no company to pick auftragsnummer_zf vs _zt from.
+                        // Defaulting to _zt here — tell me if unattended runs should use _zf instead.
+                        'auftragsnummer' => $this->auftragsnummer($first->project, null),
+                    ],
+                    'Position' => (object) ['name' => $first->position->name ?? null],
+                    'machine' => (object) ['name' => $first->machine->name ?? null],
+                ],
+                'total_user_time' => $this->hms(0),
+                'status_seconds' => ['ruestzeit' => 0, 'mit_aufsicht' => 0, 'ohne_aufsicht' => 0],
+                'total_machine_time' => $this->hms($machineSeconds),
+                'process_count' => count($processes),
+                'processes' => collect($processes)->map(fn ($p) => [
+                    'process_name' => $p->name,
+                    'start_time' => $p->start_time,
+                    'end_time' => $p->end_time,
+                    'source' => 'unbeaufsichtigt',
+                ])->values()->all(),
+                'logs' => [],
+            ];
+        })->values();
+    
+        $comparison = $sessions->values()->concat($unattendedRows);
+    
+        // 6) Weekly aggregate per project + position + machine.
+        $aggregate = $comparison
+            ->groupBy(fn ($row) => "{$row['project_id']}-{$row['position_id']}-{$row['machine_id']}")
+            ->map(function ($rows) {
+                $first = $rows->first();
+    
+                return [
+                    'project' => $first['record']->project,
+                    'position' => $first['record']->Position,
+                    'machine' => $first['record']->machine,
+                    'ruestzeit' => $this->hms($rows->sum(fn ($r) => $r['status_seconds']['ruestzeit'])),
+                    'mit_aufsicht' => $this->hms($rows->sum(fn ($r) => $r['status_seconds']['mit_aufsicht'])),
+                    'ohne_aufsicht' => $this->hms($rows->sum(fn ($r) => $r['status_seconds']['ohne_aufsicht'])),
+                    'total_user_time' => $this->hms($rows->sum(fn ($r) => $this->hmsToSeconds($r['total_user_time']))),
+                    'total_machine_time' => $this->hms($rows->sum(fn ($r) => $this->hmsToSeconds($r['total_machine_time']))),
+                    'process_count' => $rows->sum('process_count'),
+                    'session_count' => $rows->count(),
+                ];
+            })
+            ->values();
+    
+        return view('admin.time.compare', compact('comparison', 'aggregate', 'weeks', 'selectedWeek'));
     }
-
-    private function hms($sec)
+    
+    private function seconds($start, $end): int
     {
-        return gmdate('H:i:s', (int) $sec);
+        if (! $start || ! $end) {
+            return 0;
+        }
+    
+        return Carbon::parse($end)->diffInSeconds(Carbon::parse($start));
+    }
+    
+    private function pauseSeconds($process): int
+    {
+        return $process->pauses->sum(function ($pause) use ($process) {
+            $start = Carbon::parse(max($pause->pause_start, $process->start_time));
+            $end = Carbon::parse(min($pause->pause_end ?? $process->end_time, $process->end_time));
+    
+            return max(0, $end->diffInSeconds($start));
+        });
+    }
+    
+    private function auftragsnummer($project, ?string $company)
+    {
+        if (! $project) {
+            return null;
+        }
+    
+        return $company === 'ZF' ? $project->auftragsnummer_zf : $project->auftragsnummer_zt;
+    }
+    
+    private function hms(int $seconds): string
+    {
+        $h = intdiv($seconds, 3600);
+        $m = intdiv($seconds % 3600, 60);
+        $s = $seconds % 60;
+    
+        return sprintf('%02d:%02d:%02d', $h, $m, $s);
+    }
+    
+    private function hmsToSeconds(string $hms): int
+    {
+        [$h, $m, $s] = array_map('intval', explode(':', $hms));
+    
+        return $h * 3600 + $m * 60 + $s;
     }
 
     public function machineLogs(Request $request)
@@ -743,7 +787,7 @@ class TimeController extends Controller
 
     public function parseLog()
     {
-        $source = '\\\\10.0.0.35\\fz37\\FIDIA\\Program\\LOGFILE.OLD';
+        $source = config('app.machine_log_path'); // e.g., '\\\\10.0.0.35\\fz37\\FIDIA\\Program\\LOGFILE.OLD'
         $destination = storage_path('app\public\LOGFILE.OLD');
 
         $this->copyNetworkFile($source, $destination);

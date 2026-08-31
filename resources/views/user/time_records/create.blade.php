@@ -141,7 +141,11 @@
                                     <strong class="d-block text-truncate">{{ $project->project_name }}</strong>
                                     <small class="text-muted d-block project-auftrag mt-1">
                                         @if(isset($selectedUser))
-                                            {{ $selectedUser->company === 'ZF' ? "(ZF: " . ($project->auftragsnummer_zf ?? '—') . ")" : "(ZT: " . ($project->auftragsnummer_zt ?? '—') . ")" }}
+                                            {{ 
+                                                $selectedUser->company === 'ZF' 
+                                                    ? "(ZF: " . ($project->auftragsnummer_zf ?? '—') . ", ZT: " . ($project->auftragsnummer_zt ?? '—') . ")" 
+                                                    : "(ZT: " . ($project->auftragsnummer_zt ?? '—') . ", ZF: " . ($project->auftragsnummer_zf ?? '—') . ")" 
+                                            }}
                                         @endif
                                     </small>
                                 </button>

@@ -169,4 +169,6 @@ return [
 
     'log_source_path' => env('LOG_SOURCE_PATH', null),
 
+    'machine_log_path' => env('MACHINE_LOG_PATH', null),
+
 ];

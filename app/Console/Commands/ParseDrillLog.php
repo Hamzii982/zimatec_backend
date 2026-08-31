@@ -569,7 +569,7 @@ class ParseDrillLog extends Command
 
     private function machineSelection(string $machine, ParserState $state)
     {
-        if ($machine == 'auftraege_zt' || $machine == 'Auftraege_D-FZ37_ZiMaTec') {
+        if ($machine == 'auftraege_zt' || $machine == 'auftraege_d-fz37_zimatec') {
             $state->machineId = 2;
         } elseif ($machine == 'auftraege_zf') {
             $state->machineId = 3;
