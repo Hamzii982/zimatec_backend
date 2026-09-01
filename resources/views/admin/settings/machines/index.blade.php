@@ -3,18 +3,18 @@
 @section('title', 'Settings - Machines')
 
 @section('content')
-<div class="container mt-4">
-    <div class="card shadow-sm">
-        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+<div class="zt-compare container mt-4">
+    <div class="card shadow-sm zt-card">
+        <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0">Machines</h5>
-            <a href="{{ route('admin.settings.machines.show') }}" class="btn btn-secondary btn-sm">
-                <i class="bi bi-plus-circle me-1"></i> Neue Maschine
+            <a href="{{ route('admin.settings.machines.show') }}" class="zt-export-btn">
+                <i class="bi bi-plus-circle"></i> Neue Maschine
             </a>
         </div>
 
         <div class="card-body">
-            <div class="table-responsive-wrapper">
-                <table class="table table-hover align-middle">
+            <div class="table-responsive">
+                <table class="table zt-table zt-table--excel align-middle mb-0">
                     <thead>
                         <tr>
                             <th>#</th>
@@ -28,7 +28,7 @@
                         @foreach($machines as $machine)
                             <tr>
                                 <td>{{ $loop->iteration }}</td>
-                                <td>{{ $machine->name }}</td>
+                                <td class="fw-bold">{{ $machine->name }}</td>
                                 <td>
                                     <div class="form-check form-switch">
                                         <input type="checkbox"
@@ -39,20 +39,22 @@
                                 </td>
                                 <td>{{ $machine->company }}</td>
                                 <td>
-                                    <a href="{{ route('admin.settings.machines.show', $machine->id) }}"
-                                    class="btn btn-sm btn-outline-primary">
-                                        <i class="bi bi-pencil-square"></i>
-                                    </a>
+                                    <div class="d-flex gap-2">
+                                        <a href="{{ route('admin.settings.machines.show', $machine->id) }}"
+                                        class="zt-icon-btn zt-icon-btn--edit">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </a>
 
-                                    <form action="{{ route('admin.settings.machines.delete', $machine->id) }}"
-                                        method="POST" class="d-inline">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button class="btn btn-sm btn-outline-danger"
-                                                onclick="return confirm('Delete this machine?')">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </form>
+                                        <form action="{{ route('admin.settings.machines.delete', $machine->id) }}"
+                                            method="POST" class="d-inline">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button class="zt-icon-btn zt-icon-btn--danger"
+                                                    onclick="return confirm('Delete this machine?')">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
                                 </td>
                             </tr>
                         @endforeach
@@ -62,6 +64,52 @@
         </div>
     </div>
 </div>
+
+<style>
+    .zt-compare {
+        --zt-bg: #F5F6F8;
+        --zt-ink: #1B1F24;
+        --zt-muted: #667085;
+        --zt-line: #DFE3E8;
+        color: var(--zt-ink, #1B1F24);
+        font-variant-numeric: tabular-nums;
+    }
+
+    .zt-card { border: 1px solid var(--zt-line, #DFE3E8); border-radius: 10px; overflow: hidden; }
+    .zt-card > .card-header { background: var(--zt-ink, #1B1F24); color: #fff; border-bottom: none; }
+    .zt-card > .card-body { background: var(--zt-bg, #F5F6F8); }
+
+    .zt-export-btn {
+        display: inline-flex; align-items: center; gap: .4rem;
+        border: 1px solid rgba(255,255,255,.25); border-radius: 8px; background: transparent;
+        color: #fff; font-size: .8rem; font-weight: 500;
+        padding: .4rem .75rem; text-decoration: none;
+        transition: background .15s;
+    }
+    .zt-export-btn:hover { background: rgba(255,255,255,.1); color: #fff; }
+
+    .zt-table--excel { background: #fff; border: 1px solid var(--zt-line, #DFE3E8); border-radius: 8px; overflow: hidden; }
+    .zt-table--excel thead th {
+        font-size: .72rem; font-weight: 600; color: var(--zt-muted, #667085);
+        border-bottom: 1px solid var(--zt-line, #DFE3E8); padding: .6rem .7rem; background: #FAFBFC; white-space: nowrap;
+    }
+    .zt-table--excel tbody td { padding: .55rem .7rem; border-bottom: 1px solid var(--zt-line, #DFE3E8); font-size: .84rem; }
+
+    .zt-icon-btn {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--zt-line, #DFE3E8);
+        background: #fff; color: var(--zt-muted, #667085); text-decoration: none;
+    }
+    .zt-icon-btn--edit:hover { border-color: var(--zt-ink, #1B1F24); color: var(--zt-ink, #1B1F24); }
+    .zt-icon-btn--danger { color: #B3261E; }
+    .zt-icon-btn--danger:hover { border-color: #B3261E; background: #FBEAE9; }
+
+    /* Toggle switch tint, matching the ink color */
+    .form-check-input.toggle-active:checked {
+        background-color: var(--zt-ink, #1B1F24);
+        border-color: var(--zt-ink, #1B1F24);
+    }
+</style>
 
 <script>
 document.querySelectorAll('.toggle-active').forEach(el => {

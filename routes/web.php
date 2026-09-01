@@ -311,6 +311,7 @@ Route::middleware(['auth', 'role:admin'])
             Route::post('/time/end/{id}', [TimeController::class, 'end'])->name('time.end');
             Route::post('/time/switch/{log}', [TimeController::class, 'switch'])->name('time.switch');
             Route::get('/time/compare', [TimeController::class, 'compare'])->name('time.compare');
+            Route::get('/time/overview', [TimeController::class, 'weeklyOverview'])->name('time.overview');
             Route::get('/time/change', [TimeController::class, 'change'])->name('time.change');
             Route::post('/time/change/accept/{id}', [TimeController::class, 'acceptChange'])->name('time.change.accept');
             Route::post('/time/change/reject/{id}', [TimeController::class, 'rejectChange'])->name('time.change.reject');

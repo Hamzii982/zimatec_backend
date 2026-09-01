@@ -76,6 +76,7 @@
             <i class="bi bi-clock-history me-2"></i> Zeit Management
         </a>
         <div class="collapse submenu {{ $timeActive ? 'show' : '' }}" id="timeSubmenu">
+            <a href="{{ route('admin.time.overview') }}" class="{{ request()->is('admin/time/overview') ? 'active' : '' }}">Wochenübersicht</a>
             <a href="{{ route('admin.time.logs') }}" class="{{ request()->is('admin/time/logs') ? 'active' : '' }}">Machine Zeiten</a>
             <a href="{{ route('admin.time.records') }}" class="{{ request()->is('admin/time/records*') ? 'active' : '' }}">Mann Zeiten</a>
             <a href="{{ route('admin.time.compare') }}" class="{{ request()->is('admin/time/compare') ? 'active' : '' }}">Zeit Vergleichen</a>
