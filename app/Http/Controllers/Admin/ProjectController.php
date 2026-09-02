@@ -208,6 +208,25 @@ class ProjectController extends Controller
         return redirect()->route('admin.projects')->with('success', 'Project updated successfully!');
     }
 
+    public function updateStatus(Request $request, Project $project)
+    {
+        $request->validate([
+            'project_status_id' => 'required|exists:project_statuses,id',
+        ]);
+
+        $project->update([
+            'project_status_id' => $request->project_status_id,
+        ]);
+
+        $status = $project->status()->first();
+
+        return response()->json([
+            'id' => $status->id,
+            'name' => $status->name,
+            'color' => $status->color,
+        ]);
+    }
+
     public function show(Project $project)
     {
         $project->load(['status', 'bauteile']);

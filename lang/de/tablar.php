@@ -5,7 +5,7 @@ return [
     'filter' => [
         'low_stock' => 'Niedrigerbestand',
         'empty'     => 'Leere Materialien',
-        'status'    => 'Status',
+        'status'    => 'Status Wählen',
         'reset'     => 'Filter zurücksetzen',
     ],
 

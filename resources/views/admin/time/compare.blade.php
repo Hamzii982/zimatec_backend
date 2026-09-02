@@ -85,9 +85,9 @@
                     <thead>
                         <tr>
                             <th>Bediener</th>
+                            <th>Maschine</th>
                             <th>Projekt</th>
                             <th>Position</th>
-                            <th>Maschine</th>
                             <th>Bediener-Zeit</th>
                             <th>Prozesse</th>
                             <th>Maschine-Zeit</th>
@@ -112,12 +112,12 @@
                                         {{ $item['record']->user->name }}
                                     @endif
                                 </td>
+                                <td>{{ $item['record']->machine->name ?? '—' }}</td>
                                 <td>
                                     {{ $item['record']->project->project_name ?? '—' }}
                                     <small class="text-muted d-block">{{ $item['record']->project->auftragsnummer ?? '—' }}</small>
                                 </td>
                                 <td>{{ $item['record']->Position->name ?? '—' }}</td>
-                                <td>{{ $item['record']->machine->name ?? '—' }}</td>
                                 <td>
                                     <span class="zt-time">{{ $item['total_user_time'] }}</span>
                                     @if(! $isAutomatic)

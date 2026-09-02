@@ -362,7 +362,7 @@
         <div class="col-md-6">
             <div class="card stat-card shadow-sm h-100 fade-in-up delay-6">
                 <div class="card-body">
-                    <h6 class="fw-semibold mb-2"><i class="bi bi-calendar-event text-info me-1"></i> Anstehende Fristen (14 Tage)</h6>
+                    <h6 class="fw-semibold mb-2"><i class="bi bi-calendar-event text-info me-1"></i> Anstehende Fristen (30 Tage)</h6>
                     @forelse($upcomingDeadlines as $project)
                         <div class="low-stock-item">
                             <span class="small">{{ Str::limit($project->project_name, 22) }}</span>

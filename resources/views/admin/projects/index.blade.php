@@ -84,13 +84,27 @@
                                     <td>{{ $project->positions->count() }}</td>
                                     <td>{{ $project->bauteile->count() }}</td>
                                     <td>
-                                        @if($project->status)
-                                            <span class="zt-badge" style="background-color: {{ $project->status->color }}1A; color: {{ $project->status->color }};">
-                                                {{ ucfirst($project->status->name) }}
-                                            </span>
-                                        @else
-                                            <span class="zt-badge zt-badge--pending">Pending</span>
-                                        @endif
+                                        <div class="dropdown zt-status-dropdown" data-project-id="{{ $project->id }}">
+                                            <button type="button"
+                                                    class="zt-badge zt-status-btn dropdown-toggle"
+                                                    data-bs-toggle="dropdown" aria-expanded="false"
+                                                    style="background-color: {{ $project->status?->color ?? '#667085' }}1A; color: {{ $project->status?->color ?? '#667085' }};">
+                                                {{ $project->status ? ucfirst($project->status->name) : 'Pending' }}
+                                            </button>
+                                            <ul class="dropdown-menu zt-status-menu">
+                                                @foreach($statuses as $status)
+                                                    <li>
+                                                        <button type="button" class="dropdown-item zt-status-option"
+                                                                data-status-id="{{ $status->id }}"
+                                                                data-status-name="{{ $status->name }}"
+                                                                data-status-color="{{ $status->color }}">
+                                                            <span class="zt-status-dot" style="background-color: {{ $status->color }};"></span>
+                                                            {{ ucfirst($status->name) }}
+                                                        </button>
+                                                    </li>
+                                                @endforeach
+                                            </ul>
+                                        </div>
                                     </td>
                                     <td class="text-center">
                                         <div class="d-flex gap-2 justify-content-center">
@@ -192,5 +206,58 @@
     .zt-icon-btn--edit:hover { border-color: #2E5AAC; color: #2E5AAC; }
     .zt-icon-btn--danger { color: #B3261E; }
     .zt-icon-btn--danger:hover { border-color: #B3261E; background: #FBEAE9; }
+
+    .zt-status-btn {
+        border: none; cursor: pointer;
+    }
+    .zt-status-btn:disabled { opacity: .6; cursor: wait; }
+    .zt-status-menu { min-width: 160px; padding: .35rem; border: 1px solid var(--zt-line); border-radius: 8px; }
+    .zt-status-option {
+        display: flex; align-items: center; gap: .5rem;
+        font-size: .82rem; border-radius: 6px; padding: .4rem .5rem;
+    }
+    .zt-status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 </style>
+
+<script>
+    document.addEventListener('click', function (e) {
+        const option = e.target.closest('.zt-status-option');
+        if (!option) return;
+    
+        const dropdown = option.closest('.zt-status-dropdown');
+        const btn = dropdown.querySelector('.zt-status-btn');
+        const projectId = dropdown.dataset.projectId;
+        const statusId = option.dataset.statusId;
+    
+        const originalHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.textContent = '...';
+    
+        fetch(`/admin/projects/${projectId}/status`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            },
+            body: JSON.stringify({ project_status_id: statusId }),
+        })
+            .then(res => {
+                if (!res.ok) throw new Error();
+                return res.json();
+            })
+            .then(data => {
+                const name = data.name.charAt(0).toUpperCase() + data.name.slice(1);
+                btn.style.backgroundColor = data.color + '1A';
+                btn.style.color = data.color;
+                btn.textContent = name;
+                btn.disabled = false;
+            })
+            .catch(() => {
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
+                alert('Status konnte nicht aktualisiert werden.');
+            });
+    });
+</script>
 @endsection

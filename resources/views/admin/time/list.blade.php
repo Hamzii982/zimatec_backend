@@ -84,10 +84,9 @@
                                 <tr>
                                     <th>#</th>
                                     <th>KW</th>
-                                    <th>Firma</th>
+                                    <th>Maschine</th>
                                     <th>Auftragsnr.</th>
                                     <th>Position</th>
-                                    <th>Maschine</th>
                                     <th>Rustzeit</th>
                                     <th>Mit Aufsicht</th>
                                     <th>Gesamtzeit</th>
@@ -112,13 +111,13 @@
                                             </a>
                                         </td>
                                         <td>
+                                            {{ $row->machine_name }}
                                             <span class="zt-badge {{ $row->company === 'ZF' ? 'zt-badge--zf' : 'zt-badge--zt' }}">
                                                 {{ $row->company }}
                                             </span>
                                         </td>
                                         <td>{{ $row->auftragsnummer }}</td>
                                         <td>{{ $row->position_name }}</td>
-                                        <td>{{ $row->machine_name }}</td>
                                         <td>{{ secondsToIndustryMinutes($row->rustzeit_seconds) }}</td>
                                         <td>{{ secondsToIndustryMinutes($row->mit_aufsicht_seconds) }}</td>
                                         <td><strong>{{ secondsToIndustryMinutes($totalSeconds) }}</strong></td>

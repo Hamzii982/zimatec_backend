@@ -213,6 +213,7 @@ Route::middleware(['auth', 'role:admin'])
             Route::get('/projects/show/{project}', [AdminProject::class, 'show'])->name('projects.show');
             Route::get('/projects/edit/{project}', [AdminProject::class, 'edit'])->name('projects.edit');
             Route::put('/projects/{project}', [AdminProject::class, 'update'])->name('projects.update');
+            Route::patch('/projects/{project}/status', [AdminProject::class, 'updateStatus'])->name('projects.update-status');
             Route::delete('/projects/{project}', [AdminProject::class, 'destroy'])->name('projects.destroy');
             Route::get('/bauteile/filter/{type}', [BauteilController::class, 'filter'])->name('bauteile.filter');
             Route::resource('bauteile', BauteilController::class);

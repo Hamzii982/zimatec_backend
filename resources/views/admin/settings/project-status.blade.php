@@ -6,9 +6,9 @@
 <div class="zt-compare container mt-4">
     <div class="card shadow-sm zt-card">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Projekte Statuses</h5>
+            <h5 class="mb-0">Projektstatus</h5>
             <a href="{{ route('admin.settings.project-status.show') }}" class="zt-export-btn">
-                <i class="bi bi-plus-circle"></i> Neue Projektestatus
+                <i class="bi bi-plus-circle"></i> Neue Projektstatus
             </a>
         </div>
 
@@ -18,9 +18,10 @@
                     <thead>
                         <tr>
                             <th>#</th>
-                            <th>Status Name</th>
-                            <th>Active</th>
-                            <th>Actions</th>
+                            <th>Status</th>
+                            <th>Farbe</th>
+                            <th>Aktiv</th>
+                            <th>Aktionen</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -28,6 +29,11 @@
                             <tr id="row-{{ $status->id }}">
                                 <td>{{ $loop->iteration }}</td>
                                 <td class="fw-bold">{{ $status->name }}</td>
+                                <td>
+                                    <span class="zt-badge" style="background-color: {{ $status->color }}; color: #fff;">
+                                        {{ $status->color }}
+                                    </span>
+                                </td>
                                 <td>
                                     <div class="form-check form-switch">
                                         <input type="checkbox" class="form-check-input toggle-active"
@@ -105,6 +111,10 @@
     .form-check-input.toggle-active:checked {
         background-color: var(--zt-ink, #1B1F24);
         border-color: var(--zt-ink, #1B1F24);
+    }
+    .zt-badge {
+        display: inline-block; padding: .2rem .55rem; border-radius: 6px;
+        font-size: .72rem; font-weight: 600;
     }
 </style>
 

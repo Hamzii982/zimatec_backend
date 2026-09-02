@@ -25,18 +25,42 @@
                                 <div class="card h-100 project-card border-0 shadow-sm">
                                     <div class="project-card-accent"></div>
                                     <div class="card-body d-flex flex-column">
-                                        <div class="d-flex align-items-start justify-content-between mb-2">
-                                            <span class="badge project-badge">
-                                                <i class="bi bi-hash"></i>{{ $project->auftragsnummer_zt }}
-                                            </span>
+                                        <div class="d-flex align-items-start justify-content-between mb-2 flex-wrap gap-1">
+                                            <div class="d-flex flex-wrap gap-1">
+                                                @if($project->auftragsnummer_zf)
+                                                    <span class="badge project-badge" title="Auftragsnummer ZF">
+                                                        <i class="bi bi-hash"></i>{{ $project->auftragsnummer_zf }}
+                                                    </span>
+                                                @endif
+                                                @if($project->auftragsnummer_zt)
+                                                    <span class="badge project-badge" title="Auftragsnummer ZT">
+                                                        <i class="bi bi-hash"></i>{{ $project->auftragsnummer_zt }}
+                                                    </span>
+                                                @endif
+                                                @if(!$project->auftragsnummer_zf && !$project->auftragsnummer_zt)
+                                                    <span class="badge project-badge text-muted">
+                                                        <i class="bi bi-hash"></i>—
+                                                    </span>
+                                                @endif
+                                            </div>
+
+                                            @if($project->status)
+                                                <span class="badge status-badge" style="background-color: {{ $project->status->color ?? '#6c757d' }}22; color: {{ $project->status->color ?? '#6c757d' }};">
+                                                    <i class="bi bi-circle-fill me-1" style="font-size: 0.5rem;"></i>{{ $project->status->name }}
+                                                </span>
+                                            @endif
                                         </div>
 
                                         <h5 class="card-title mb-3 project-title">{{ $project->project_name }}</h5>
 
-                                        <div class="mt-auto pt-2 border-top">
+                                        <div class="mt-auto pt-2 border-top d-flex align-items-center justify-content-between">
                                             <small class="text-muted d-flex align-items-center">
                                                 <i class="bi bi-calendar3 me-2"></i>
                                                 Erstellt am {{ $project->created_at->format('d M Y') }}
+                                            </small>
+                                            <small class="text-muted d-flex align-items-center">
+                                                <i class="bi bi-list-ol me-1"></i>
+                                                {{ $project->positions_count }} {{ $project->positions_count === 1 ? 'Position' : 'Positionen' }}
                                             </small>
                                         </div>
                                     </div>
@@ -79,6 +103,13 @@
 
             .project-badge i {
                 margin-right: 0.15rem;
+            }
+
+            .status-badge {
+                font-weight: 600;
+                font-size: 0.78rem;
+                padding: 0.4em 0.65em;
+                border-radius: 0.5rem;
             }
 
             .project-title {

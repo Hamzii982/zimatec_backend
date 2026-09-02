@@ -142,7 +142,7 @@ class HomeController extends Controller
         $upcomingDeadlines = Project::with('status')
             ->whereNotNull('end_time')
             ->whereHas('status', fn ($q) => $q->where('name', '!=', 'Abgeschlossen'))
-            ->whereBetween('end_time', [$now, $now->copy()->addDays(14)])
+            ->whereBetween('end_time', [$now, $now->copy()->addDays(30)])
             ->orderBy('end_time', 'asc')
             ->take(8)
             ->get();

@@ -59,190 +59,222 @@
     @media (max-width: 576px) {
         .project-list-container { max-height: 220px; }
     }
+
+    /* ========== Selected User Records Block ========== */
+    .zt-records {
+        --brand-blue: #002752;
+        --zt-bg: #F5F6F8;
+        --zt-ink: #1B1F24;
+        --zt-muted: #667085;
+        --zt-line: #DFE3E8;
+        color: var(--zt-ink);
+        font-variant-numeric: tabular-nums;
+    }
+
+    .zt-records-card { border: 1px solid var(--zt-line); border-radius: 10px; overflow: hidden; }
+    .zt-records-card > .card-header { background: var(--brand-blue); color: #fff; border-bottom: none; padding: 1rem 1.25rem; }
+    .zt-records-card > .card-body { background: var(--zt-bg); }
+    .zt-header-sub { font-weight: 400; opacity: .85; font-size: .9rem; }
+
+    .zt-export-btn {
+        display: inline-flex; align-items: center; gap: .4rem;
+        border: 1px solid rgba(255,255,255,.25); border-radius: 8px; background: transparent;
+        color: #fff; font-size: .8rem; font-weight: 500;
+        padding: .4rem .75rem; text-decoration: none;
+        transition: background .15s;
+    }
+    
+    .zt-export-btn:hover { background: rgba(255,255,255,.1); color: #fff; }
 </style>
 
-<div class="container mt-4">
-    <div class="card">
-        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Neue Zeit Erfassung</h5>
-            <a href="{{ route('time-records.list') }}" class="btn btn-success btn-sm">
-                <i class="bi bi-plus-circle me-1"></i> Alle Aufzeichnung
-            </a>
-        </div>
-        <div class="card-body">
-            <form action="{{ route('time-records.store') }}" method="POST">
-                @csrf
-                
-                <!-- STEP 1: USER SELECTION -->
-                <div id="step-user" class="mb-4">
-                    <h6>Bediener Auswahlen</h6>
-                
-                    @if(!$selectedUser)
-                        <div class="row g-2">
-                            @foreach($users as $user)
-                                <div class="col-md-3">
+<div class="container mt-4 mb-5">
+    <div class="zt-time zt-records">
+        <div class="card shadow-sm zt-records-card">
+            <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <h5 class="mb-0">
+                    <i class="bi bi-clock-history me-2"></i>
+                    <span class="fw-bold">{{ $selectedUser->name }}</span>
+                    <span class="zt-header-sub">— Neue Zeit Erfassung</span>
+                </h5>
+                <a href="{{ route('time-records.list') }}" class="zt-export-btn">
+                    <i class="bi bi-plus-circle me-1"></i> Alle Aufzeichnung
+                </a>
+            </div>
+            <div class="card-body">
+                <form action="{{ route('time-records.store') }}" method="POST">
+                    @csrf
+                    
+                    <!-- STEP 1: USER SELECTION -->
+                    <div id="step-user" class="mb-4">
+                        <h6>Bediener Auswahlen</h6>
+                    
+                        @if(!$selectedUser)
+                            <div class="row g-2">
+                                @foreach($users as $user)
+                                    <div class="col-md-3">
+                                        <button type="button"
+                                                class="btn-unselected w-100 user-btn btn"
+                                                data-user-id="{{ $user->id }}"
+                                                data-company="{{ $user->company }}">
+                                            <i class="bi bi-person"></i> {{ $user->name }}
+                                        </button>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @else
+                            <div class="row g-2">
+                                @foreach($users as $user)
+                                    @if($user->id == $selectedUser->id)
+                                        <div class="col-md-3">
+                                            @php 
+                                                $isActive = isset($selectedUser) && $selectedUser->id == $user->id;
+                                            @endphp
+                                            <button type="button"
+                                                    class="btn-selected active w-100 user-btn btn"
+                                                    data-user-id="{{ $user->id }}"
+                                                    data-company="{{ $user->company }}"
+                                                    disabled
+                                                    aria-disabled="true">
+                                                <i class="bi bi-person"></i> {{ $user->name }}
+                                            </button>
+                                        </div>
+                                    @endif
+                                @endforeach
+                            </div>
+                        @endif
+                    </div>
+
+                    <input type="hidden" name="user_id" id="user_id" value="{{ $selectedUser->id ?? '' }}">
+
+                    <!-- STEP 2: PROJECT SELECTION (UX UPGRADED) -->
+                    <div id="step-project" class="mb-4 {{ isset($selectedUser) ? '' : 'd-none' }}">
+                        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                            <h6 class="mb-0">Projekte Auswahlen</h6>
+                            
+                            <!-- Search Input -->
+                            <div class="input-group" style="max-width: 300px;">
+                                <span class="input-group-text bg-white border-end-0"><i class="bi bi-search"></i></span>
+                                <input type="text" id="project-search" class="form-control border-start-0 ps-0" placeholder="Projekt / Auftragsnr..." autocomplete="off">
+                            </div>
+                        </div>
+                    
+                        <!-- Scrollable Project Container -->
+                        <div class="row g-2 project-list-container" style="max-height: 200px; overflow-y: auto; overflow-x: hidden;">
+                            @foreach($projects as $project)
+                                <!-- project-wrapper with data-search attribute for JS filtering -->
+                                <div class="col-md-4 project-wrapper" data-search="{{ strtolower($project->project_name . ' ' . $project->auftragsnummer_zt . ' ' . $project->auftragsnummer_zf) }}">
                                     <button type="button"
-                                            class="btn-unselected w-100 user-btn btn"
-                                            data-user-id="{{ $user->id }}"
-                                            data-company="{{ $user->company }}">
-                                        <i class="bi bi-person"></i> {{ $user->name }}
+                                            class="btn-unselected btn w-100 project-btn py-3"
+                                            data-project-id="{{ $project->id }}"
+                                            data-zt="{{ $project->auftragsnummer_zt }}"
+                                            data-zf="{{ $project->auftragsnummer_zf }}"
+                                            data-positions='@json($project->positions)'>
+                                        <strong class="d-block text-truncate">{{ $project->project_name }}</strong>
+                                        <small class="text-muted d-block project-auftrag mt-1">
+                                            @if(isset($selectedUser))
+                                                {{ 
+                                                    $selectedUser->company === 'ZF' 
+                                                        ? "(ZF: " . ($project->auftragsnummer_zf ?? '—') . ", ZT: " . ($project->auftragsnummer_zt ?? '—') . ")" 
+                                                        : "(ZT: " . ($project->auftragsnummer_zt ?? '—') . ", ZF: " . ($project->auftragsnummer_zf ?? '—') . ")" 
+                                                }}
+                                            @endif
+                                        </small>
                                     </button>
                                 </div>
                             @endforeach
                         </div>
-                    @else
+
+                        <!-- No Results Message -->
+                        <div id="no-projects-msg" class="text-center text-muted mt-4 d-none">
+                            <i class="bi bi-search fs-3 d-block mb-2 text-secondary"></i>
+                            Keine Projekte gefunden.
+                        </div>
+                    </div>
+                    
+                    <input type="hidden" name="project_id" id="project_id">
+
+                    <!-- STEP 3: POSITION SELECTION -->
+                    <div id="step-position" class="mb-4 d-none">
+                        <h6>Position Auswahlen</h6>
+                    
+                        <div id="positions-container" class="row g-2"></div>
+                    </div>
+                    
+                    <input type="hidden" name="position_id" id="position_id">
+
+                    <!-- STEP 4: MACHINE SELECTION -->
+                    <input type="hidden" name="machine_id" id="machine_id">
+
+                    <div id="step-machine" class="mb-4 d-none">
+                        <h6>Maschine Auswahlen</h6>
+
                         <div class="row g-2">
-                            @foreach($users as $user)
-                                @if($user->id == $selectedUser->id)
-                                    <div class="col-md-3">
-                                        @php 
-                                            $isActive = isset($selectedUser) && $selectedUser->id == $user->id;
-                                        @endphp
-                                        <button type="button"
-                                                class="btn-selected active w-100 user-btn btn"
-                                                data-user-id="{{ $user->id }}"
-                                                data-company="{{ $user->company }}"
-                                                disabled
-                                                aria-disabled="true">
-                                            <i class="bi bi-person"></i> {{ $user->name }}
-                                        </button>
-                                    </div>
-                                @endif
+                            @foreach($machines as $machine)
+                                <div class="col-md-3">
+                                    <button type="button"
+                                            class="btn-unselected btn w-100 machine-btn"
+                                            data-id="{{ $machine->id }}">
+                                        <i class="bi bi-cpu"></i> {{ $machine->name }}
+                                    </button>
+                                </div>
                             @endforeach
                         </div>
-                    @endif
-                </div>
-
-                <input type="hidden" name="user_id" id="user_id" value="{{ $selectedUser->id ?? '' }}">
-
-                <!-- STEP 2: PROJECT SELECTION (UX UPGRADED) -->
-                <div id="step-project" class="mb-4 {{ isset($selectedUser) ? '' : 'd-none' }}">
-                    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                        <h6 class="mb-0">Projekte Auswahlen</h6>
-                        
-                        <!-- Search Input -->
-                        <div class="input-group" style="max-width: 300px;">
-                            <span class="input-group-text bg-white border-end-0"><i class="bi bi-search"></i></span>
-                            <input type="text" id="project-search" class="form-control border-start-0 ps-0" placeholder="Projekt / Auftragsnr..." autocomplete="off">
-                        </div>
                     </div>
-                
-                    <!-- Scrollable Project Container -->
-                    <div class="row g-2 project-list-container" style="max-height: 200px; overflow-y: auto; overflow-x: hidden;">
-                        @foreach($projects as $project)
-                            <!-- project-wrapper with data-search attribute for JS filtering -->
-                            <div class="col-md-4 project-wrapper" data-search="{{ strtolower($project->project_name . ' ' . $project->auftragsnummer_zt . ' ' . $project->auftragsnummer_zf) }}">
-                                <button type="button"
-                                        class="btn-unselected btn w-100 project-btn py-3"
-                                        data-project-id="{{ $project->id }}"
-                                        data-zt="{{ $project->auftragsnummer_zt }}"
-                                        data-zf="{{ $project->auftragsnummer_zf }}"
-                                        data-positions='@json($project->positions)'>
-                                    <strong class="d-block text-truncate">{{ $project->project_name }}</strong>
-                                    <small class="text-muted d-block project-auftrag mt-1">
-                                        @if(isset($selectedUser))
-                                            {{ 
-                                                $selectedUser->company === 'ZF' 
-                                                    ? "(ZF: " . ($project->auftragsnummer_zf ?? '—') . ", ZT: " . ($project->auftragsnummer_zt ?? '—') . ")" 
-                                                    : "(ZT: " . ($project->auftragsnummer_zt ?? '—') . ", ZF: " . ($project->auftragsnummer_zf ?? '—') . ")" 
-                                            }}
-                                        @endif
-                                    </small>
-                                </button>
-                            </div>
-                        @endforeach
-                    </div>
+                    
+                    <!-- STEP 5: STATUS SELECTION -->
+                    <div id="step-status" class="mb-4 d-none">
+                        <h6>Status</h6>
+                    
+                        <div class="d-flex align-items-center flex-wrap gap-3">
+                            <div class="btn-group">
+                                @foreach($statuses as $status)
+                                    @php
+                                        $isMitAufsicht = strtolower($status->name ?? '') === 'mit aufsicht';
+                                    @endphp
+                                    <input type="radio"
+                                        class="btn-check"
+                                        name="status_id"
+                                        id="status-{{ $status->id }}"
+                                        value="{{ $status->id }}"
+                                        required>
 
-                    <!-- No Results Message -->
-                    <div id="no-projects-msg" class="text-center text-muted mt-4 d-none">
-                        <i class="bi bi-search fs-3 d-block mb-2 text-secondary"></i>
-                        Keine Projekte gefunden.
-                    </div>
-                </div>
-                
-                <input type="hidden" name="project_id" id="project_id">
-
-                <!-- STEP 3: POSITION SELECTION -->
-                <div id="step-position" class="mb-4 d-none">
-                    <h6>Position Auswahlen</h6>
-                
-                    <div id="positions-container" class="row g-2"></div>
-                </div>
-                
-                <input type="hidden" name="position_id" id="position_id">
-
-                <!-- STEP 4: MACHINE SELECTION -->
-                <input type="hidden" name="machine_id" id="machine_id">
-
-                <div id="step-machine" class="mb-4 d-none">
-                    <h6>Maschine Auswahlen</h6>
-
-                    <div class="row g-2">
-                        @foreach($machines as $machine)
-                            <div class="col-md-3">
-                                <button type="button"
-                                        class="btn-unselected btn w-100 machine-btn"
-                                        data-id="{{ $machine->id }}">
-                                    <i class="bi bi-cpu"></i> {{ $machine->name }}
-                                </button>
-                            </div>
-                        @endforeach
-                    </div>
-                </div>
-                
-                <!-- STEP 5: STATUS SELECTION -->
-                <div id="step-status" class="mb-4 d-none">
-                    <h6>Status</h6>
-                
-                    <div class="d-flex align-items-center flex-wrap gap-3">
-                        <div class="btn-group">
-                            @foreach($statuses as $status)
-                                @php
-                                    $isMitAufsicht = strtolower($status->name ?? '') === 'mit aufsicht';
-                                @endphp
-                                <input type="radio"
-                                    class="btn-check"
-                                    name="status_id"
-                                    id="status-{{ $status->id }}"
-                                    value="{{ $status->id }}"
-                                    required>
-
-                                <label class="btn btn-unselected"
-                                    for="status-{{ $status->id }}">
-                                    {{ $status->name }}
-                                </label>
-                            @endforeach
-                        </div>
-                        @if($isMitAufsicht)
-                            <div class="d-none d-flex align-items-center gap-2" id="manual-process-wrap">
-                                <div class="form-check m-0">
-                                    <input class="form-check-input"
-                                        type="checkbox"
-                                        id="manual-process-checkbox"
-                                        name="manual_process"
-                                        value="1">
-                                    <label class="form-check-label ms-1" for="manual-process-checkbox">
-                                        Manueller Prozess
+                                    <label class="btn btn-unselected"
+                                        for="status-{{ $status->id }}">
+                                        {{ $status->name }}
                                     </label>
-                                </div>
-                                <div id="manual-process-name-wrap" class="d-none ms-3">
-                                    <input type="text"
-                                        class="form-control form-control-sm border-dark-subtle shadow-sm"
-                                        id="manual-process-name"
-                                        name="manual_process_name"
-                                        placeholder="Prozess Name"
-                                        autocomplete="off">
-                                </div>
+                                @endforeach
                             </div>
-                        @endif
+                            @if($isMitAufsicht)
+                                <div class="d-none d-flex align-items-center gap-2" id="manual-process-wrap">
+                                    <div class="form-check m-0">
+                                        <input class="form-check-input"
+                                            type="checkbox"
+                                            id="manual-process-checkbox"
+                                            name="manual_process"
+                                            value="1">
+                                        <label class="form-check-label ms-1" for="manual-process-checkbox">
+                                            Manueller Prozess
+                                        </label>
+                                    </div>
+                                    <div id="manual-process-name-wrap" class="d-none ms-3">
+                                        <input type="text"
+                                            class="form-control form-control-sm border-dark-subtle shadow-sm"
+                                            id="manual-process-name"
+                                            name="manual_process_name"
+                                            placeholder="Prozess Name"
+                                            autocomplete="off">
+                                    </div>
+                                </div>
+                            @endif
+                        </div>
                     </div>
-                </div>
-                
-                <button type="submit" class="btn btn-success d-none" id="start-btn">
-                    <i class="bi bi-play-circle"></i> Start
-                </button>
-                
-            </form>
+                    
+                    <button type="submit" class="btn btn-success d-none" id="start-btn">
+                        <i class="bi bi-play-circle"></i> Start
+                    </button>
+                    
+                </form>
+            </div>
         </div>
     </div>
 </div>

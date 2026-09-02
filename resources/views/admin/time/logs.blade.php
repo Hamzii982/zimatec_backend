@@ -55,10 +55,9 @@
                         <tr>
                             <th>#</th>
                             <th>KW</th>
-                            <th>Firma</th>
+                            <th>Maschine</th>
                             <th>Auftragsnr.</th>
                             <th>Position</th>
-                            <th>Maschine</th>
                             <th>Gesamtzeit</th>
                         </tr>
                     </thead>
@@ -71,13 +70,13 @@
                                 <td>{{ $index + 1 }}</td>
                                 <td>KW {{ substr($row->calendar_week, 4) }}</td>
                                 <td>
+                                    {{ $row->machine_name }}
                                     <span class="zt-badge {{ $row->company === 'ZF' ? 'zt-badge--zf' : 'zt-badge--zt' }}">
                                         {{ $row->company }}
                                     </span>
                                 </td>
                                 <td>{{ $row->auftragsnummer }}</td>
                                 <td>{{ $row->position_name }}</td>
-                                <td>{{ $row->machine_name }}</td>
                                 <td><strong>{{ secondsToIndustryMinutes($totalSeconds) }}</strong></td>
                             </tr>
                         @empty

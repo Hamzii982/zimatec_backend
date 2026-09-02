@@ -112,10 +112,10 @@ class TimeController extends Controller
                 'u.company',
 
                 DB::raw("
-                    CASE
-                        WHEN u.company = 'ZF' THEN p.auftragsnummer_zf
-                        ELSE p.auftragsnummer_zt
-                    END as auftragsnummer
+                    CONCAT_WS(' / ', 
+                        NULLIF(p.auftragsnummer_zf, ''), 
+                        NULLIF(p.auftragsnummer_zt, '')
+                    ) as auftragsnummer
                 "),
 
                 'pos.id as position_id',
@@ -660,7 +660,7 @@ class TimeController extends Controller
             return null;
         }
     
-        return $company === 'ZF' ? $project->auftragsnummer_zf : $project->auftragsnummer_zt;
+        return $project->auftragsnummer_zf . ' / ' . $project->auftragsnummer_zt;
     }
     
     private function hms(int $seconds): string
@@ -735,9 +735,12 @@ class TimeController extends Controller
                 // Company (derived from project)
                 DB::raw('MAX(m.company) as company'),
 
-                DB::raw('
-                    MAX(COALESCE(p.auftragsnummer_zf, p.auftragsnummer_zt)) as auftragsnummer
-                '),
+                DB::raw("
+                    CONCAT_WS(' / ', 
+                        NULLIF(p.auftragsnummer_zf, ''), 
+                        NULLIF(p.auftragsnummer_zt, '')
+                    ) as auftragsnummer
+                "),
 
                 DB::raw('COALESCE(po.name, \'\') as position_name'),
 
