@@ -261,7 +261,9 @@ class HomeController extends Controller
             $hour = (int) $cursor->format('G');
             $nextHourBoundary = $cursor->copy()->minute(0)->second(0)->addHour();
             $segmentEnd = $nextHourBoundary->lt($end) ? $nextHourBoundary : $end->copy();
-            $matrix[$machineId][$hour] = ($matrix[$machineId][$hour] ?? 0) + $segmentEnd->diffInSeconds($cursor);
+            
+            $seconds = $cursor->diffInSeconds($segmentEnd, true);
+            $matrix[$machineId][$hour] = ($matrix[$machineId][$hour] ?? 0) + $seconds;
             $cursor = $segmentEnd;
         }
     }
