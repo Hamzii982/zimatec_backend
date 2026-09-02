@@ -66,6 +66,42 @@ Routes and controllers query these module flags (`if (config('modules.projects')
 
 ---
 
+## ✨ What's New
+
+- **AI assistant endpoint:** Internal endpoint `POST /assistant/ask-recommendations` provides project suggestions and short-form assistance for internal workflows.
+- **AI-assisted helpdesk emails:** Printer/helpdesk workflows now support attachment threads and AI-assisted draft/rewrite/save email flows to speed responses.
+- **Multi-warehouse (Tablar / Lager):** Improved inventory flows with reservations, transfers, and sheet operations (cut / ungroup) for production materials.
+- **Scheduler & sheet management:** Weekly production scheduler enhancements and sheet-management utilities to find, cut, and manage material sheets by size.
+- **Project offers (opt-in):** Offer builder (PDF + email) is available behind a feature flag — enable in `config/modules.php` (see "Enable project offers" below).
+- **Electron & PWA refinements:** Desktop shell auto-starts the Laravel server when needed; PWA manifest and service worker provide a smooth offline shell for shop-floor tablets.
+- **Push notifications:** WebPush endpoints for subscribe/unsubscribe to enable in-app notifications.
+
+These notes highlight recent additions and convenient entry points for admins and integrators; the sections below contain configuration and links to the implementation files.
+
+### Enable Project Offers (opt-in)
+
+Project offers (PDF generation and email sending) are feature-gated to keep deployments lightweight. To enable:
+
+1. Open `config/modules.php` and set:
+
+```php
+'project_offers' => true,
+```
+
+2. Configure Microsoft Graph (outbound) and IMAP (inbound) credentials in your `.env` or `config/services.php` / `config/imap.php`:
+
+```
+AZURE_TENANT_ID=\n+AZURE_CLIENT_ID=\n+AZURE_CLIENT_SECRET=\n+
+IMAP_HOST=\n+IMAP_USERNAME=\n+IMAP_PASSWORD=\n+IMAP_ENCRYPTION=ssl
+```
+
+3. Restart workers/queues and web server, then verify offer-related routes and admin UI appear.
+
+For the implementation, see `app/Http/Controllers/ProjectOffer*`, `config/services.php`, and `config/imap.php`.
+
+
+---
+
 ## 💻 Technology Stack
 
 ### Backend

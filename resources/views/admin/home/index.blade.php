@@ -111,6 +111,14 @@
         background: linear-gradient(135deg, var(--brand-blue), var(--brand-blue-hover));
         color: #fff;
     }
+
+    /* --- Heatmap --- */
+    .heatmap-cell {
+        width: 24px;
+        height: 24px;
+        border-radius: 3px;
+        padding: 0;
+    }
 </style>
 
 <div class="container-fluid py-4">
@@ -284,6 +292,128 @@
         </div>
     </div>
 
+    {{-- Machine Utilization Heatmap --}}
+    <div class="row g-4 mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm border-0 rounded-3 fade-in-up delay-4">
+                <div class="card-header card-header-clean">
+                    <h5 class="mb-0"><i class="bi bi-grid-3x3-gap-fill me-2"></i>Maschinenauslastung (letzte 10 Tage)</h5>
+                </div>
+                <div class="card-body table-responsive-wrapper">
+                    @if(empty($utilizationHeatmap['machines']))
+                        <p class="text-muted mb-0 small">Keine Aktivität im Zeitraum</p>
+                    @else
+                        <table class="table table-sm mb-0 heatmap-table">
+                            <thead>
+                                <tr>
+                                    <th>Maschine</th>
+                                    @for($h = 0; $h < 24; $h++)
+                                        <th class="text-center small text-muted">{{ $h }}</th>
+                                    @endfor
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($utilizationHeatmap['machines'] as $i => $name)
+                                    @php $rowMax = max($utilizationHeatmap['data'][$i]) ?: 1; @endphp
+                                    <tr>
+                                        <td class="fw-semibold small">{{ Str::limit($name, 18) }}</td>
+                                        @foreach($utilizationHeatmap['data'][$i] as $hours)
+                                            @php $intensity = $hours > 0 ? max(0.15, min(1, $hours / $rowMax)) : 0; @endphp
+                                            <td class="heatmap-cell" style="background: rgba(0,39,82,{{ $intensity * 0.85 }});"
+                                                title="{{ number_format($hours, 2) }} Std.">
+                                            </td>
+                                        @endforeach
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Pending Time Change Requests + Upcoming Deadlines --}}
+    <div class="row g-4 mb-4">
+        <div class="col-md-6">
+            <div class="card stat-card shadow-sm h-100 fade-in-up delay-5">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="fw-semibold mb-0"><i class="bi bi-clock-history text-warning me-1"></i> Offene Zeitänderungen</h6>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-warning text-dark">{{ $pendingTimeChangeRequestsCount }}</span>
+                            <a href="{{ route('admin.time.change') }}" class="btn btn-sm btn-outline-secondary">
+                                <i class="bi bi-arrow-right"></i>
+                            </a>
+                        </div>
+                    </div>
+                    @forelse($pendingTimeChangeRequests as $req)
+                        <div class="low-stock-item">
+                            <span class="small">{{ $req->requestedBy->name ?? 'Unbekannt' }}</span>
+                            <span class="text-muted small">{{ $req->created_at->diffForHumans() }}</span>
+                        </div>
+                    @empty
+                        <p class="text-muted mb-0 small">Keine offenen Anfragen ✅</p>
+                    @endforelse
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card stat-card shadow-sm h-100 fade-in-up delay-6">
+                <div class="card-body">
+                    <h6 class="fw-semibold mb-2"><i class="bi bi-calendar-event text-info me-1"></i> Anstehende Fristen (14 Tage)</h6>
+                    @forelse($upcomingDeadlines as $project)
+                        <div class="low-stock-item">
+                            <span class="small">{{ Str::limit($project->project_name, 22) }}</span>
+                            <span class="badge bg-light text-dark border">{{ $project->end_time->format('d M') }}</span>
+                        </div>
+                    @empty
+                        <p class="text-muted mb-0 small">Keine Fristen in den nächsten 14 Tagen</p>
+                    @endforelse
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Project Status Chart + Overdue/At-Risk Projects --}}
+    <div class="row g-4 mb-4">
+        <div class="col-lg-4">
+            <div class="card chart-card shadow-sm border-0 h-100 fade-in-up delay-1">
+                <div class="card-header"><h5 class="mb-0"><i class="bi bi-pie-chart-fill me-2"></i>Projektstatus</h5></div>
+                <div class="card-body"><canvas id="statusChart" height="220"></canvas></div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0 rounded-3 h-100 fade-in-up delay-2">
+                <div class="card-header card-header-clean"><h5 class="mb-0">Überfällige & gefährdete Projekte</h5></div>
+                <div class="card-body table-responsive-wrapper">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead><tr><th>Projekt</th><th>Ende</th><th>Status</th></tr></thead>
+                        <tbody>
+                            @forelse($overdueAndAtRiskProjects as $project)
+                                <tr>
+                                    <td>{{ Str::limit($project->project_name, 28) }}</td>
+                                    <td>{{ $project->end_time->format('d M Y') }}</td>
+                                    <td>
+                                        @if($project->end_time->isPast())
+                                            <span class="badge bg-danger">Überfällig · {{ $project->end_time->diffForHumans(null, true) }}</span>
+                                        @else
+                                            <span class="badge bg-warning text-dark">Fällig in {{ now()->diffInDays($project->end_time) }} Tg.</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr><td colspan="3" class="text-muted small">Keine überfälligen oder gefährdeten Projekte ✅</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
     {{-- Charts --}}
     <div class="row g-4">
         <div class="col-lg-6">
@@ -424,6 +554,23 @@
             animation: { duration: 1100, easing: 'easeOutQuart' },
             plugins: { legend: { display: false } },
             scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+        }
+    });
+
+    const statusCtx = document.getElementById('statusChart').getContext('2d');
+    new Chart(statusCtx, {
+        type: 'doughnut',
+        data: {
+            labels: @json($projectStatusDistribution->pluck('name')),
+            datasets: [{
+                data: @json($projectStatusDistribution->pluck('projects_count')),
+                backgroundColor: @json($projectStatusDistribution->pluck('color')),
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom' } }
         }
     });
 </script>

@@ -10,6 +10,9 @@ use App\Models\TimeRecord;
 use App\Models\User;
 use App\Models\Material;
 use App\Models\Lager;
+use App\Models\TimeChangeRequest;
+use App\Models\ProjectStatus;
+use App\Models\Process;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -107,24 +110,160 @@ class HomeController extends Controller
             ->get();
     
         $lowStockCount = Material::where($lowStockQuery)->count();
+
+        // --- Machine Utilization Heatmap (last 10 days, hourly buckets) ---
+        $heatmapStart = Carbon::now()->subDays(9)->startOfDay();
+        $heatmapEnd = Carbon::now()->endOfDay();
+        $utilizationHeatmap = $this->getMachineUtilizationHeatmap($heatmapStart, $heatmapEnd);
+        // $utilizationHeatmap = $this->getMockUtilizationHeatmap();
+
+        // --- Pending Time Change Requests ---
+        $pendingTimeChangeRequestsCount = TimeChangeRequest::whereNull('status')->count();
+        $pendingTimeChangeRequests = TimeChangeRequest::with('requestedBy')
+            ->whereNull('status')
+            ->latest()
+            ->take(5)
+            ->get();
+
+        // --- Project Status Distribution ---
+        $projectStatusDistribution = ProjectStatus::withCount('projects')->get();
+
+        // --- Overdue / At-Risk Projects ---
+        $now = Carbon::now();
+        $overdueAndAtRiskProjects = Project::with('status')
+            ->whereNotNull('end_time')
+            ->whereHas('status', fn ($q) => $q->where('name', '!=', 'Abgeschlossen'))
+            ->where('end_time', '<=', $now->copy()->addDays(7))
+            ->orderBy('end_time', 'asc')
+            ->take(8)
+            ->get();
+
+        // --- Upcoming Deadlines (14 days) ---
+        $upcomingDeadlines = Project::with('status')
+            ->whereNotNull('end_time')
+            ->whereHas('status', fn ($q) => $q->where('name', '!=', 'Abgeschlossen'))
+            ->whereBetween('end_time', [$now, $now->copy()->addDays(14)])
+            ->orderBy('end_time', 'asc')
+            ->take(8)
+            ->get();
     
         return view('admin.home.index', compact(
-            'projectsCount',
-            'usersCount',
-            'processesCount',
-            'recentProjects',
-            'projectLabels',
-            'projectData',
-            'userLabels',
-            'userData',
-            'greeting',
-            'mostActiveMachine',
-            'mostActiveUser',
-            'lagersCount',
-            'materialsCount',
-            'lowStockMaterials',
-            'lowStockCount'
+            'projectsCount', 'usersCount', 'processesCount', 'recentProjects',
+            'projectLabels', 'projectData', 'userLabels', 'userData', 'greeting',
+            'mostActiveMachine', 'mostActiveUser', 'lagersCount', 'materialsCount',
+            'lowStockMaterials', 'lowStockCount',
+            'utilizationHeatmap', 'pendingTimeChangeRequestsCount', 'pendingTimeChangeRequests',
+            'projectStatusDistribution', 'overdueAndAtRiskProjects', 'upcomingDeadlines'
         ));
+    }
+
+    private function getMockUtilizationHeatmap(): array
+    {
+        $machines = ['CNC Fräse 1', 'CNC Fräse 2', 'Säge', 'Kantenanleimer', 'Bohrwerk'];
+        $data = [];
+        foreach ($machines as $m) {
+            $row = [];
+            for ($h = 0; $h < 24; $h++) {
+                $row[] = ($h >= 7 && $h <= 17) ? round(mt_rand(0, 100) / 100 * 4, 2) : 0;
+            }
+            $data[] = $row;
+        }
+        return ['machines' => $machines, 'data' => $data];
+    }
+
+    /**
+     * Build a [machine][hour] => hours-run matrix for the given date range,
+     * with ProcessPause intervals subtracted from each Process's duration.
+     */
+    private function getMachineUtilizationHeatmap(Carbon $startDate, Carbon $endDate): array
+    {
+        $processes = Process::with(['machine:id,name', 'pauses'])
+            ->whereNotNull('machine_id')
+            ->whereNotNull('start_time')
+            ->whereNotNull('end_time')
+            ->whereBetween('start_time', [$startDate, $endDate])
+            ->get();
+
+        $machineNames = [];
+        $matrix = []; // [machine_id][hour] = seconds
+
+        foreach ($processes as $process) {
+            $machine = $process->machine;
+            if (!$machine) continue;
+
+            $start = Carbon::parse($process->start_time);
+            $end = Carbon::parse($process->end_time);
+            if ($end->lte($start)) continue;
+
+            $machineNames[$machine->id] = $machine->name;
+
+            $busyIntervals = [[$start->copy(), $end->copy()]];
+            foreach ($process->pauses as $pause) {
+                if (!$pause->pause_start || !$pause->pause_end) continue;
+                $busyIntervals = $this->subtractInterval(
+                    $busyIntervals,
+                    Carbon::parse($pause->pause_start),
+                    Carbon::parse($pause->pause_end)
+                );
+            }
+
+            foreach ($busyIntervals as [$s, $e]) {
+                $this->distributeToHourBuckets($matrix, $machine->id, $s, $e);
+            }
+        }
+
+        if (empty($matrix)) {
+            return ['machines' => [], 'data' => []];
+        }
+
+        $totals = [];
+        foreach ($matrix as $machineId => $hours) {
+            $totals[$machineId] = array_sum($hours);
+        }
+        arsort($totals);
+
+        $machines = [];
+        $data = [];
+        foreach ($totals as $machineId => $total) {
+            $machines[] = $machineNames[$machineId];
+            $row = [];
+            for ($h = 0; $h < 24; $h++) {
+                $row[] = round(($matrix[$machineId][$h] ?? 0) / 3600, 2);
+            }
+            $data[] = $row;
+        }
+
+        return ['machines' => $machines, 'data' => $data];
+    }
+
+    private function subtractInterval(array $intervals, Carbon $pauseStart, Carbon $pauseEnd): array
+    {
+        $result = [];
+        foreach ($intervals as [$s, $e]) {
+            if ($pauseEnd->lte($s) || $pauseStart->gte($e)) {
+                $result[] = [$s, $e];
+                continue;
+            }
+            if ($pauseStart->gt($s)) {
+                $result[] = [$s, $pauseStart->copy()];
+            }
+            if ($pauseEnd->lt($e)) {
+                $result[] = [$pauseEnd->copy(), $e];
+            }
+        }
+        return $result;
+    }
+
+    private function distributeToHourBuckets(array &$matrix, int $machineId, Carbon $start, Carbon $end): void
+    {
+        $cursor = $start->copy();
+        while ($cursor->lt($end)) {
+            $hour = (int) $cursor->format('G');
+            $nextHourBoundary = $cursor->copy()->minute(0)->second(0)->addHour();
+            $segmentEnd = $nextHourBoundary->lt($end) ? $nextHourBoundary : $end->copy();
+            $matrix[$machineId][$hour] = ($matrix[$machineId][$hour] ?? 0) + $segmentEnd->diffInSeconds($cursor);
+            $cursor = $segmentEnd;
+        }
     }
 
     /**

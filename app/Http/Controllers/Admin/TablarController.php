@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Carbon\Carbon;
 
 class TablarController extends Controller
 {
@@ -112,7 +113,100 @@ class TablarController extends Controller
             ->paginate(10, ['*'], 'logs_page')
             ->withQueryString();
 
-        return view('admin.tablar.show', compact('material', 'lager', 'recentSupplier', 'supplierListUrl', 'backToListUrl', 'logs'));
+        $stockTrend = $this->getStockTrend($material, 30);
+        $consumptionForecast = $this->getConsumptionForecast($material, 30);
+
+        return view('admin.tablar.show', compact(
+            'material', 'lager', 'recentSupplier', 'supplierListUrl', 'backToListUrl', 'logs',
+            'stockTrend', 'consumptionForecast'
+        ));
+    }
+
+    /**
+     * Reconstruct daily closing stock quantity for the last $days days,
+     * working backward from the material's current quantity.
+     */
+    private function getStockTrend(Material $material, int $days = 30): array
+    {
+        $end = Carbon::now()->endOfDay();
+        $start = Carbon::now()->subDays($days - 1)->startOfDay();
+
+        // Sign convention: restock/delivery/return increase physical stock,
+        // use decreases it, reserve only touches on_hold_quantity (ignored here),
+        // audit_adjust's quantity is treated as an already-signed delta.
+        $signMap = [
+            'restock' => 1,
+            'delivery' => 1,
+            'return' => 1,
+            'use' => -1,
+            'reserve' => 0,
+        ];
+
+        $events = MaterialConsumption::where('material_id', $material->id)
+            ->whereBetween('consumption_time', [$start, $end])
+            ->orderBy('consumption_time')
+            ->get();
+
+        $netChangeInWindow = $events->sum(function ($e) use ($signMap) {
+            $sign = $signMap[$e->consumption_type] ?? 1; // audit_adjust and unknowns: raw signed value
+            return $sign * $e->quantity;
+        });
+
+        // Quantity at the very start of the window, before any of these events.
+        $runningQty = $material->quantity - $netChangeInWindow;
+
+        $eventsByDay = $events->groupBy(fn ($e) => $e->consumption_time->format('Y-m-d'));
+
+        $labels = [];
+        $data = [];
+        $cursor = $start->copy();
+
+        while ($cursor->lte($end)) {
+            $dayKey = $cursor->format('Y-m-d');
+            if ($eventsByDay->has($dayKey)) {
+                foreach ($eventsByDay[$dayKey] as $e) {
+                    $sign = $signMap[$e->consumption_type] ?? 1;
+                    $runningQty += $sign * $e->quantity;
+                }
+            }
+            $labels[] = $cursor->format('d.m.');
+            $data[] = $runningQty;
+            $cursor->addDay();
+        }
+
+        return ['labels' => $labels, 'data' => $data];
+    }
+
+    /**
+     * Average daily usage over the last $days days and estimated days until depletion.
+     */
+    private function getConsumptionForecast(Material $material, int $days = 30): array
+    {
+        $start = Carbon::now()->subDays($days);
+
+        $totalUsed = MaterialConsumption::where('material_id', $material->id)
+            ->where('consumption_type', 'use')
+            ->where('consumption_time', '>=', $start)
+            ->sum('quantity');
+
+        $avgDailyUsage = $totalUsed / $days;
+
+        $daysLeft = $avgDailyUsage > 0
+            ? (int) floor($material->quantity / $avgDailyUsage)
+            : null;
+
+        $severity = match (true) {
+            $daysLeft === null => 'none',
+            $daysLeft <= 7 => 'critical',
+            $daysLeft <= 14 => 'warning',
+            default => 'ok',
+        };
+
+        return [
+            'avg_daily_usage' => round($avgDailyUsage, 2),
+            'days_left' => $daysLeft,
+            'severity' => $severity,
+        ];
     }
 
     public function updateQuantity(Request $request, int $lager_id, int $id)

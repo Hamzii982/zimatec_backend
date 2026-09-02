@@ -211,6 +211,49 @@
                 </div>
             </div>
 
+            {{-- Stock Trend + Consumption Forecast --}}
+            <div class="row mt-4">
+                <div class="col-lg-8">
+                    <div class="card h-100">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">Bestandsverlauf (30 Tage)</h6>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="stockTrendChart" height="90"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h6 class="mb-0">Verbrauchsprognose</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-2">
+                                <small class="text-muted text-uppercase d-block">Ø Verbrauch / Tag</small>
+                                <span class="fw-semibold">{{ $consumptionForecast['avg_daily_usage'] }} {{ $material->unit ?? 'Stk.' }}</span>
+                            </div>
+                            <div class="mb-3">
+                                <small class="text-muted text-uppercase d-block">Reicht noch für</small>
+                                @if($consumptionForecast['days_left'] === null)
+                                    <span class="text-muted">Kein Verbrauch erfasst</span>
+                                @else
+                                    <span class="fw-bold fs-5">{{ $consumptionForecast['days_left'] }} Tage</span>
+                                @endif
+                            </div>
+                            @if($consumptionForecast['severity'] === 'critical')
+                                <span class="badge bg-danger"><i class="bi bi-exclamation-triangle-fill me-1"></i>Kritisch — bald nachbestellen</span>
+                            @elseif($consumptionForecast['severity'] === 'warning')
+                                <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-circle me-1"></i>Bestand im Blick behalten</span>
+                            @elseif($consumptionForecast['severity'] === 'ok')
+                                <span class="badge bg-success-subtle text-success-emphasis">Bestand ausreichend</span>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="row mt-4">
                 <div class="col-12">
                     <div class="card">
@@ -261,128 +304,151 @@
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-(function () {
-    const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-    const lagerId = {{ (int) $lager->id }};
-    const materialId = {{ (int) $material->id }};
-    const quantityUrl = `/admin/lager/${lagerId}/tablar/${materialId}/quantity`;
-    const statusUrl   = `/admin/lager/${lagerId}/tablar/${materialId}/status`;
-    const headers = { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': token };
+    (function () {
+        const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        const lagerId = {{ (int) $lager->id }};
+        const materialId = {{ (int) $material->id }};
+        const quantityUrl = `/admin/lager/${lagerId}/tablar/${materialId}/quantity`;
+        const statusUrl   = `/admin/lager/${lagerId}/tablar/${materialId}/status`;
+        const headers = { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': token };
 
-    // ─── ADD STOCK (current + add) ────────────────────────────────────────────
-    const addBtn = document.getElementById('saveQuantity');
-    if (addBtn) {
-        const addOriginal = addBtn.innerHTML;
-        addBtn.addEventListener('click', async () => {
-            const current = parseInt((document.getElementById('currentStockBadge').textContent || '0').replace(/\D+/g, ''), 10) || 0;
-            const add = parseInt(document.getElementById('addQuantity').value || 0);
-            const total = current + add;
-            if (isNaN(total) || total < 0) return;
+        // ─── ADD STOCK (current + add) ────────────────────────────────────────────
+        const addBtn = document.getElementById('saveQuantity');
+        if (addBtn) {
+            const addOriginal = addBtn.innerHTML;
+            addBtn.addEventListener('click', async () => {
+                const current = parseInt((document.getElementById('currentStockBadge').textContent || '0').replace(/\D+/g, ''), 10) || 0;
+                const add = parseInt(document.getElementById('addQuantity').value || 0);
+                const total = current + add;
+                if (isNaN(total) || total < 0) return;
 
-            addBtn.disabled = true;
-            addBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>';
-            try {
-                const res = await fetch(quantityUrl, { method: 'PATCH', headers, body: JSON.stringify({ quantity: total, reason: 'add' }) });
-                if (!res.ok) throw new Error();
-                setTimeout(() => location.reload(), 250);
-            } catch (e) {
-                addBtn.disabled = false;
-                addBtn.innerHTML = addOriginal;
-                alert("{{ __('tablar.show.quantity_error') }}");
-            }
-        });
-    }
-
-    // ─── AUDIT ADJUST (absolute set) ──────────────────────────────────────────
-    const auditBtn = document.getElementById('auditSave');
-    if (auditBtn) {
-        const auditOriginal = auditBtn.innerHTML;
-        auditBtn.addEventListener('click', async () => {
-            const actual = parseInt(document.getElementById('auditQuantity').value);
-            if (isNaN(actual) || actual < 0) {
-                alert("{{ __('tablar.show.quantity_error') }}");
-                return;
-            }
-            if (!confirm("{{ __('tablar.show.audit_confirm') }}")) return;
-
-            auditBtn.disabled = true;
-            auditBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>';
-            try {
-                const res = await fetch(quantityUrl, { method: 'PATCH', headers, body: JSON.stringify({ quantity: actual, reason: 'audit' }) });
-                if (!res.ok) throw new Error();
-                setTimeout(() => location.reload(), 250);
-            } catch (e) {
-                auditBtn.disabled = false;
-                auditBtn.innerHTML = auditOriginal;
-                alert("{{ __('tablar.show.quantity_error') }}");
-            }
-        });
-    }
-
-    // ─── CHANGE STATUS ────────────────────────────────────────────────────────
-    const statusSel = document.getElementById('changeStatus');
-    const statusBadge = document.getElementById('statusLabelBadge');
-    const orderQtyWrapper = document.getElementById('orderQuantityWrapper');
-    const orderQtyInput = document.getElementById('orderQuantityInput');
-    const confirmOrderQtyBtn = document.getElementById('confirmOrderQuantity');
-    const currentStockBadge = document.getElementById('currentStockBadge');
-
-    async function pushStatus(newStatus, orderQuantity = null) {
-        const body = { order_status: newStatus || null };
-        if (orderQuantity !== null) body.order_quantity = orderQuantity;
-
-        const res = await fetch(statusUrl, { method: 'PATCH', headers, body: JSON.stringify(body) });
-        if (!res.ok) throw new Error();
-        return res.json();
-    }
-
-    if (statusSel) {
-        statusSel.addEventListener('change', async () => {
-            const newStatus = statusSel.value;
-
-            // "ordered" needs a quantity first — reveal the field, don't save yet
-            if (newStatus === 'ordered') {
-                orderQtyWrapper.classList.remove('d-none');
-                orderQtyInput.focus();
-                return;
-            }
-
-            orderQtyWrapper.classList.add('d-none');
-            statusSel.disabled = true;
-            try {
-                const data = await pushStatus(newStatus);
-                statusBadge.textContent = data.status_label || '—';
-                if (data.quantity !== undefined) {
-                    currentStockBadge.textContent = data.quantity + ' {{ $material->unit ?? 'Stk.' }}';
+                addBtn.disabled = true;
+                addBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>';
+                try {
+                    const res = await fetch(quantityUrl, { method: 'PATCH', headers, body: JSON.stringify({ quantity: total, reason: 'add' }) });
+                    if (!res.ok) throw new Error();
+                    setTimeout(() => location.reload(), 250);
+                } catch (e) {
+                    addBtn.disabled = false;
+                    addBtn.innerHTML = addOriginal;
+                    alert("{{ __('tablar.show.quantity_error') }}");
                 }
-            } catch (e) {
-                alert("{{ __('tablar.show.status_error') }}");
-            } finally {
-                statusSel.disabled = false;
-            }
-        });
-    }
+            });
+        }
 
-    if (confirmOrderQtyBtn) {
-        confirmOrderQtyBtn.addEventListener('click', async () => {
-            const qty = parseInt(orderQtyInput.value);
-            if (isNaN(qty) || qty < 1) {
-                alert('Bitte eine gültige Bestellmenge angeben.');
-                return;
-            }
-            confirmOrderQtyBtn.disabled = true;
-            try {
-                const data = await pushStatus('ordered', qty);
-                statusBadge.textContent = data.status_label || '—';
-            } catch (e) {
-                alert("{{ __('tablar.show.status_error') }}");
-            } finally {
-                confirmOrderQtyBtn.disabled = false;
-            }
-        });
-    }
-})();
+        // ─── AUDIT ADJUST (absolute set) ──────────────────────────────────────────
+        const auditBtn = document.getElementById('auditSave');
+        if (auditBtn) {
+            const auditOriginal = auditBtn.innerHTML;
+            auditBtn.addEventListener('click', async () => {
+                const actual = parseInt(document.getElementById('auditQuantity').value);
+                if (isNaN(actual) || actual < 0) {
+                    alert("{{ __('tablar.show.quantity_error') }}");
+                    return;
+                }
+                if (!confirm("{{ __('tablar.show.audit_confirm') }}")) return;
+
+                auditBtn.disabled = true;
+                auditBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>';
+                try {
+                    const res = await fetch(quantityUrl, { method: 'PATCH', headers, body: JSON.stringify({ quantity: actual, reason: 'audit' }) });
+                    if (!res.ok) throw new Error();
+                    setTimeout(() => location.reload(), 250);
+                } catch (e) {
+                    auditBtn.disabled = false;
+                    auditBtn.innerHTML = auditOriginal;
+                    alert("{{ __('tablar.show.quantity_error') }}");
+                }
+            });
+        }
+
+        // ─── CHANGE STATUS ────────────────────────────────────────────────────────
+        const statusSel = document.getElementById('changeStatus');
+        const statusBadge = document.getElementById('statusLabelBadge');
+        const orderQtyWrapper = document.getElementById('orderQuantityWrapper');
+        const orderQtyInput = document.getElementById('orderQuantityInput');
+        const confirmOrderQtyBtn = document.getElementById('confirmOrderQuantity');
+        const currentStockBadge = document.getElementById('currentStockBadge');
+
+        async function pushStatus(newStatus, orderQuantity = null) {
+            const body = { order_status: newStatus || null };
+            if (orderQuantity !== null) body.order_quantity = orderQuantity;
+
+            const res = await fetch(statusUrl, { method: 'PATCH', headers, body: JSON.stringify(body) });
+            if (!res.ok) throw new Error();
+            return res.json();
+        }
+
+        if (statusSel) {
+            statusSel.addEventListener('change', async () => {
+                const newStatus = statusSel.value;
+
+                // "ordered" needs a quantity first — reveal the field, don't save yet
+                if (newStatus === 'ordered') {
+                    orderQtyWrapper.classList.remove('d-none');
+                    orderQtyInput.focus();
+                    return;
+                }
+
+                orderQtyWrapper.classList.add('d-none');
+                statusSel.disabled = true;
+                try {
+                    const data = await pushStatus(newStatus);
+                    statusBadge.textContent = data.status_label || '—';
+                    if (data.quantity !== undefined) {
+                        currentStockBadge.textContent = data.quantity + ' {{ $material->unit ?? 'Stk.' }}';
+                    }
+                } catch (e) {
+                    alert("{{ __('tablar.show.status_error') }}");
+                } finally {
+                    statusSel.disabled = false;
+                }
+            });
+        }
+
+        if (confirmOrderQtyBtn) {
+            confirmOrderQtyBtn.addEventListener('click', async () => {
+                const qty = parseInt(orderQtyInput.value);
+                if (isNaN(qty) || qty < 1) {
+                    alert('Bitte eine gültige Bestellmenge angeben.');
+                    return;
+                }
+                confirmOrderQtyBtn.disabled = true;
+                try {
+                    const data = await pushStatus('ordered', qty);
+                    statusBadge.textContent = data.status_label || '—';
+                } catch (e) {
+                    alert("{{ __('tablar.show.status_error') }}");
+                } finally {
+                    confirmOrderQtyBtn.disabled = false;
+                }
+            });
+        }
+    })();
+
+    new Chart(document.getElementById('stockTrendChart').getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: @json($stockTrend['labels']),
+            datasets: [{
+                label: 'Bestand',
+                data: @json($stockTrend['data']),
+                fill: true,
+                backgroundColor: 'rgba(0, 39, 82, 0.1)',
+                borderColor: '#002752',
+                pointRadius: 2,
+                tension: 0.25,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+        }
+    });
 </script>
 
 @endsection
