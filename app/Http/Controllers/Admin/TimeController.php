@@ -770,6 +770,7 @@ class TimeController extends Controller
             ->groupBy([
                 'calendar_week',
                 'p.id',
+                'auftragsnummer',
                 'po.id',
                 'm.id',
                 'm.name',
