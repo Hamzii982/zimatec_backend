@@ -34,7 +34,7 @@
                         <div class="d-flex align-items-center gap-2 mb-2">
                             <i class="bi bi-clock-fill me-1 text-danger"></i>
                             <strong>Anfang:</strong>
-                            <input type="datetime-local" name="record_start_time" 
+                            <input type="datetime-local" name="record_start_time" step="1"
                                 value="{{ \Carbon\Carbon::parse($record->start_time)->format('Y-m-d\TH:i') }}" 
                                 class="form-control form-control-sm">
                         </div>
@@ -42,7 +42,7 @@
                         <div class="d-flex align-items-center gap-2 mb-2">
                             <i class="bi bi-clock-fill me-1 text-warning"></i>
                             <strong>Beendet:</strong>
-                            <input type="datetime-local" name="record_end_time" id="mainEndTime"
+                            <input type="datetime-local" name="record_end_time" id="mainEndTime" step="1"
                                 value="{{ $record->end_time ? \Carbon\Carbon::parse($record->end_time)->format('Y-m-d\TH:i') : '' }}" 
                                 class="form-control form-control-sm">
                         </div>
@@ -71,12 +71,13 @@
                                         {{ $log->status->name }}
                                     </td>
                                     <td>
-                                        <input type="datetime-local" name="logs[{{ $index }}][start_time]" 
+                                        <input type="datetime-local" name="logs[{{ $index }}][start_time]" step="1"
                                             value="{{ $log->start_time }}" class="form-control w-auto">
                                     </td>
                                     <td>
-                                        <input type="datetime-local" name="logs[{{ $index }}][end_time]" 
+                                        <input type="datetime-local" name="logs[{{ $index }}][end_time]"
                                             value="{{ $log->end_time ? $log->end_time : '' }}" 
+                                            step="1"
                                             class="form-control end-time-field w-auto"
                                             {{ $log->end_time ? '' : 'disabled' }}>
                                     </td>
