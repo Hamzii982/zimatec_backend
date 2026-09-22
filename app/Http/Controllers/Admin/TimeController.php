@@ -535,7 +535,7 @@ class TimeController extends Controller
                 ->map(fn ($logs) => $logs->sum(fn ($l) => $this->seconds($l->start_time, $l->end_time)));
     
             $machineSeconds = $record->processes->sum(
-                fn ($p) => $this->seconds($p->start_time, $p->end_time) - $this->pauseSeconds($p)
+                fn ($p) => $this->activeSeconds($p)
             );
     
             return [
@@ -563,7 +563,7 @@ class TimeController extends Controller
                     'process_name' => $p->name,
                     'start_time' => $p->start_time,
                     'end_time' => $p->end_time,
-                    'duration_seconds' => $this->seconds($p->start_time, $p->end_time) - $this->pauseSeconds($p),
+                    'duration_seconds' => $this->activeSeconds($p),
                     'source' => $p->time_record_id !== null ? 'manuell' : 'überlappend erkannt',
                 ])->values()->all(),
                 'logs' => $record->logs->map(fn ($l) => [
@@ -578,7 +578,7 @@ class TimeController extends Controller
         $unattendedRows = collect($unattendedByKey)->map(function ($processes) {
             $first = $processes[0];
             $machineSeconds = collect($processes)->sum(
-                fn ($p) => $this->seconds($p->start_time, $p->end_time) - $this->pauseSeconds($p)
+                fn ($p) => $this->activeSeconds($p)
             );
     
             return [
@@ -604,7 +604,7 @@ class TimeController extends Controller
                     'process_name' => $p->name,
                     'start_time' => $p->start_time,
                     'end_time' => $p->end_time,
-                    'duration_seconds' => $this->seconds($p->start_time, $p->end_time) - $this->pauseSeconds($p),
+                    'duration_seconds' => $this->activeSeconds($p),
                     'source' => 'unbeaufsichtigt',
                 ])->values()->all(),
                 'logs' => [],
@@ -648,12 +648,43 @@ class TimeController extends Controller
     
     private function pauseSeconds($process): int
     {
-        return $process->pauses->sum(function ($pause) use ($process) {
-            $start = Carbon::parse(max($pause->pause_start, $process->start_time));
-            $end = Carbon::parse(min($pause->pause_end ?? $process->end_time, $process->end_time));
+        $intervals = $process->pauses
+            ->map(function ($pause) use ($process) {
+                $start = Carbon::parse(max($pause->pause_start, $process->start_time));
+                $end = Carbon::parse(min($pause->pause_end ?? $process->end_time, $process->end_time));
     
-            return max(0, $end->diffInSeconds($start));
-        });
+                return [$start, $end];
+            })
+            // Drop pauses that don't actually overlap the process after clamping
+            // (guards the same abs()-flip issue as before: a non-overlapping
+            // pause must contribute 0, not a positive number).
+            ->filter(fn ($interval) => $interval[1]->gt($interval[0]))
+            ->sortBy(fn ($interval) => $interval[0]->timestamp)
+            ->values();
+    
+        $merged = [];
+    
+        foreach ($intervals as [$start, $end]) {
+            $last = count($merged) - 1;
+    
+            if ($last >= 0 && $start->lte($merged[$last][1])) {
+                // Overlaps (or touches) the previous interval — extend it
+                // instead of counting this pause's duration a second time.
+                if ($end->gt($merged[$last][1])) {
+                    $merged[$last][1] = $end;
+                }
+            } else {
+                $merged[] = [$start, $end];
+            }
+        }
+    
+        return collect($merged)->sum(fn ($interval) => $interval[1]->diffInSeconds($interval[0]));
+    }
+    
+    // --- NEW HELPER: use this everywhere instead of "seconds($p) - pauseSeconds($p)" ---
+    private function activeSeconds($process): int
+    {
+        return max(0, $this->seconds($process->start_time, $process->end_time) - $this->pauseSeconds($process));
     }
     
     private function auftragsnummer($project, ?string $company)
