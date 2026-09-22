@@ -563,6 +563,7 @@ class TimeController extends Controller
                     'process_name' => $p->name,
                     'start_time' => $p->start_time,
                     'end_time' => $p->end_time,
+                    'duration_seconds' => $this->seconds($p->start_time, $p->end_time) - $this->pauseSeconds($p),
                     'source' => $p->time_record_id !== null ? 'manuell' : 'überlappend erkannt',
                 ])->values()->all(),
                 'logs' => $record->logs->map(fn ($l) => [
@@ -603,6 +604,7 @@ class TimeController extends Controller
                     'process_name' => $p->name,
                     'start_time' => $p->start_time,
                     'end_time' => $p->end_time,
+                    'duration_seconds' => $this->seconds($p->start_time, $p->end_time) - $this->pauseSeconds($p),
                     'source' => 'unbeaufsichtigt',
                 ])->values()->all(),
                 'logs' => [],
@@ -1148,66 +1150,71 @@ class TimeController extends Controller
     
         foreach ($processes as $process) {
             $key = $jobKey($process->project_id, $process->position_id, $process->machine_id);
-    
+        
             $overlapsLoggedHours = ($statusLogsByJob->get($key) ?? collect())->contains(
                 fn ($log) => $process->start_time < $log->end_time && $process->end_time > $log->start_time
             );
-    
+        
             if ($overlapsLoggedHours) {
                 continue;
             }
-    
-            $date = Carbon::parse($process->start_time)->toDateString();
-            $sameDayRecords = $recordsByDateJob->get("{$date}|{$key}") ?? collect();
-            $isFallback = false;
-    
-            if ($sameDayRecords->isNotEmpty()) {
-                $chosenRecord = $sameDayRecords->count() === 1
-                    ? $sameDayRecords->first()
-                    : $this->closestRecordByTime($sameDayRecords, $process);
-            } else {
-                $isFallback = true;
-    
-                if (! array_key_exists($key, $historyCache)) {
-                    [$pid, $posId, $mid] = explode('|', $key);
-                    $historyCache[$key] = TimeRecord::with('user:id,name')
-                        ->where('project_id', $pid)
-                        ->where('position_id', $posId)
-                        ->where('machine_id', $mid)
-                        ->orderBy('start_time')
-                        ->get();
+        
+            foreach ($this->processDaySegments($process) as $segment) {
+                if ($segment['seconds'] <= 0) {
+                    continue;
                 }
-    
-                $history = $historyCache[$key];
-                $chosenRecord = $history->isNotEmpty()
-                    ? $history->sortBy(fn ($r) => abs(Carbon::parse($r->start_time)->diffInDays($process->start_time)))->first()
-                    : null;
+        
+                $date = $segment['date'];
+                $seconds = $segment['seconds'];
+        
+                $sameDayRecords = $recordsByDateJob->get("{$date}|{$key}") ?? collect();
+                $isFallback = false;
+        
+                if ($sameDayRecords->isNotEmpty()) {
+                    $chosenRecord = $sameDayRecords->count() === 1
+                        ? $sameDayRecords->first()
+                        : $this->closestRecordByTime($sameDayRecords, $process);
+                } else {
+                    $isFallback = true;
+                    if (! array_key_exists($key, $historyCache)) {
+                        [$pid, $posId, $mid] = explode('|', $key);
+                        $historyCache[$key] = TimeRecord::with('user:id,name')
+                            ->where('project_id', $pid)
+                            ->where('position_id', $posId)
+                            ->where('machine_id', $mid)
+                            ->orderBy('start_time')
+                            ->get();
+                    }
+                    $history = $historyCache[$key];
+                    $chosenRecord = $history->isNotEmpty()
+                        ? $history->sortBy(fn ($r) => abs(Carbon::parse($r->start_time)->diffInDays($segment['start'])))->first()
+                        : null;
+                }
+        
+                $user = $chosenRecord->user ?? null;
+                $rowKey = "{$date}|{$key}|".($user->id ?? 'none');
+        
+                if (! isset($leftoverRows[$rowKey])) {
+                    $leftoverRows[$rowKey] = (object) [
+                        'date' => $date,
+                        'project_id' => $process->project_id,
+                        'position_id' => $process->position_id,
+                        'machine_id' => $process->machine_id,
+                        'user_id' => $user->id ?? null,
+                        'user_name' => $user->name ?? null,
+                        'project' => $process->project,
+                        'position' => $process->position,
+                        'machine' => $process->machine,
+                        'ruestzeit_seconds' => 0,
+                        'mit_aufsicht_seconds' => 0,
+                        'ohne_aufsicht_seconds' => 0,
+                        'is_fallback_attribution' => false,
+                    ];
+                }
+        
+                $leftoverRows[$rowKey]->ohne_aufsicht_seconds += $seconds;
+                $leftoverRows[$rowKey]->is_fallback_attribution = $leftoverRows[$rowKey]->is_fallback_attribution || $isFallback;
             }
-    
-            $user = $chosenRecord->user ?? null;
-            $seconds = $this->seconds($process->start_time, $process->end_time) - $this->pauseSeconds($process);
-            $rowKey = "{$date}|{$key}|".($user->id ?? 'none');
-    
-            if (! isset($leftoverRows[$rowKey])) {
-                $leftoverRows[$rowKey] = (object) [
-                    'date' => $date,
-                    'project_id' => $process->project_id,
-                    'position_id' => $process->position_id,
-                    'machine_id' => $process->machine_id,
-                    'user_id' => $user->id ?? null,
-                    'user_name' => $user->name ?? null,
-                    'project' => $process->project,
-                    'position' => $process->position,
-                    'machine' => $process->machine,
-                    'ruestzeit_seconds' => 0,
-                    'mit_aufsicht_seconds' => 0,
-                    'ohne_aufsicht_seconds' => 0,
-                    'is_fallback_attribution' => $isFallback,
-                ];
-            }
-    
-            $leftoverRows[$rowKey]->ohne_aufsicht_seconds += $seconds;
-            $leftoverRows[$rowKey]->is_fallback_attribution = $leftoverRows[$rowKey]->is_fallback_attribution || $isFallback;
         }
     
         // Merge leftovers into an existing Rustzeit/Mit-Aufsicht row for the same
@@ -1271,5 +1278,57 @@ class TimeController extends Controller
                 abs($processStart->diffInSeconds($recordEnd))
             );
         })->first();
+    }
+
+    private function activeSecondsInRange($process, $rangeStart, $rangeEnd): int
+    {
+        $rangeStart = Carbon::parse($rangeStart);
+        $rangeEnd = Carbon::parse($rangeEnd);
+    
+        $total = max(0, $rangeEnd->diffInSeconds($rangeStart));
+    
+        $paused = $process->pauses->sum(function ($pause) use ($rangeStart, $rangeEnd) {
+            $pauseStart = Carbon::parse($pause->pause_start);
+            $pauseEnd = Carbon::parse($pause->pause_end ?? $rangeEnd);
+    
+            $overlapStart = $pauseStart->greaterThan($rangeStart) ? $pauseStart : $rangeStart;
+            $overlapEnd = $pauseEnd->lessThan($rangeEnd) ? $pauseEnd : $rangeEnd;
+    
+            // Guard: no overlap at all -> contribute 0, don't let abs() flip a
+            // negative gap into a positive pause duration.
+            if ($overlapEnd->lessThanOrEqualTo($overlapStart)) {
+                return 0;
+            }
+    
+            return $overlapEnd->diffInSeconds($overlapStart);
+        });
+    
+        return max(0, $total - $paused);
+    }
+    
+    // --- NEW HELPER 2: split a process into [date, start, end, activeSeconds] segments ---
+    private function processDaySegments($process): array
+    {
+        $start = Carbon::parse($process->start_time);
+        $end = Carbon::parse($process->end_time);
+    
+        $segments = [];
+        $cursor = $start->copy();
+    
+        while ($cursor->lt($end)) {
+            $midnight = $cursor->copy()->startOfDay()->addDay();
+            $segmentEnd = $midnight->lt($end) ? $midnight : $end->copy();
+    
+            $segments[] = [
+                'date' => $cursor->toDateString(),
+                'start' => $cursor->copy(),
+                'end' => $segmentEnd->copy(),
+                'seconds' => $this->activeSecondsInRange($process, $cursor, $segmentEnd),
+            ];
+    
+            $cursor = $segmentEnd;
+        }
+    
+        return $segments;
     }
 }

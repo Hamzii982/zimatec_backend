@@ -197,7 +197,7 @@
                                                                 <td>{{ $proc['process_name'] ?? '-' }}</td>
                                                                 <td>{{ \Carbon\Carbon::parse($proc['start_time'])->format('d.m. H:i') }}</td>
                                                                 <td>{{ \Carbon\Carbon::parse($proc['end_time'])->format('d.m. H:i') }}</td>
-                                                                <td>{{ gmdate('H:i:s', \Carbon\Carbon::parse($proc['start_time'])->diffInSeconds($proc['end_time'])) }}</td>
+                                                                <td>{{ gmdate('H:i:s', max($proc['duration_seconds'], 0)) }}</td>
                                                                 <td>
                                                                     @php
                                                                         $srcClass = match($proc['source']) {
