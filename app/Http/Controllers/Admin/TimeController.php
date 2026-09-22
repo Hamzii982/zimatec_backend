@@ -787,7 +787,59 @@ class TimeController extends Controller
     {
         $data = $this->getMachineLogs($request);
 
+        $data['projects'] = $this->annotateActiveTime($data['projects']);
+
         return view('admin.time.logs_old', $data);
+    }
+
+    protected function annotateActiveTime($projects)
+    {
+        foreach ($projects as $project) {
+            // Fill in the pauses relation that getMachineLogs() doesn't eager-load
+            $project->processes->loadMissing('pauses');
+            $project->procedures->each(fn ($procedure) => $procedure->processes->loadMissing('pauses'));
+            $project->bauteile->each(function ($bauteil) {
+                $bauteil->processes->loadMissing('pauses');
+                $bauteil->procedures->each(fn ($procedure) => $procedure->processes->loadMissing('pauses'));
+            });
+
+            $this->setActiveSeconds($project->processes);
+
+            foreach ($project->procedures as $procedure) {
+                $this->setActiveSeconds($procedure->processes);
+            }
+
+            foreach ($project->bauteile as $bauteil) {
+                $this->setActiveSeconds($bauteil->processes);
+                foreach ($bauteil->procedures as $procedure) {
+                    $this->setActiveSeconds($procedure->processes);
+                }
+            }
+
+            $project->aktive_zeit = $project->processes->sum('active_seconds')
+                + $project->procedures->sum(fn ($p) => $p->processes->sum('active_seconds'))
+                + $project->bauteile->sum(function ($b) {
+                    return $b->processes->sum('active_seconds')
+                        + $b->procedures->sum(fn ($p) => $p->processes->sum('active_seconds'));
+                });
+        }
+
+        return $projects;
+    }
+
+    protected function setActiveSeconds($processes): void
+    {
+        foreach ($processes as $process) {
+            $pauseSeconds = $process->pauses->sum(function ($pause) {
+                // pause_start / pause_end are already Carbon instances (model casts)
+                $start = $pause->pause_start;
+                $end = $pause->pause_end ?: now();
+
+                return $start->diffInSeconds($end);
+            });
+
+            $process->active_seconds = max(0, ($process->total_seconds ?? 0) - $pauseSeconds);
+        }
     }
 
     public function parseLog()
