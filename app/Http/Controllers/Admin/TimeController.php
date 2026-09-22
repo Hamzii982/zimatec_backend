@@ -820,8 +820,24 @@ class TimeController extends Controller
 
     public function change(Request $request)
     {
-        $pendingRequests = TimeChangeRequest::with(['timeRecord.project', 'timeRecord.machine'])->whereNull('status')->latest()->get();
-        $processedRequests = TimeChangeRequest::with(['timeRecord.project', 'timeRecord.machine'])->whereNotNull('status')->latest()->get();
+        $pendingRequests = TimeChangeRequest::with([
+            'timeRecord.project',
+            'timeRecord.machine',
+            'timeRecord.position',
+            'timeRecord.logs.status',
+            'timeRecord.processes',
+            'requestedBy',
+        ])->whereNull('status')->latest()->get();
+
+        $processedRequests = TimeChangeRequest::with([
+            'timeRecord.project',
+            'timeRecord.machine',
+            'timeRecord.position',
+            'timeRecord.logs.status',
+            'timeRecord.processes',
+            'requestedBy',
+            'approvedBy',
+        ])->whereNotNull('status')->latest()->get();
 
         return view('admin.time.change', compact('pendingRequests', 'processedRequests'));
     }
@@ -829,56 +845,101 @@ class TimeController extends Controller
     public function acceptChange($id)
     {
         $changeRequest = TimeChangeRequest::findOrFail($id);
+        $payload = json_decode($changeRequest->payload, true) ?? [];
 
-        // Decode payload into PHP array
-        $payload = json_decode($changeRequest->payload, true);
-
-        if (is_array($payload)) {
-            foreach ($payload as $logData) {
-                // Update existing log
-                if (! empty($logData['id'])) {
-                    $log = TimeLog::find($logData['id']);
-                    if ($log) {
-                        if (! empty($logData['delete']) && $logData['delete'] === 'true') {
-                            $log->delete();
-                        } else {
-                            $log->update([
-                                'start_time' => $logData['start_time'] ?? $log->start_time,
-                                'end_time' => $logData['end_time'] ?? $log->end_time,
-                                'machine_status_id' => $logData['status_id'] ?? $log->machine_status_id,
-                            ]);
-                        }
+        // Backward compatibility: requests created before "processes" existed
+        // stored payload as a flat array of logs, with no 'logs'/'processes' keys.
+        $isLegacyFormat = ! array_key_exists('logs', $payload) && ! array_key_exists('processes', $payload);
+        $logsData = $isLegacyFormat ? $payload : ($payload['logs'] ?? []);
+        $processesData = $isLegacyFormat ? [] : ($payload['processes'] ?? []);
+    
+        foreach ($logsData as $logData) {
+            if (! empty($logData['id'])) {
+                $log = TimeLog::find($logData['id']);
+                if ($log) {
+                    if (! empty($logData['delete']) && $logData['delete'] === 'true') {
+                        $log->delete();
+                    } else {
+                        $log->update([
+                            'start_time' => $logData['start_time'] ?? $log->start_time,
+                            'end_time' => $logData['end_time'] ?? $log->end_time,
+                            'machine_status_id' => $logData['status_id'] ?? $log->machine_status_id,
+                        ]);
                     }
                 }
-                // Create new log
-                else {
-                    TimeLog::create([
-                        'time_record_id' => $changeRequest->time_record_id,
-                        'start_time' => $logData['start_time'] ?? null,
-                        'end_time' => $logData['end_time'] ?? null,
-                        'machine_status_id' => $logData['status_id'] ?? null,
-                    ]);
-                }
+            } else {
+                TimeLog::create([
+                    'time_record_id' => $changeRequest->time_record_id,
+                    'start_time' => $logData['start_time'] ?? null,
+                    'end_time' => $logData['end_time'] ?? null,
+                    'machine_status_id' => $logData['status_id'] ?? null,
+                ]);
             }
         }
-
+    
+        foreach ($processesData as $processData) {
+            if (! empty($processData['id'])) {
+                $process = Process::find($processData['id']);
+                if ($process) {
+                    if (! empty($processData['delete']) && $processData['delete'] === 'true') {
+                        $process->delete();
+                        continue;
+                    }
+    
+                    $startTime = $processData['start_time'] ?? $process->start_time;
+                    $endTime = $processData['end_time'] ?? null;
+                    $seconds = $endTime
+                        ? Carbon::parse($startTime)->diffInSeconds(Carbon::parse($endTime))
+                        : $process->total_seconds;
+    
+                    $process->update([
+                        'name' => $processData['name'] ?? $process->name,
+                        'start_time' => $startTime,
+                        'end_time' => $endTime,
+                        'total_seconds' => $seconds,
+                    ]);
+                }
+            } else {
+                $timeRecord = $changeRequest->timeRecord;
+                $startTime = $processData['start_time'] ?? null;
+                $endTime = $processData['end_time'] ?? null;
+                $seconds = ($startTime && $endTime)
+                    ? Carbon::parse($startTime)->diffInSeconds(Carbon::parse($endTime))
+                    : 0;
+    
+                Process::create([
+                    'project_id' => $timeRecord->project_id,
+                    'position_id' => $timeRecord->position_id,
+                    'procedure_id' => null,
+                    'bauteil_id' => null,
+                    'machine_id' => $timeRecord->machine_id,
+                    'time_record_id' => $changeRequest->time_record_id,
+                    'name' => $processData['name'] ?? null,
+                    'start_time' => $startTime,
+                    'end_time' => $endTime,
+                    'total_seconds' => $seconds,
+                    'source_file' => null,
+                ]);
+            }
+        }
+    
         if (! empty($changeRequest->record_start_time) || ! empty($changeRequest->record_end_time)) {
             $record = TimeRecord::find($changeRequest->time_record_id);
             if ($record) {
                 $record->update([
-                    'start_time' => $changeRequest->record_start_time,
-                    'end_time' => $changeRequest->record_end_time,
+                    'start_time' => $changeRequest->record_start_time ?: $record->start_time,
+                    'end_time' => $changeRequest->record_end_time ?: $record->end_time,
                 ]);
             }
         }
-
+    
         $changeRequest->update([
             'status' => 'accepted',
             'approved_by' => auth()->id(),
             'approved_at' => now(),
         ]);
-
-        return redirect()->back()->with('success', 'Change request accepted successfully.');
+    
+        return redirect()->back()->with('success', 'Änderungsantrag erfolgreich übernommen.');
     }
 
     public function rejectChange($id)
@@ -890,7 +951,7 @@ class TimeController extends Controller
             'approved_at' => now(),
         ]);
 
-        return redirect()->back()->with('error', 'Change request rejected.');
+        return redirect()->back()->with('error', 'Änderungsantrag abgelehnt.');
     }
 
     

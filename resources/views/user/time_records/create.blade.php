@@ -228,9 +228,6 @@
                         <div class="d-flex align-items-center flex-wrap gap-3">
                             <div class="btn-group">
                                 @foreach($statuses as $status)
-                                    @php
-                                        $isMitAufsicht = strtolower($status->name ?? '') === 'mit aufsicht';
-                                    @endphp
                                     <input type="radio"
                                         class="btn-check"
                                         name="status_id"
@@ -244,28 +241,27 @@
                                     </label>
                                 @endforeach
                             </div>
-                            @if($isMitAufsicht)
-                                <div class="d-none d-flex align-items-center gap-2" id="manual-process-wrap">
-                                    <div class="form-check m-0">
-                                        <input class="form-check-input"
-                                            type="checkbox"
-                                            id="manual-process-checkbox"
-                                            name="manual_process"
-                                            value="1">
-                                        <label class="form-check-label ms-1" for="manual-process-checkbox">
-                                            Manueller Prozess
-                                        </label>
-                                    </div>
-                                    <div id="manual-process-name-wrap" class="d-none ms-3">
-                                        <input type="text"
-                                            class="form-control form-control-sm border-dark-subtle shadow-sm"
-                                            id="manual-process-name"
-                                            name="manual_process_name"
-                                            placeholder="Prozess Name"
-                                            autocomplete="off">
-                                    </div>
+                            
+                            <div class="d-none d-flex align-items-center gap-2" id="manual-process-wrap">
+                                <div class="form-check m-0">
+                                    <input class="form-check-input"
+                                        type="checkbox"
+                                        id="manual-process-checkbox"
+                                        name="manual_process"
+                                        value="1">
+                                    <label class="form-check-label ms-1" for="manual-process-checkbox">
+                                        Manueller Prozess
+                                    </label>
                                 </div>
-                            @endif
+                                <div id="manual-process-name-wrap" class="d-none ms-3">
+                                    <input type="text"
+                                        class="form-control form-control-sm border-dark-subtle shadow-sm"
+                                        id="manual-process-name"
+                                        name="manual_process_name"
+                                        placeholder="Prozess Name"
+                                        autocomplete="off">
+                                </div>
+                            </div>
                         </div>
                     </div>
                     

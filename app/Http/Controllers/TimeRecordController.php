@@ -145,9 +145,10 @@ class TimeRecordController extends Controller
             'start_time' => now(),
         ]);
 
-        // Create manual process if requested
-        if (! empty($validated['manual_process']) && $validated['manual_process'] == 1) {
-
+        // "Ohne Aufsicht" always gets an auto process — no checkbox needed
+        if ($request->status_id == $this->getOhneAufsichtStatusId()) {
+            $this->autoStartOhneAufsichtProcess($record, $request->status_id, $validated['manual_process_name'] ?? null);
+        } elseif (! empty($validated['manual_process']) && $validated['manual_process'] == 1) {
             Process::create([
                 'project_id' => $validated['project_id'],
                 'position_id' => $validated['position_id'],
@@ -222,22 +223,25 @@ class TimeRecordController extends Controller
             'start_time' => now(),
         ]);
 
-        $this->closeRunningManualProcess($log->time_record_id);
+        $record = TimeRecord::find($log->time_record_id);
 
-        if ($request->manual_process == 1 && $request->manual_process_name) {
+        if ($request->status_id == $this->getOhneAufsichtStatusId()) {
+            $this->autoStartOhneAufsichtProcess($record, $request->status_id, $request->manual_process_name ?? null);
+        } else {
+            $this->closeRunningManualProcess($log->time_record_id);
 
-            $record = TimeRecord::find($log->time_record_id);
-
-            Process::create([
-                'time_record_id' => $record->id,
-                'project_id' => $record->project_id,
-                'position_id' => $record->position_id,
-                'machine_id' => $record->machine_id,
-                'name' => $request->manual_process_name,
-                'start_time' => now(),
-                'end_time' => null,
-                'total_seconds' => 0,
-            ]);
+            if ($request->manual_process == 1 && $request->manual_process_name) {
+                Process::create([
+                    'time_record_id' => $record->id,
+                    'project_id' => $record->project_id,
+                    'position_id' => $record->position_id,
+                    'machine_id' => $record->machine_id,
+                    'name' => $request->manual_process_name,
+                    'start_time' => now(),
+                    'end_time' => null,
+                    'total_seconds' => 0,
+                ]);
+            }
         }
 
         // Redirect back to the same record page
@@ -251,7 +255,7 @@ class TimeRecordController extends Controller
         $userId = $currentRecord->user_id;
 
         // get the 'ohne_aufsicht' status id (adjust as needed)
-        $ohneAufsichtStatusId = MachineStatus::where('name', 'Ohne Aufsicht')->value('id');
+        $ohneAufsichtStatusId = $this->getOhneAufsichtStatusId();
 
         /**
          * Step 1: Handle other running records of this user
@@ -279,6 +283,9 @@ class TimeRecordController extends Controller
                         'machine_status_id' => $ohneAufsichtStatusId,
                         'start_time' => now(),
                     ]);
+
+                    // Machine is now running unattended on this record too
+                    $this->autoStartOhneAufsichtProcess($record, $ohneAufsichtStatusId);
                 }
             }
         }
@@ -286,7 +293,7 @@ class TimeRecordController extends Controller
 
     public function changeRequest($record_id)
     {
-        $record = TimeRecord::with('logs.status')->findOrFail($record_id);
+        $record = TimeRecord::with('logs.status', 'processes')->findOrFail($record_id);
 
         return view('user.time_records.request-form', compact('record'));
     }
@@ -296,6 +303,12 @@ class TimeRecordController extends Controller
         $request->validate([
             'reason' => 'required|string|max:1000',
             'logs' => 'required|array',
+            'processes' => 'nullable|array',
+            'processes.*.id' => 'nullable|exists:processes,id',
+            'processes.*.name' => 'required_with:processes|string|max:255',
+            'processes.*.start_time' => 'required_with:processes|date',
+            'processes.*.end_time' => 'nullable|date',
+            'processes.*.delete' => 'nullable|in:true,false',
         ]);
 
         $user_id = TimeRecord::where('id', $record_id)->first()->user_id;
@@ -311,7 +324,10 @@ class TimeRecordController extends Controller
             'time_record_id' => $record_id,
             'requested_by' => $user_id,
             'reason' => $reason,
-            'payload' => json_encode($request->logs),
+            'payload' => json_encode([
+                'logs' => $request->logs,
+                'processes' => $request->processes ?? [],
+                ]),
             'record_start_time' => $request->record_start_time,
             'record_end_time' => $request->record_end_time,
         ]);
@@ -322,7 +338,7 @@ class TimeRecordController extends Controller
         Notification::create([
             'user_id' => $user_id,
             'type' => 'change_request',
-            'message' => 'New time change request submitted by '.$user_name,
+            'message' => 'Neue Änderungsantrag von '.$user_name,
             'url' => route('admin.time.change'),
         ]);
 
@@ -365,6 +381,39 @@ class TimeRecordController extends Controller
         $runningProcess->update([
             'end_time' => $end,
             'total_seconds' => $seconds,
+        ]);
+    }
+
+    protected function getOhneAufsichtStatusId(): ?int
+    {
+        return MachineStatus::where('name', 'Ohne Aufsicht')->value('id');
+    }
+
+    /**
+     * Auto-starts a manual process for "Ohne Aufsicht" without asking the user.
+     * Closes whatever process might already be running for this record first
+     * (idempotent — no-op if nothing is running).
+     */
+    protected function autoStartOhneAufsichtProcess(TimeRecord $record, int $statusId, ?string $customName = null): void
+    {
+        if ($statusId != $this->getOhneAufsichtStatusId()) {
+            return;
+        }
+
+        $this->closeRunningManualProcess($record->id);
+
+        Process::create([
+            'time_record_id' => $record->id,
+            'project_id' => $record->project_id,
+            'position_id' => $record->position_id,
+            'machine_id' => $record->machine_id,
+            'procedure_id' => null,
+            'bauteil_id' => null,
+            'name' => $customName ?: 'Ohne Aufsicht (automatisch)',
+            'start_time' => now(),
+            'end_time' => null,
+            'total_seconds' => 0,
+            'source_file' => null,
         ]);
     }
 }

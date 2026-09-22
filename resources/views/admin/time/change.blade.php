@@ -9,156 +9,16 @@
     <div class="card shadow-sm zt-card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0">Ausstehende Nachtragsanträge</h5>
+            <span class="zt-count-pill">{{ $pendingRequests->count() }}</span>
         </div>
 
         <div class="card-body">
-            <div class="table-responsive">
-                <table class="table zt-table zt-table--excel align-middle mb-0">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Projekt</th>
-                            <th>Position</th>
-                            <th>Maschine</th>
-                            <th>Bediener</th>
-                            <th>Start</th>
-                            <th>Ende</th>
-                            <th>Grund</th>
-                            <th>Payload</th>
-                            <th>Aktionen</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($pendingRequests as $index => $record)
-                            <tr>
-                                <td>{{ $index + 1 }}</td>
-                                <td>
-                                    {{ $record->timeRecord->project->project_name ?? 'N/A' }}
-                                    <small class="text-muted d-block project-auftrag">
-                                        {{ "ZF: ".$record->timeRecord->project->auftragsnummer_zf ." ZT: " .$record->timeRecord->project->auftragsnummer_zt }}
-                                    </small>
-                                </td>
-                                <td>{{ $record->timeRecord->position->name }}</td>
-                                <td>{{ $record->timeRecord->machine->name ?? 'N/A' }}</td>
-                                <td>{{ $record->requestedBy->name ?? 'N/A' }}</td>
-                                <td>{{ $record->timeRecord->start_time ?? 'N/A' }}</td>
-                                <td>{{ $record->timeRecord->end_time ?? 'N/A' }}</td>
-                                <td>{{ $record->reason }}</td>
-                                <td>
-                                    <button class="zt-btn zt-btn--ghost toggle-details" type="button"
-                                        data-bs-toggle="collapse" data-target="#details{{ $record->id }}">
-                                        <i class="bi bi-eye"></i> Änderungen anzeigen
-                                    </button>
-                                </td>
-                                <td>
-                                    <div class="d-flex gap-2">
-                                        <form action="{{ route('admin.time.change.accept', $record->id) }}" method="POST">
-                                            @csrf
-                                            <button class="zt-btn zt-btn--success" type="submit">
-                                                <i class="bi bi-check-circle"></i> Übernehmen
-                                            </button>
-                                        </form>
-
-                                        <form action="{{ route('admin.time.change.reject', $record->id) }}" method="POST">
-                                            @csrf
-                                            <button class="zt-btn zt-btn--danger" type="submit">
-                                                <i class="bi bi-x-circle"></i> Ablehnen
-                                            </button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                            {{-- Hidden expandable row --}}
-                            <tr id="details{{ $record->id }}" class="details-row" style="display:none;">
-                                <td colspan="10" class="p-0 border-0">
-                                    @php
-                                        $payloadLogs = json_decode($record->payload, true);
-                                        $originalLogs = $record->timeRecord?->logs ?? collect();
-                                    @endphp
-
-                                    <div class="zt-subcard">
-                                        <div class="row g-3">
-                                            {{-- Original Logs --}}
-                                            <div class="col-md-6">
-                                                <h6 class="zt-subtitle zt-subtitle--danger">
-                                                    <i class="bi bi-clock-history"></i> Originalprotokolle
-                                                </h6>
-                                                <div class="table-responsive">
-                                                    <table class="table zt-subtable zt-subtable--danger mb-0">
-                                                        <thead>
-                                                            <tr>
-                                                                <th>ID</th>
-                                                                <th>Status</th>
-                                                                <th>Start</th>
-                                                                <th>Ende</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            @forelse($originalLogs as $index => $log)
-                                                                <tr>
-                                                                    <td>{{ $log->status->id }}</td>
-                                                                    <td>{{ $log->status->name ?? 'N/A' }}</td>
-                                                                    <td>{{ \Carbon\Carbon::parse($log->start_time)->format('Y-m-d H:i') }}</td>
-                                                                    <td>{{ $log->end_time ? \Carbon\Carbon::parse($log->end_time)->format('Y-m-d H:i') : 'Running' }}</td>
-                                                                </tr>
-                                                            @empty
-                                                                <tr>
-                                                                    <td colspan="4" class="zt-empty text-center">Es wurden keine Originalprotokolle gefunden.</td>
-                                                                </tr>
-                                                            @endforelse
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                            </div>
-
-                                            {{-- Requested Changes --}}
-                                            <div class="col-md-6">
-                                                <h6 class="zt-subtitle zt-subtitle--success">
-                                                    <i class="bi bi-arrow-repeat"></i> Gewünschte Änderungen
-                                                </h6>
-                                                <div class="table-responsive">
-                                                    <table class="table zt-subtable zt-subtable--success mb-0">
-                                                        <thead>
-                                                            <tr>
-                                                                <th>ID</th>
-                                                                <th>Status</th>
-                                                                <th>Start</th>
-                                                                <th>End</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            @foreach($payloadLogs as $index => $log)
-                                                                @php
-                                                                    if (!empty($log['status_id'])) {
-                                                                        $machine_status = App\Models\MachineStatus::find($log['status_id']);
-                                                                    } else {
-                                                                        $machine_status = null;
-                                                                    }
-                                                                @endphp
-                                                                <tr>
-                                                                    <td>{{ $log['id'] ?? 'New' }}</td>
-                                                                    <td>{{ $machine_status ? $machine_status->name : '-' }}</td>
-                                                                    <td>{{ $log['start_time'] ? \Carbon\Carbon::parse($log['start_time'])->format('Y-m-d H:i') : '-' }}</td>
-                                                                    <td>{{ isset($log['end_time']) && $log['end_time'] ? \Carbon\Carbon::parse($log['end_time'])->format('Y-m-d H:i') : 'Running' }}</td>
-                                                                </tr>
-                                                            @endforeach
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="10" class="zt-empty text-center py-4">
-                                    Es wurden keine ausstehenden Anfragen gefunden.
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
+            <div class="zt-request-list">
+                @forelse($pendingRequests as $record)
+                    @include('admin.time.partials.request-card', ['record' => $record, 'pending' => true])
+                @empty
+                    <div class="zt-empty text-center py-4">Es wurden keine ausstehenden Anfragen gefunden.</div>
+                @endforelse
             </div>
         </div>
     </div>
@@ -172,113 +32,12 @@
         </div>
 
         <div class="card-body">
-            <div class="table-responsive">
-                <table class="table zt-table zt-table--excel align-middle mb-0">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Projekt</th>
-                            <th>Position</th>
-                            <th>Maschine</th>
-                            <th>Bediener</th>
-                            <th>Start</th>
-                            <th>Ende</th>
-                            <th>Grund</th>
-                            <th>Payload</th>
-                            <th>Status</th>
-                            <th>Rezension von</th>
-                            <th>Rezension am</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($processedRequests as $index => $record)
-                            <tr>
-                                <td>{{ $index + 1 }}</td>
-                                <td>
-                                    {{ $record->timeRecord->project->project_name ?? 'N/A' }}
-                                    <small class="text-muted d-block project-auftrag">
-                                        {{ "ZF: ".$record->timeRecord->project->auftragsnummer_zf ." ZT: " .$record->timeRecord->project->auftragsnummer_zt }}
-                                    </small>
-                                </td>
-                                <td>{{ $record->timeRecord->position->name }}</td>
-                                <td>{{ $record->timeRecord->machine->name ?? 'N/A' }}</td>
-                                <td>{{ $record->requestedBy->name ?? 'N/A' }}</td>
-                                <td>{{ $record->timeRecord->start_time ?? 'N/A' }}</td>
-                                <td>{{ $record->timeRecord->end_time ?? 'N/A' }}</td>
-                                <td>{{ $record->reason }}</td>
-                                <td>
-                                    <button class="zt-btn zt-btn--ghost toggle-details" type="button"
-                                        data-bs-toggle="collapse" data-target="#details{{ $record->id }}">
-                                        <i class="bi bi-eye"></i> Änderungen anzeigen
-                                    </button>
-                                </td>
-                                <td>
-                                    @if($record->status === 'accepted')
-                                        <span class="zt-badge zt-badge--success">Übernimmt</span>
-                                    @elseif($record->status === 'rejected')
-                                        <span class="zt-badge zt-badge--danger">Abgelehnt</span>
-                                    @endif
-                                </td>
-                                <td>{{ $record->approvedBy->name ?? '-' }}</td>
-                                <td>{{ $record->approved_at ? $record->approved_at : '' }}</td>
-                            </tr>
-                            {{-- Hidden expandable row --}}
-                            <tr id="details{{ $record->id }}" class="details-row" style="display:none;">
-                                <td colspan="12" class="p-0 border-0">
-                                    @php
-                                        $payloadLogs = json_decode($record->payload, true);
-                                    @endphp
-
-                                    <div class="zt-subcard">
-                                        <div class="row g-3">
-                                            {{-- Requested Changes --}}
-                                            <div class="col-md-6">
-                                                <h6 class="zt-subtitle zt-subtitle--success">
-                                                    <i class="bi bi-arrow-repeat"></i> Gewünschte Änderungen
-                                                </h6>
-                                                <div class="table-responsive">
-                                                    <table class="table zt-subtable zt-subtable--success mb-0">
-                                                        <thead>
-                                                            <tr>
-                                                                <th>ID</th>
-                                                                <th>Status</th>
-                                                                <th>Start</th>
-                                                                <th>End</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            @foreach($payloadLogs as $index => $log)
-                                                                @php
-                                                                    if (!empty($log['status_id'])) {
-                                                                        $machine_status = App\Models\MachineStatus::find($log['status_id']);
-                                                                    } else {
-                                                                        $machine_status = null;
-                                                                    }
-                                                                @endphp
-                                                                <tr>
-                                                                    <td>{{ $log['id'] ?? 'New' }}</td>
-                                                                    <td>{{ $machine_status ? $machine_status->name : '-' }}</td>
-                                                                    <td>{{ $log['start_time'] ? \Carbon\Carbon::parse($log['start_time'])->format('Y-m-d H:i') : '-' }}</td>
-                                                                    <td>{{ isset($log['end_time']) && $log['end_time'] ? \Carbon\Carbon::parse($log['end_time'])->format('Y-m-d H:i') : 'Running' }}</td>
-                                                                </tr>
-                                                            @endforeach
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="12" class="zt-empty text-center py-4">
-                                    Bisher wurden noch keine Anfragen bearbeitet.
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
+            <div class="zt-request-list">
+                @forelse($processedRequests as $record)
+                    @include('admin.time.partials.request-card', ['record' => $record, 'pending' => false])
+                @empty
+                    <div class="zt-empty text-center py-4">Bisher wurden noch keine Anfragen bearbeitet.</div>
+                @endforelse
             </div>
         </div>
     </div>
@@ -291,6 +50,8 @@
         --zt-ink: #1B1F24;
         --zt-muted: #667085;
         --zt-line: #DFE3E8;
+        --zt-warn: #B5750A;
+        --zt-warn-bg: #FCF1E1;
         color: var(--zt-ink);
         font-variant-numeric: tabular-nums;
     }
@@ -300,58 +61,79 @@
     .zt-card > .card-body { background: var(--zt-bg); }
     .zt-card-header--muted { background: var(--zt-muted); color: #fff; border-bottom: none; }
 
-    .zt-table--excel { background: #fff; border: 1px solid var(--zt-line); border-radius: 8px; overflow: hidden; }
-    .zt-table--excel thead th {
-        font-size: .72rem; font-weight: 600; color: var(--zt-muted);
-        border-bottom: 1px solid var(--zt-line); padding: .6rem .7rem; background: #FAFBFC; white-space: nowrap;
+    .zt-count-pill {
+        background: rgba(255,255,255,.15); color: #fff; font-size: .75rem; font-weight: 600;
+        padding: .15rem .6rem; border-radius: 20px;
     }
-    .zt-table--excel tbody td { padding: .55rem .7rem; border-bottom: 1px solid var(--zt-line); font-size: .84rem; }
+
     .zt-empty { color: var(--zt-muted); font-size: .85rem; }
 
-    .zt-btn {
-        display: inline-flex; align-items: center; gap: .35rem;
-        border-radius: 8px; font-size: .8rem; font-weight: 500;
-        padding: .35rem .75rem; border: 1px solid var(--zt-line); background: #fff;
-    }
-    .zt-btn--ghost { color: var(--zt-muted); }
-    .zt-btn--ghost:hover { border-color: var(--zt-ink); color: var(--zt-ink); }
-    .zt-btn--success { background: #1E7A46; border-color: #1E7A46; color: #fff; }
-    .zt-btn--success:hover { background: #17603730; }
-    .zt-btn--danger { background: #B3261E; border-color: #B3261E; color: #fff; }
-    .zt-btn--danger:hover { background: #92201A; }
+    /* --- Request list/cards --- */
+    .zt-request-list { display: flex; flex-direction: column; gap: .75rem; }
 
-    .zt-badge { display: inline-block; padding: .2rem .55rem; border-radius: 6px; font-size: .72rem; font-weight: 600; }
+    .zt-request-card { background: #fff; border: 1px solid var(--zt-line); border-radius: 8px; overflow: hidden; }
+
+    .zt-request-header {
+        display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
+        padding: .85rem 1rem; cursor: pointer; user-select: none;
+    }
+    .zt-request-header:hover { background: #FAFBFC; }
+
+    .zt-request-main { flex: 1 1 220px; min-width: 0; }
+    .zt-request-title { font-weight: 700; font-size: .9rem; display: block; }
+    .zt-request-sub { font-size: .78rem; color: var(--zt-muted); display: block; }
+
+    .zt-request-meta { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+
+    .zt-chip {
+        display: inline-flex; align-items: center; gap: .3rem;
+        font-size: .74rem; font-weight: 600; color: var(--zt-muted);
+        background: #F2F3F5; border-radius: 20px; padding: .25rem .65rem; white-space: nowrap;
+    }
+    .zt-chip--changed { color: var(--zt-warn); background: var(--zt-warn-bg); }
+    .zt-chip i { font-size: .7rem; }
+
+    .zt-badge { display: inline-block; padding: .2rem .55rem; border-radius: 6px; font-size: .72rem; font-weight: 600; white-space: nowrap; }
     .zt-badge--success { background: #E4F5EC; color: #1E7A46; }
     .zt-badge--danger { background: #FBEAE9; color: #B3261E; }
+    .zt-badge--pending { background: #EEF0F2; color: var(--zt-muted); }
 
-    .zt-subcard { background: #FAFBFC; border-top: 1px solid var(--zt-line); border-bottom: 1px solid var(--zt-line); padding: 1rem 1.25rem; }
-    .zt-subtitle { font-size: .8rem; font-weight: 600; margin-bottom: .6rem; }
-    .zt-subtitle--danger { color: #B3261E; }
-    .zt-subtitle--success { color: #1E7A46; }
+    .zt-chevron { transition: transform .15s ease; color: var(--zt-muted); }
+    .zt-request-card.is-open .zt-chevron { transform: rotate(180deg); }
 
-    .zt-subtable { border: 1px solid var(--zt-line); border-radius: 6px; overflow: hidden; font-size: .78rem; }
+    .zt-request-body { display: none; border-top: 1px solid var(--zt-line); padding: 1rem; background: #FAFBFC; }
+    .zt-request-card.is-open .zt-request-body { display: block; }
+
+    .zt-reason-line { font-size: .82rem; margin-bottom: .85rem; }
+    .zt-reason-line strong { color: var(--zt-ink); }
+
+    .zt-diff-title { font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; color: var(--zt-muted); margin: .75rem 0 .5rem; }
+
+    .zt-subtable { border: 1px solid var(--zt-line); border-radius: 6px; overflow: hidden; font-size: .78rem; width: 100%; }
     .zt-subtable thead th { text-align: center; font-weight: 600; padding: .4rem; }
     .zt-subtable tbody td { padding: .4rem; text-align: center; border-top: 1px solid var(--zt-line); }
     .zt-subtable--danger thead { background: #FBEAE9; color: #B3261E; }
     .zt-subtable--danger tbody tr { background: #FEF5F4; }
     .zt-subtable--success thead { background: #E4F5EC; color: #1E7A46; }
     .zt-subtable--success tbody tr { background: #F4FBF7; }
+
+    .zt-request-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; flex-wrap: wrap; gap: .5rem; }
+    .zt-review-meta { font-size: .78rem; color: var(--zt-muted); }
+
+    .zt-btn {
+        display: inline-flex; align-items: center; gap: .35rem;
+        border-radius: 8px; font-size: .8rem; font-weight: 500;
+        padding: .35rem .75rem; border: 1px solid var(--zt-line); background: #fff;
+    }
+    .zt-btn--success { background: #1E7A46; border-color: #1E7A46; color: #fff; }
+    .zt-btn--danger { background: #B3261E; border-color: #B3261E; color: #fff; }
 </style>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        document.querySelectorAll('.toggle-details').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const targetId = this.dataset.target;
-                const row = document.querySelector(targetId);
-
-                document.querySelectorAll('.details-row').forEach(r => {
-                    if (r !== row) r.style.display = 'none';
-                });
-
-                row.style.display = (row.style.display === 'none' || row.style.display === '')
-                    ? 'table-row'
-                    : 'none';
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.zt-request-header').forEach(header => {
+            header.addEventListener('click', function () {
+                this.closest('.zt-request-card').classList.toggle('is-open');
             });
         });
     });
