@@ -633,8 +633,6 @@ class TimeController extends Controller
                 ];
             })
             ->values();
-
-            dd($comparison);
     
         return view('admin.time.compare', compact('comparison', 'aggregate', 'weeks', 'selectedWeek'));
     }
@@ -680,7 +678,7 @@ class TimeController extends Controller
             }
         }
     
-        return collect($merged)->sum(fn ($interval) => $interval[1]->diffInSeconds($interval[0]));
+        return collect($merged)->sum(fn ($interval) => $interval[0]->diffInSeconds($interval[1], true));
     }
     
     // --- NEW HELPER: use this everywhere instead of "seconds($p) - pauseSeconds($p)" ---
@@ -1333,7 +1331,7 @@ class TimeController extends Controller
                 return 0;
             }
     
-            return $overlapEnd->diffInSeconds($overlapStart);
+            return $overlapEnd->diffInSeconds($overlapStart, true);
         });
     
         return max(0, $total - $paused);
