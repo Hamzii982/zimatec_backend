@@ -11,6 +11,11 @@ class Process extends Model
 
     protected $fillable = ['project_id', 'position_id', 'procedure_id', 'bauteil_id', 'machine_id', 'time_record_id', 'name', 'start_time', 'end_time', 'count', 'source_file', 'total_seconds'];
 
+    protected $casts = [
+        'start_time' => 'datetime',
+        'end_time' => 'datetime',
+    ];
+
     public function project()
     {
         return $this->belongsTo(Project::class);
