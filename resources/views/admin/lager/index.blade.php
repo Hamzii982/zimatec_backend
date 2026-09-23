@@ -17,6 +17,7 @@
                         <tr>
                             <th>Name</th>
                             <th>Beschreibung</th>
+                            <th>Tablare</th>
                             <th>Aktiv</th>
                             <th>Status</th>
                             <th>Type</th>
@@ -28,6 +29,7 @@
                             <tr>
                                 <td>{{ $lager->name }}</td>
                                 <td>{{ $lager->description }}</td>
+                                <td>{{ $lager->shelves->count() }}</td>
                                 <td>
                                     <span class="zt-badge {{ $lager->is_active ? 'zt-badge--success' : 'zt-badge--pending' }}">
                                         {{ $lager->is_active ? 'Ja' : 'Nein' }}

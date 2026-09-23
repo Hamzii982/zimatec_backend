@@ -223,19 +223,45 @@ async function saveMaterial() {
     try {
         const res = await fetch(url, {
             method: 'POST',
-            headers: { 'X-CSRF-TOKEN': token },
+            headers: { 'X-CSRF-TOKEN': token, 'Accept': 'application/json' },
             body: formData
         });
 
-        console.log("Response:", res);
+        const data = await res.json();
 
-        if (!res.ok) throw new Error();
+        if (!res.ok) {
+            // Laravel validation error
+            if (res.status === 422 && data.errors) {
+                const messages = Object.values(data.errors)
+                    .flat()
+                    .join('\n');
+
+                showAlert(messages);
+            } else {
+                showAlert(
+                    data.message || 'Fehler beim Speichern.'
+                );
+            }
+
+            return;
+        }
+
+        // Success
+        showAlert(
+            data.message || 'Material erfolgreich gespeichert.'
+        );
 
         location.reload();
 
     } catch (e) {
-        showAlert("Fehler beim Speichern - Bitte erneut versuchen");
-        btn.disabled  = false;
+        console.error('Save material error:', e);
+
+        showAlert(
+            'Serverfehler beim Speichern. Bitte erneut versuchen.'
+        );
+
+    } finally {
+        btn.disabled = false;
         btn.innerHTML = originalText;
     }
 }
@@ -248,7 +274,7 @@ async function deleteMaterial(id) {
     try {
         const res = await fetch(urls.destroy(id), {
             method: 'DELETE',
-            headers: { 'X-CSRF-TOKEN': token }
+            headers: { 'X-CSRF-TOKEN': token, 'Accept': 'application/json' }
         });
 
         if (!res.ok) throw new Error();
@@ -382,7 +408,7 @@ document.addEventListener('DOMContentLoaded', () => {
 async function searchSuppliers(q) {
     try {
         const res = await fetch(`/admin/suppliers/search?q=${encodeURIComponent(q)}`, {
-            headers: { 'X-CSRF-TOKEN': token }
+            headers: { 'X-CSRF-TOKEN': token, 'Accept': 'application/json' }
         });
         if (!res.ok) throw new Error();
 
@@ -454,7 +480,7 @@ async function loadAttachedSuppliers() {
     document.getElementById('supplierList').innerHTML = '';
 
     const res = await fetch(urls.suppliers(currentMaterialId), {
-        headers: { 'X-CSRF-TOKEN': token }
+        headers: { 'X-CSRF-TOKEN': token, 'Accept': 'application/json' }
     });
 
     if (!res.ok) throw new Error('Could not load attached suppliers.');
@@ -535,7 +561,7 @@ async function detachSupplier(supplierId) {
     try {
         const res = await fetch(`/admin/tablar/${currentMaterialId}/suppliers/${supplierId}`, {
             method: 'DELETE',
-            headers: { 'X-CSRF-TOKEN': token }
+            headers: { 'X-CSRF-TOKEN': token, 'Accept': 'application/json' }
         });
 
         if (!res.ok) throw new Error();
