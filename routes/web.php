@@ -19,6 +19,7 @@ use App\Http\Controllers\Admin\SupplierController;
 use App\Http\Controllers\Admin\SupplierOfferController;
 use App\Http\Controllers\Admin\SupplierProjectController;
 use App\Http\Controllers\Admin\TablarController as AdminTablarController;
+use App\Http\Controllers\Admin\ShelfController as AdminShelfController;
 use App\Http\Controllers\Admin\TimeController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\Workflow\AssignmentController as AdminWorkflowAssignmentController;
@@ -347,6 +348,14 @@ Route::middleware(['auth', 'role:admin'])
             Route::put('/lager/{id}', [AdminLagerController::class, 'updateLager'])->name('lager.update');
             Route::get('/lager/{id}', [AdminLagerController::class, 'showLager'])->name('lager.show');
             Route::delete('/lager/{id}', [AdminLagerController::class, 'destroyLager'])->name('lager.destroy');
+
+            // Shelf CRUD
+            Route::get('/lager/{lager_id}/shelf', [AdminShelfController::class, 'index'])->name('shelf.index');
+            Route::get('/lager/{lager_id}/shelf/create', [AdminShelfController::class, 'create'])->name('shelf.create');
+            Route::post('/lager/{lager_id}/shelf', [AdminShelfController::class, 'store'])->name('shelf.store');
+            Route::get('/lager/{lager_id}/shelf/{id}/edit', [AdminShelfController::class, 'edit'])->name('shelf.edit');
+            Route::put('/lager/{lager_id}/shelf/{id}', [AdminShelfController::class, 'update'])->name('shelf.update');
+            Route::delete('/lager/{lager_id}/shelf/{id}', [AdminShelfController::class, 'destroy'])->name('shelf.destroy');
 
             // Tablar — all scoped under a lager
             Route::prefix('/lager/{lager_id}/tablar')->name('tablar.')->group(function () {

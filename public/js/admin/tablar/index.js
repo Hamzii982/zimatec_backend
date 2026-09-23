@@ -91,6 +91,8 @@ function openAddModal() {
     document.getElementById('modalTitle').innerText = "Neues Material";
     document.getElementById('materialForm').reset();
     document.getElementById('imagePreview').classList.add('d-none');
+    document.getElementById('shelfId').value = '';
+    document.getElementById('tablar').value = '';
     document.getElementById('isActive').checked = true;
 
     new bootstrap.Modal(document.getElementById('materialModal')).show();
@@ -110,6 +112,7 @@ function openEditModal(button) {
     document.getElementById('description').value      = row.getAttribute('data-description') ?? '';
     document.getElementById('currentQuantity').value   = row.getAttribute('data-quantity');
     document.getElementById('addQuantity').value       = 0;
+    document.getElementById('shelfId').value           = row.getAttribute('data-shelf-id') ?? '';
     document.getElementById('tablar').value            = row.getAttribute('data-tablar') ?? '';
     document.getElementById('threshold').value         = row.getAttribute('data-threshold') ?? '';
     document.getElementById('type').value              = row.getAttribute('data-type') ?? '';
@@ -166,12 +169,20 @@ async function saveMaterial() {
         }
     }
 
+    const shelfSelect = document.getElementById('shelfId');
+    const selectedShelfOption = shelfSelect && shelfSelect.value
+        ? shelfSelect.options[shelfSelect.selectedIndex]
+        : null;
+    const selectedShelfName = selectedShelfOption ? selectedShelfOption.text.trim() : '';
+    const shelfValue = selectedShelfName || document.getElementById('tablar').value || '';
+
     const formData = new FormData();
     formData.append('name', name);
     formData.append('code', document.getElementById('code').value || '');
     formData.append('description', document.getElementById('description').value || '');
     formData.append('quantity', editMode ? (currentQty + addQty) : addQty);
-    formData.append('tablar', document.getElementById('tablar').value);
+    formData.append('shelf_id', shelfSelect?.value || '');
+    formData.append('tablar', shelfValue);
     formData.append('threshold', document.getElementById('threshold').value || '');
     formData.append('type', document.getElementById('type').value || '');
     formData.append('unit', document.getElementById('unit').value || 'stück');

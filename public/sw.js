@@ -1,4 +1,4 @@
-const CACHE_NAME = 'zimatech-pwa-cache-v5';
+const CACHE_NAME = 'zimatech-pwa-cache-v6';
 const OFFLINE_URL = '/offline.html';
 
 const ASSETS_TO_CACHE = [

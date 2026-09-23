@@ -165,6 +165,7 @@
                                 data-on-hold="{{ (int) $material->on_hold_quantity }}"
                                 data-order-quantity="{{ (int) $material->order_quantity }}"
                                 data-available-total="{{ $material->available_total }}"
+                                data-shelf-id="{{ $material->shelf_id ?? '' }}"
                                 data-tablar="{{ $material->tablar ?? '' }}"
                                 data-threshold="{{ $material->threshold ?? '' }}"
                                 data-type="{{ $material->type ?? '' }}"
@@ -364,7 +365,16 @@
                             <label class="zt-form-label">
                                 Regal / Tablar <span class="text-muted">(optional)</span>
                             </label>
-                            <input type="text" id="tablar" class="form-control zt-select">
+                            <div class="d-flex gap-2 align-items-center">
+                                <select id="shelfId" class="form-select zt-select flex-grow-1">
+                                    <option value="">—</option>
+                                    @foreach($shelves as $shelf)
+                                        <option value="{{ $shelf->id }}">{{ $shelf->name }}</option>
+                                    @endforeach
+                                </select>
+                                <a href="{{ route('admin.shelf.create', $lager->id) }}" class="zt-btn zt-btn--ghost" title="Neu hinzufügen">Neu hinzufügen</a>
+                            </div>
+                            <input type="hidden" id="tablar" value="">
                         </div>
 
                         {{-- SHEET SIZE (Holz lager only) --}}

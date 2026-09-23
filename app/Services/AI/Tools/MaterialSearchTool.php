@@ -83,7 +83,11 @@ class MaterialSearchTool implements AiToolContract
         }
 
         if (!empty($arguments['tablar'])) {
-            $query->where('tablar', 'LIKE', '%'.addcslashes($arguments['tablar'], '%_').'%');
+            $query->where(function ($q) use ($arguments) {
+                $q->whereHas('shelf', function ($sq) use ($arguments) {
+                    $sq->where('name', 'LIKE', '%'.addcslashes($arguments['tablar'], '%_').'%');
+                })->orWhere('tablar', 'LIKE', '%'.addcslashes($arguments['tablar'], '%_').'%');
+            });
         }
 
         if (isset($arguments['is_werkzeug'])) {

@@ -21,6 +21,7 @@ class Material extends Model
         'image',
         'order_status',
         'lager_id',
+        'shelf_id',
         'is_werkzeug',
         'is_active',
     ];
@@ -106,6 +107,20 @@ class Material extends Model
     public function orderStatus()
     {
         return $this->order_status;
+    }
+
+    public function shelf()
+    {
+        return $this->belongsTo(Shelf::class);
+    }
+
+    public function getTablarAttribute(): ?string
+    {
+        if (! empty($this->attributes['shelf_id'])) {
+            return $this->getRelationValue('shelf')?->name ?? $this->attributes['tablar'] ?? null;
+        }
+
+        return $this->attributes['tablar'] ?? null;
     }
 
     /*

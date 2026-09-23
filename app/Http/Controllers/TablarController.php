@@ -26,8 +26,9 @@ class TablarController extends Controller
     {
         $lager = Lager::findOrFail($lager_id);
 
-        $materials = Material::where('lager_id', $lager_id)
-            ->orderBy('tablar')
+        $materials = Material::with('shelf')
+            ->where('lager_id', $lager_id)
+            ->orderByRaw('COALESCE((SELECT name FROM shelves WHERE shelves.id = materials.shelf_id), materials.tablar) ASC')
             ->orderBy('name')
             ->get();
 
@@ -61,7 +62,12 @@ class TablarController extends Controller
             'leftover_sheet_count' => $leftoverCounts[$m->id] ?? 0,
         ])->values();
 
-        $shelves = $materials->pluck('tablar')->unique()->sort()->values();
+        $shelves = $materials
+            ->pluck('tablar')
+            ->filter(fn ($value) => $value !== null && $value !== '')
+            ->unique()
+            ->sort()
+            ->values();
 
         $statusTranslations = [
             'notified' => 'Bedarf gemeldet',

@@ -25,4 +25,9 @@ class Lager extends Model
     {
         return $this->hasMany(Material::class)->where('is_active', true);
     }
+
+    public function shelves()
+    {
+        return $this->hasMany(Shelf::class);
+    }   
 }

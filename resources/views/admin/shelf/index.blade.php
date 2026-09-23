@@ -4,48 +4,50 @@
 <div class="zt-compare container">
     <div class="card shadow-sm zt-card">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Alle Lager</h5>
-            <a href="{{ route('admin.lager.create') }}" class="zt-export-btn">
-                <i class="bi bi-plus-circle"></i> Neues Lager
-            </a>
+            <h5 class="mb-0">Regale — {{ $lager->name }}</h5>
+            <div class="d-flex gap-2">
+                <a href="{{ route('admin.lager.index') }}" class="zt-export-btn zt-export-btn--muted">
+                    <i class="bi bi-arrow-left"></i> Zurück zum Lager
+                </a>
+                <a href="{{ route('admin.shelf.create', $lager->id) }}" class="zt-export-btn">
+                    <i class="bi bi-plus-circle"></i> Neues Regal
+                </a>
+            </div>
         </div>
 
         <div class="card-body">
+            @if (session('success'))
+                <div class="alert alert-success py-2">{{ session('success') }}</div>
+            @endif
+
             <div class="table-responsive">
                 <table class="table zt-table zt-table--excel align-middle mb-0">
                     <thead>
                         <tr>
                             <th>Name</th>
-                            <th>Beschreibung</th>
+                            <th>Code</th>
                             <th>Aktiv</th>
-                            <th>Status</th>
-                            <th>Type</th>
                             <th class="text-end">Aktionen</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse ($lagers as $lager)
+                        @forelse ($shelves as $shelf)
                             <tr>
-                                <td>{{ $lager->name }}</td>
-                                <td>{{ $lager->description }}</td>
+                                <td>{{ $shelf->name }}</td>
+                                <td>{{ $shelf->code ?? '—' }}</td>
                                 <td>
-                                    <span class="zt-badge {{ $lager->is_active ? 'zt-badge--success' : 'zt-badge--pending' }}">
-                                        {{ $lager->is_active ? 'Ja' : 'Nein' }}
+                                    <span class="zt-badge {{ $shelf->is_active ? 'zt-badge--success' : 'zt-badge--pending' }}">
+                                        {{ $shelf->is_active ? 'Ja' : 'Nein' }}
                                     </span>
                                 </td>
-                                <td>{{ $lager->status }}</td>
-                                <td>{{ $lager->type }}</td>
                                 <td class="text-end">
                                     <div class="d-flex gap-2 justify-content-end">
-                                        <a href="{{ route('admin.shelf.index', $lager->id) }}" class="zt-icon-btn" title="Tablar Anzeigen">
-                                            <i class="bi bi-eye"></i>
-                                        </a>
-                                        <a href="{{ route('admin.lager.edit', $lager->id) }}" class="zt-icon-btn zt-icon-btn--edit" title="Bearbeiten">
+                                        <a href="{{ route('admin.shelf.edit', [$lager->id, $shelf->id]) }}" class="zt-icon-btn zt-icon-btn--edit" title="Bearbeiten">
                                             <i class="bi bi-pencil"></i>
                                         </a>
 
-                                        <form action="{{ route('admin.lager.destroy', $lager->id) }}" method="POST" class="d-inline"
-                                            onsubmit="return confirm('Diesen Lager wirklich löschen?')">
+                                        <form action="{{ route('admin.shelf.destroy', [$lager->id, $shelf->id]) }}" method="POST" class="d-inline"
+                                            onsubmit="return confirm('Dieses Regal wirklich löschen?')">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="zt-icon-btn zt-icon-btn--danger" title="Löschen">
@@ -57,12 +59,16 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="zt-empty text-center py-4">Keine Lager gefunden.</td>
+                                <td colspan="4" class="zt-empty text-center py-4">Noch keine Regale für dieses Lager angelegt.</td>
                             </tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
+
+            @if ($shelves instanceof \Illuminate\Contracts\Pagination\Paginator)
+                <div class="mt-3">{{ $shelves->links() }}</div>
+            @endif
         </div>
     </div>
 </div>
@@ -89,6 +95,7 @@
         transition: background .15s;
     }
     .zt-export-btn:hover { background: rgba(255,255,255,.1); color: #fff; }
+    .zt-export-btn--muted { opacity: .85; }
 
     .zt-empty { color: var(--zt-muted); font-size: .85rem; }
 

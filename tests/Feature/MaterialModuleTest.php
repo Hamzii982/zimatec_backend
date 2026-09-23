@@ -3,6 +3,7 @@
 use App\Models\Lager;
 use App\Models\Material;
 use App\Models\Notification;
+use App\Models\Shelf;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -22,6 +23,25 @@ beforeEach(function () {
         'created_at' => now(),
         'updated_at' => now(),
     ]);
+});
+
+test('material resolves tablar value from the shelf relation when shelf_id is set', function () {
+    $shelf = Shelf::create([
+        'lager_id' => 2,
+        'name' => 'A1',
+        'is_active' => true,
+    ]);
+
+    $material = Material::create([
+        'name' => 'Schraube M4',
+        'quantity' => 10,
+        'lager_id' => 2,
+        'shelf_id' => $shelf->id,
+        'tablar' => null,
+    ]);
+
+    expect($material->tablar)->toBe('A1')
+        ->and($material->shelf->id)->toBe($shelf->id);
 });
 
 test('default threshold is null and does not trigger low stock notification', function () {

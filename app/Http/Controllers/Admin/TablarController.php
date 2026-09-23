@@ -8,6 +8,7 @@ use App\Models\Material;
 use App\Models\MaterialConsumption;
 use App\Models\MaterialSheet;
 use App\Models\Supplier;
+use App\Models\Shelf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -20,7 +21,7 @@ class TablarController extends Controller
     {
         $lager = Lager::findOrFail($lager_id);
 
-        $query = Material::with('suppliers')
+        $query = Material::with(['suppliers', 'shelf'])
             ->where('lager_id', $lager_id)
             ->orderBy('name');
 
@@ -31,7 +32,10 @@ class TablarController extends Controller
             $query->where('code', 'like', '%'.$request->code.'%');
         }
         if ($request->filled('shelf')) {
-            $query->where('tablar', 'like', '%'.$request->shelf.'%');
+            $query->whereHas('shelf', function ($q) use ($request) {
+                $q->where('name', 'like', '%'.$request->shelf.'%');
+            })
+                ->orWhere('tablar', 'like', '%'.$request->shelf.'%');
         }
         if ($request->filled('max_qty')) {
             $query->where('quantity', '<=', $request->max_qty);
@@ -80,8 +84,9 @@ class TablarController extends Controller
 
         $materials = $query->paginate(30)->withQueryString();
         $maxQuantity = Material::where('lager_id', $lager_id)->max('quantity') ?? 0;
+        $shelves = Shelf::where('lager_id', $lager_id)->orderBy('name')->get();
 
-        return view('admin.tablar.index', compact('materials', 'maxQuantity', 'lager'));
+        return view('admin.tablar.index', compact('materials', 'maxQuantity', 'lager', 'shelves'));
     }
 
     public function show(Request $request, int $lager_id, int $id)
@@ -345,6 +350,8 @@ class TablarController extends Controller
             'unit' => $request->input('unit') ?: 'Stück',
             'order_status' => $request->input('order_status') ?: null,
             'description' => $request->input('description') ?: null,
+            'tablar' => $request->input('tablar') ?: ($request->filled('shelf_id') ? Shelf::find($request->input('shelf_id'))?->name : null),
+            'shelf_id' => $request->input('shelf_id') ?: null,
         ]);
 
         $data = $request->validate([
@@ -353,6 +360,7 @@ class TablarController extends Controller
             'description' => 'nullable|string|max:2000',
             'quantity' => 'required|integer|min:0',
             'tablar' => 'nullable|string|max:50',
+            'shelf_id' => ['nullable', 'integer', 'exists:shelves,id'],
             'threshold' => 'nullable|integer|min:0',
             'type' => 'nullable|string|max:100',
             'unit' => 'nullable|string|max:50',
@@ -398,9 +406,11 @@ class TablarController extends Controller
             'code' => $request->input('code') ?: null,
             'threshold' => $request->input('threshold') ?: null,
             'type' => $request->input('type') ?: null,
-            'unit' => $request->input('unit') ?: null,
+            'unit' => $request->input('unit') ?: ($material->unit ?: 'Stück'),
             'order_status' => $request->input('order_status') ?: null,
             'description' => $request->input('description') ?: null,
+            'tablar' => $request->input('tablar') ?: ($request->filled('shelf_id') ? Shelf::find($request->input('shelf_id'))?->name : null),
+            'shelf_id' => $request->input('shelf_id') ?: null,
         ]);
 
         $data = $request->validate([
@@ -409,6 +419,7 @@ class TablarController extends Controller
             'description' => 'nullable|string|max:2000',
             'quantity' => 'required|integer|min:0',
             'tablar' => 'nullable|string|max:50',
+            'shelf_id' => ['nullable', 'integer', 'exists:shelves,id'],
             'threshold' => 'nullable|integer|min:0',
             'type' => 'nullable|string|max:100',
             'unit' => 'nullable|string|max:50',
@@ -527,10 +538,16 @@ class TablarController extends Controller
             ->whereHas('material', fn ($q) => $q->where('lager_id', $lager_id))
             ->orderByDesc('created_at')->paginate(10, ['*'], 'audit_page');
 
-        $shelfActivity = MaterialConsumption::select('materials.tablar', DB::raw('SUM(material_consumption.quantity) as total_used'))
+        $shelfActivity = MaterialConsumption::select(
+                'shelves.name as tablar',
+                DB::raw('SUM(material_consumption.quantity) as total_used')
+            )
             ->join('materials', 'materials.id', '=', 'material_consumption.material_id')
+            ->leftJoin('shelves', 'shelves.id', '=', 'materials.shelf_id')
             ->whereHas('material', fn ($q) => $q->where('lager_id', $lager_id))
-            ->groupBy('materials.tablar')->orderByDesc('total_used')->get();
+            ->groupBy('shelves.name')
+            ->orderByDesc('total_used')
+            ->get();
 
         return view('admin.tablar.overview', compact(
             'lager', 'totalMaterials', 'lowStockMaterials', 'highestStock',
