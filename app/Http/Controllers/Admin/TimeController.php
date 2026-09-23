@@ -1316,7 +1316,7 @@ class TimeController extends Controller
         $rangeStart = Carbon::parse($rangeStart);
         $rangeEnd = Carbon::parse($rangeEnd);
     
-        $total = max(0, $rangeEnd->diffInSeconds($rangeStart));
+        $total = max(0, $rangeEnd->diffInSeconds($rangeStart, true));
     
         $paused = $process->pauses->sum(function ($pause) use ($rangeStart, $rangeEnd) {
             $pauseStart = Carbon::parse($pause->pause_start);
