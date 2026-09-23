@@ -633,6 +633,8 @@ class TimeController extends Controller
                 ];
             })
             ->values();
+
+            dd($comparison);
     
         return view('admin.time.compare', compact('comparison', 'aggregate', 'weeks', 'selectedWeek'));
     }
