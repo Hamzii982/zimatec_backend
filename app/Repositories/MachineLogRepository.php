@@ -1,13 +1,19 @@
 <?php
 
-namespace App\Traits;
+namespace App\Repositories;
 
 use App\Models\Project;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 
-trait HandleMachineLogs
+/**
+ * Query logic for the legacy project/procedure/bauteil machine-log
+ * browsing screen. Extracted from the HandleMachineLogs trait so it can
+ * be constructor-injected instead of mixed into the controller.
+ */
+class MachineLogRepository
 {
-    public function getMachineLogs($request)
+    public function filter(Request $request): array
     {
         $query = Project::with(['procedures.processes', 'processes', 'bauteile.processes'])
             ->where(function ($q) {
@@ -86,6 +92,7 @@ trait HandleMachineLogs
             $project->bauteile = $project->bauteile->filter(fn ($b) => $b->processes->isNotEmpty());
             $project->procedures = $project->procedures->filter(fn ($p) => $p->processes->isNotEmpty());
         });
+
         $allProjects = Project::orderBy('project_name')
             ->where(function ($q) {
                 $q->whereHas('processes')
@@ -94,46 +101,6 @@ trait HandleMachineLogs
             })
             ->get();
 
-        // 🔁 Return as array so you can destructure in controller
         return compact('projects', 'allProjects');
-    }
-
-    public function parseMachineLogs($logFile = null)
-    {
-
-        if (! file_exists($logFile)) {
-            $sourceFile = '\\\\10.0.0.35\\fz37\\FIDIA\\Program\\LOGFILE.OLD';
-            copy($sourceFile, $logFile);
-        }
-
-        $cmd = "php artisan parse:drilllog \"$logFile\"";
-
-        $descriptors = [
-            1 => ['pipe', 'w'],
-            2 => ['pipe', 'w'],
-        ];
-
-        $process = proc_open($cmd, $descriptors, $pipes, base_path());
-
-        $output = stream_get_contents($pipes[1]);
-        $error = stream_get_contents($pipes[2]);
-
-        foreach ($pipes as $pipe) {
-            fclose($pipe);
-        }
-
-        $status = proc_close($process);
-
-        if ($status !== 0) {
-            return response()->json([
-                'status' => 'error',
-                'message' => $error ?: 'Unknown error',
-            ]);
-        }
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Log parsed successfully!',
-        ]);
     }
 }
