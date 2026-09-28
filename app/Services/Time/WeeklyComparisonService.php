@@ -47,37 +47,49 @@ class WeeklyComparisonService
 
         // 3) Try to attach each unlinked process to an overlapping session on the same job;
         //    whatever's left over is truly unattended.
-        $unattendedByKey = [];
+        $attached = [];        // recordId => list of ['process' => Process, 'seconds' => int]
+        $unattendedByKey = []; // key => list of ['process' => Process, 'seconds' => int]
 
         foreach ($unlinkedProcesses->groupBy(fn ($p) => "{$p->project_id}-{$p->position_id}-{$p->machine_id}") as $key => $processes) {
-            $candidates = $timeRecords->filter(
-                fn ($r) => "{$r->project_id}-{$r->position_id}-{$r->machine_id}" === $key
-            );
+            $slices = [];
+
+            foreach ($timeRecords as $record) {
+                if ("{$record->project_id}-{$record->position_id}-{$record->machine_id}" !== $key) {
+                    continue;
+                }
+                foreach ($record->logs as $log) {
+                    if (! in_array($log->status->name ?? null, ['Rustzeit', 'Mit Aufsicht'], true)) {
+                        continue;
+                    }
+                    $slices[] = [Carbon::parse($log->start_time), Carbon::parse($log->end_time), $record->id];
+                }
+            }
 
             foreach ($processes as $process) {
-                $match = $candidates->first(function ($record) use ($process) {
-                    $recordEnd = $record->end_time ?? Carbon::now();
+                $alloc = $this->duration->allocateProcess($process, $slices);
 
-                    return $process->start_time < $recordEnd && $process->end_time > $record->start_time;
-                });
-
-                if ($match) {
-                    $match->setRelation('processes', $match->processes->push($process));
-                } else {
-                    $unattendedByKey[$key][] = $process;
+                foreach ($alloc['owned'] as $recordId => $sec) {
+                    if ($sec > 0) {
+                        $attached[$recordId][] = ['process' => $process, 'seconds' => $sec];
+                    }
+                }
+                if ($alloc['free_seconds'] > 0) {
+                    $unattendedByKey[$key][] = ['process' => $process, 'seconds' => $alloc['free_seconds']];
                 }
             }
         }
 
         // 4) Session-level rows.
-        $sessions = $timeRecords->map(function ($record) {
+        $sessions = $timeRecords->map(function ($record) use ($attached) {
             $statusSeconds = $record->logs
                 ->groupBy(fn ($log) => $log->status->name ?? 'Unbekannt')
                 ->map(fn ($logs) => $logs->sum(fn ($l) => $this->duration->seconds($l->start_time, $l->end_time)));
 
-            $machineSeconds = $record->processes->sum(
-                fn ($p) => $this->duration->activeSeconds($p)
-            );
+            $linked = $record->processes;                 // manually linked, counted in full
+            $extra  = collect($attached[$record->id] ?? []);
+
+            $machineSeconds = $linked->sum(fn ($p) => $this->duration->activeSeconds($p))
+                + $extra->sum('seconds');
 
             return [
                 'project_id' => $record->project_id,
@@ -99,28 +111,32 @@ class WeeklyComparisonService
                     'ohne_aufsicht' => $statusSeconds->get('Ohne Aufsicht', 0),
                 ],
                 'total_machine_time' => $this->duration->hms($machineSeconds),
-                'process_count' => $record->processes->count(),
-                'processes' => $record->processes->map(fn ($p) => [
+                'process_count' => $linked->count() + $extra->count(),
+                'processes' => $linked->map(fn ($p) => [
                     'process_name' => $p->name,
                     'start_time' => $p->start_time,
                     'end_time' => $p->end_time,
                     'duration_seconds' => $this->duration->activeSeconds($p),
-                    'source' => $p->time_record_id !== null ? 'manuell' : 'überlappend erkannt',
-                ])->values()->all(),
+                    'source' => 'manuell',
+                ])->concat($extra->map(fn ($x) => [
+                    'process_name' => $x['process']->name,
+                    'start_time' => $x['process']->start_time,
+                    'end_time' => $x['process']->end_time,
+                    'duration_seconds' => $x['seconds'],
+                    'source' => 'überlappend (anteilig)',
+                ]))->values()->all(),
                 'logs' => $record->logs->map(fn ($l) => [
-                    'status' => $l->status->name ?? null,
                     'start_time' => $l->start_time,
                     'end_time' => $l->end_time,
+                    'status' => $l->status->name ?? null,
                 ])->values()->all(),
             ];
         });
 
         // 5) Fully unattended machine-only rows (one per project/position/machine).
-        $unattendedRows = collect($unattendedByKey)->map(function ($processes) {
-            $first = $processes[0];
-            $machineSeconds = collect($processes)->sum(
-                fn ($p) => $this->duration->activeSeconds($p)
-            );
+        $unattendedRows = collect($unattendedByKey)->map(function ($items) {
+            $first = $items[0]['process'];
+            $machineSeconds = collect($items)->sum('seconds');
 
             return [
                 'project_id' => $first->project_id,
@@ -140,12 +156,12 @@ class WeeklyComparisonService
                 'total_user_time' => $this->duration->hms(0),
                 'status_seconds' => ['ruestzeit' => 0, 'mit_aufsicht' => 0, 'ohne_aufsicht' => 0],
                 'total_machine_time' => $this->duration->hms($machineSeconds),
-                'process_count' => count($processes),
-                'processes' => collect($processes)->map(fn ($p) => [
-                    'process_name' => $p->name,
-                    'start_time' => $p->start_time,
-                    'end_time' => $p->end_time,
-                    'duration_seconds' => $this->duration->activeSeconds($p),
+                'process_count' => count($items),
+                'processes' => collect($items)->map(fn ($item) => [
+                    'process_name' => $item['process']->name,
+                    'start_time' => $item['process']->start_time,
+                    'end_time' => $item['process']->end_time,
+                    'duration_seconds' => $item['seconds'],
                     'source' => 'unbeaufsichtigt',
                 ])->values()->all(),
                 'logs' => [],

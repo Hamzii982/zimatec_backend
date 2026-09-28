@@ -161,4 +161,45 @@ class DurationCalculator
 
         return $h * 3600 + $m * 60 + $s;
     }
+
+    /**
+     * Splits one process into per-owner covered seconds and uncovered gaps.
+     * $slices: list of [Carbon $start, Carbon $end, $ownerId] (log windows).
+     * Each second is claimed once, even when slices from different users overlap.
+     */
+    public function allocateProcess($process, array $slices): array
+    {
+        usort($slices, fn ($a, $b) => $a[0] <=> $b[0]);
+
+        $pe = Carbon::parse($process->end_time);
+        $cursor = Carbon::parse($process->start_time);
+        $owned = [];
+        $free = [];
+
+        foreach ($slices as [$s, $e, $owner]) {
+            $s = $s->greaterThan($cursor) ? $s->copy() : $cursor->copy();
+            $e = $e->lessThan($pe) ? $e->copy() : $pe->copy();
+
+            if ($e->lessThanOrEqualTo($s)) {
+                continue;
+            }
+            if ($s->greaterThan($cursor)) {
+                $free[] = [$cursor->copy(), $s->copy()];
+            }
+
+            $owned[$owner] = ($owned[$owner] ?? 0) + (int) $this->activeSecondsInRange($process, $s, $e);
+            $cursor = $e->copy();
+        }
+
+        if ($cursor->lessThan($pe)) {
+            $free[] = [$cursor->copy(), $pe->copy()];
+        }
+
+        $freeSeconds = 0;
+        foreach ($free as [$fs, $fe]) {
+            $freeSeconds += (int) $this->activeSecondsInRange($process, $fs, $fe);
+        }
+
+        return ['owned' => $owned, 'free_seconds' => $freeSeconds];
+    }
 }
