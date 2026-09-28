@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -25,7 +26,9 @@ class UserController extends Controller
      */
     public function create()
     {
-        return view('admin.users.form');
+        $roles = Role::orderBy('label')->get();
+
+        return view('admin.users.form', compact('roles'));
     }
 
     /**
@@ -38,14 +41,18 @@ class UserController extends Controller
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:6|confirmed',
             'role' => 'required|string|in:admin,user',
+            'role_id' => 'nullable|exists:roles,id',
             'company' => 'required|string|in:ZF,ZT',
         ]);
+
+        $roleId = $request->filled('role_id') ? $request->role_id : null;
 
         User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'role' => $request->role,
+            'role_id' => $roleId,
             'company' => $request->company,
         ]);
 
@@ -57,7 +64,9 @@ class UserController extends Controller
      */
     public function edit(User $user)
     {
-        return view('admin.users.form', compact('user'));
+        $roles = Role::orderBy('label')->get();
+
+        return view('admin.users.form', compact('user', 'roles'));
     }
 
     /**
@@ -70,6 +79,7 @@ class UserController extends Controller
             'email' => 'required|string|email|max:255|unique:users,email,'.$user->id,
             'password' => 'nullable|string|min:6|confirmed',
             'role' => 'required|string|in:admin,user',
+            'role_id' => 'nullable|exists:roles,id',
             'company' => 'required|string|in:ZF,ZT',
         ]);
 
@@ -77,6 +87,7 @@ class UserController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'role' => $request->role,
+            'role_id' => $request->filled('role_id') ? $request->role_id : null,
             'company' => $request->company,
         ];
 

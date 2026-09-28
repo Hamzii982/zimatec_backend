@@ -15,6 +15,7 @@ use App\Http\Controllers\Admin\Settings\MachineSettingsController;
 use App\Http\Controllers\Admin\Settings\MaterialThresholdController;
 use App\Http\Controllers\Admin\Settings\ProjectServicesController;
 use App\Http\Controllers\Admin\Settings\ProjectSettingsController;
+use App\Http\Controllers\Admin\Settings\RoleController;
 use App\Http\Controllers\Admin\SupplierController;
 use App\Http\Controllers\Admin\SupplierOfferController;
 use App\Http\Controllers\Admin\SupplierProjectController;
@@ -199,57 +200,73 @@ Route::middleware(['auth', 'role:admin'])
 
         // Emails management Views
         if (config('modules.emails')) {
-            Route::get('/emails', [EmailController::class, 'emails'])->name('emails');
-            Route::get('/emails/sent', [EmailController::class, 'emailsSent'])->name('emails.sent');
-            Route::get('/emails/show/{id}', [EmailController::class, 'show'])->name('emails.show');
-            Route::get('/emails/new', [EmailController::class, 'compose'])->name('emails.new');
-            Route::post('/emails/send', [EmailController::class, 'send'])->name('emails.send');
+            Route::middleware('module:emails,read')->group(function () {
+                Route::get('/emails', [EmailController::class, 'emails'])->name('emails');
+                Route::get('/emails/sent', [EmailController::class, 'emailsSent'])->name('emails.sent');
+                Route::get('/emails/show/{id}', [EmailController::class, 'show'])->name('emails.show');
+                Route::get('/emails/new', [EmailController::class, 'compose'])->name('emails.new');
+                Route::post('/emails/send', [EmailController::class, 'send'])->name('emails.send');
+            });
         }
 
         // Projects Routes
         if (config('modules.projects')) {
-            Route::get('/projects', [AdminProject::class, 'index'])->name('projects');
-            Route::get('/projects/create', [AdminProject::class, 'create'])->name('projects.create');
-            Route::post('/projects/store', [AdminProject::class, 'store'])->name('projects.store');
-            Route::get('/projects/show/{project}', [AdminProject::class, 'show'])->name('projects.show');
-            Route::get('/projects/edit/{project}', [AdminProject::class, 'edit'])->name('projects.edit');
-            Route::put('/projects/{project}', [AdminProject::class, 'update'])->name('projects.update');
-            Route::patch('/projects/{project}/status', [AdminProject::class, 'updateStatus'])->name('projects.update-status');
-            Route::delete('/projects/{project}', [AdminProject::class, 'destroy'])->name('projects.destroy');
-            Route::get('/bauteile/filter/{type}', [BauteilController::class, 'filter'])->name('bauteile.filter');
-            Route::resource('bauteile', BauteilController::class);
-            Route::prefix('projects')->name('projects.')->group(function () {
+            Route::middleware('module:projects,read')->group(function () {
+                Route::get('/projects', [AdminProject::class, 'index'])->name('projects');
+                Route::get('/projects/show/{project}', [AdminProject::class, 'show'])->name('projects.show');
+                Route::get('/bauteile/filter/{type}', [BauteilController::class, 'filter'])->name('bauteile.filter');
+                Route::prefix('projects')->name('projects.')->group(function () {
+                    Route::get('{project}/positions', [PositionController::class, 'index'])->name('positions.index');
+                });
+            });
 
-                Route::get('{project}/positions', [PositionController::class, 'index'])->name('positions.index');
-                Route::get('{project}/positions/create', [PositionController::class, 'create'])->name('positions.create');
-                Route::post('{project}/positions', [PositionController::class, 'store'])->name('positions.store');
-                Route::get('{project}/positions/{position}/edit', [PositionController::class, 'edit'])->name('positions.edit');
-                Route::put('{project}/positions/{position}', [PositionController::class, 'update'])->name('positions.update');
-                Route::delete('{project}/positions/{position}', [PositionController::class, 'destroy'])->name('positions.destroy');
+            Route::middleware('module:projects,write')->group(function () {
+                Route::get('/projects/create', [AdminProject::class, 'create'])->name('projects.create');
+                Route::post('/projects/store', [AdminProject::class, 'store'])->name('projects.store');
+                Route::get('/projects/edit/{project}', [AdminProject::class, 'edit'])->name('projects.edit');
+                Route::put('/projects/{project}', [AdminProject::class, 'update'])->name('projects.update');
+                Route::patch('/projects/{project}/status', [AdminProject::class, 'updateStatus'])->name('projects.update-status');
+                Route::resource('bauteile', BauteilController::class);
+                Route::prefix('projects')->name('projects.')->group(function () {
+                    Route::get('{project}/positions/create', [PositionController::class, 'create'])->name('positions.create');
+                    Route::post('{project}/positions', [PositionController::class, 'store'])->name('positions.store');
+                    Route::get('{project}/positions/{position}/edit', [PositionController::class, 'edit'])->name('positions.edit');
+                    Route::put('{project}/positions/{position}', [PositionController::class, 'update'])->name('positions.update');
+                });
+            });
 
-                // Supplier offers routes
+            Route::middleware('module:projects,delete')->group(function () {
+                Route::delete('/projects/{project}', [AdminProject::class, 'destroy'])->name('projects.destroy');
+                Route::delete('/projects/{project}/positions/{position}', [PositionController::class, 'destroy'])->name('projects.positions.destroy');
+            });
+
+            Route::middleware('module:projects,read')->group(function () {
                 Route::get('/offers', [SupplierOfferController::class, 'index'])->name('offers');
+                Route::get('/offers/{offer}', [SupplierOfferController::class, 'show'])->name('offers.show');
+                Route::get('/supplier-projects', [SupplierProjectController::class, 'index'])->name('supplier-projects.index');
+                Route::get('/supplier-projects/{project}', [SupplierProjectController::class, 'show'])->name('supplier-projects.show');
+            });
+
+            Route::middleware('module:projects,write')->group(function () {
                 Route::get('/offers/create', [SupplierOfferController::class, 'create'])->name('offers.create');
                 Route::post('/offers', [SupplierOfferController::class, 'store'])->name('offers.store');
-                Route::get('/offers/{offer}', [SupplierOfferController::class, 'show'])->name('offers.show');
                 Route::get('/offers/edit/{offer}', [SupplierOfferController::class, 'edit'])->name('offers.edit');
                 Route::put('/offers/{offer}', [SupplierOfferController::class, 'update'])->name('offers.update');
-                Route::delete('/offers/{offer}', [SupplierOfferController::class, 'destroy'])->name('offers.destroy');
+                Route::get('/supplier-projects/create', [SupplierProjectController::class, 'create'])->name('supplier-projects.create');
+                Route::post('/supplier-projects', [SupplierProjectController::class, 'store'])->name('supplier-projects.store');
+                Route::get('/supplier-projects/{project}/edit', [SupplierProjectController::class, 'edit'])->name('supplier-projects.edit');
+                Route::put('/supplier-projects/{project}', [SupplierProjectController::class, 'update'])->name('supplier-projects.update');
+            });
 
-                // Supplier Projects Routes
-                Route::get('/projects', [SupplierProjectController::class, 'index'])->name('projects.index');
-                Route::get('/projects/create', [SupplierProjectController::class, 'create'])->name('projects.create');
-                Route::post('/projects', [SupplierProjectController::class, 'store'])->name('projects.store');
-                Route::get('/projects/{project}', [SupplierProjectController::class, 'show'])->name('projects.show');
-                Route::get('/projects/edit/{project}', [SupplierProjectController::class, 'edit'])->name('projects.edit');
-                Route::put('/projects/{project}', [SupplierProjectController::class, 'update'])->name('projects.update');
-                Route::delete('/projects/{project}', [SupplierProjectController::class, 'destroy'])->name('projects.destroy');
+            Route::middleware('module:projects,delete')->group(function () {
+                Route::delete('/offers/{offer}', [SupplierOfferController::class, 'destroy'])->name('offers.destroy');
+                Route::delete('/supplier-projects/{project}', [SupplierProjectController::class, 'destroy'])->name('supplier-projects.destroy');
             });
         }
 
         // Project offers
         if (config('modules.project_offers')) {
-            Route::prefix('project_offers')->name('project_offers.')->group(function () {
+            Route::middleware('module:project_offers,read')->prefix('project_offers')->name('project_offers.')->group(function () {
                 Route::resource('', ProjectOfferController::class)->parameters(['' => 'project_offer']);
                 // Accept Offer
                 Route::get('/{offer}/accept', [ProjectOfferController::class, 'acceptOffer'])->name('accept');
@@ -281,43 +298,47 @@ Route::middleware(['auth', 'role:admin'])
 
         // Users Routes
         if (config('modules.teams')) {
-            Route::get('/users', [UserController::class, 'index'])->name('users');
-            Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
-            Route::post('/users', [UserController::class, 'store'])->name('users.store');
-            Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
-            Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
-            Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.delete');
-            Route::get('/profile', [UserController::class, 'profile'])->name('profile');
-            Route::put('/profile', [UserController::class, 'updateProfile'])->name('profile.update');
-            Route::get('/users/profile/{user}', [UserController::class, 'profile'])->name('users.profile');
-            Route::get('/users/edit/{user}', [UserController::class, 'edit'])->name('users.edit');
-            Route::put('/users/update/{user}', [UserController::class, 'update'])->name('users.update');
-            Route::patch('/users/machine-user/toggle/{id}', [UserController::class, 'toggleMachineUser'])->name('machine-user.toggle');
-            Route::delete('/users/profile/destroy/{user}', [UserController::class, 'profile'])->name('users.destroy');
+            Route::middleware('module:teams,read')->group(function () {
+                Route::get('/users', [UserController::class, 'index'])->name('users');
+                Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
+                Route::post('/users', [UserController::class, 'store'])->name('users.store');
+                Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
+                Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
+                Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.delete');
+                Route::get('/profile', [UserController::class, 'profile'])->name('profile');
+                Route::put('/profile', [UserController::class, 'updateProfile'])->name('profile.update');
+                Route::get('/users/profile/{user}', [UserController::class, 'profile'])->name('users.profile');
+                Route::get('/users/edit/{user}', [UserController::class, 'edit'])->name('users.edit');
+                Route::put('/users/update/{user}', [UserController::class, 'update'])->name('users.update');
+                Route::patch('/users/machine-user/toggle/{id}', [UserController::class, 'toggleMachineUser'])->name('machine-user.toggle');
+                Route::delete('/users/profile/destroy/{user}', [UserController::class, 'profile'])->name('users.destroy');
+            });
         }
 
         // Time Recording Routes
         if (config('modules.time')) {
-            Route::get('/time/logs', [TimeController::class, 'machineLogs'])->name('time.logs');
-            Route::get('/time/logs_old', [TimeController::class, 'machineLogsOld'])->name('time.logs_old');
-            Route::get('/parse-log', [TimeController::class, 'parseLog'])->name('parse.log');
-            Route::get('/time/records', [TimeController::class, 'records'])->name('time.records');
-            Route::get('/time/daily-records', [TimeController::class, 'dailyRecords'])->name('time.daily-records');
-            Route::get('/time/daily-records/details', [TimeController::class, 'dayDetails']);
-            Route::get('/time/records/show/{id}', [TimeController::class, 'show'])->name('time.show');
-            Route::get('/time/records/edit/{id}', [TimeController::class, 'editrecord'])->name('time.edit');
-            Route::put('/time/records/update/{id?}', [TimeController::class, 'updateRecord'])->name('time.update');
-            Route::delete('/time/records/delete/{id}', [TimeController::class, 'deleteRecord'])->name('time.delete');
-            Route::get('/time/records/change-logs/{id}', [TimeController::class, 'changeTimeLogs'])->name('time.change-logs');
-            Route::post('/time/store-changed-logs/{id}', [TimeController::class, 'storeAndApproveLogs'])->name('time.store-changed-logs');
-            Route::post('/time/end/{id}', [TimeController::class, 'end'])->name('time.end');
-            Route::post('/time/switch/{log}', [TimeController::class, 'switch'])->name('time.switch');
-            Route::get('/time/compare', [TimeController::class, 'compare'])->name('time.compare');
-            Route::get('/time/overview', [TimeController::class, 'weeklyOverview'])->name('time.overview');
-            Route::get('/time/change', [TimeController::class, 'change'])->name('time.change');
-            Route::post('/time/change/accept/{id}', [TimeController::class, 'acceptChange'])->name('time.change.accept');
-            Route::post('/time/change/reject/{id}', [TimeController::class, 'rejectChange'])->name('time.change.reject');
-            Route::get('/time/project/positions', [TimeController::class, 'thisProjectPositions'])->name('time.project.positions');
+            Route::middleware('module:time,read')->group(function () {
+                Route::get('/time/logs', [TimeController::class, 'machineLogs'])->name('time.logs');
+                Route::get('/time/logs_old', [TimeController::class, 'machineLogsOld'])->name('time.logs_old');
+                Route::get('/parse-log', [TimeController::class, 'parseLog'])->name('parse.log');
+                Route::get('/time/records', [TimeController::class, 'records'])->name('time.records');
+                Route::get('/time/daily-records', [TimeController::class, 'dailyRecords'])->name('time.daily-records');
+                Route::get('/time/daily-records/details', [TimeController::class, 'dayDetails']);
+                Route::get('/time/records/show/{id}', [TimeController::class, 'show'])->name('time.show');
+                Route::get('/time/records/edit/{id}', [TimeController::class, 'editrecord'])->name('time.edit');
+                Route::put('/time/records/update/{id?}', [TimeController::class, 'updateRecord'])->name('time.update');
+                Route::delete('/time/records/delete/{id}', [TimeController::class, 'deleteRecord'])->name('time.delete');
+                Route::get('/time/records/change-logs/{id}', [TimeController::class, 'changeTimeLogs'])->name('time.change-logs');
+                Route::post('/time/store-changed-logs/{id}', [TimeController::class, 'storeAndApproveLogs'])->name('time.store-changed-logs');
+                Route::post('/time/end/{id}', [TimeController::class, 'end'])->name('time.end');
+                Route::post('/time/switch/{log}', [TimeController::class, 'switch'])->name('time.switch');
+                Route::get('/time/compare', [TimeController::class, 'compare'])->name('time.compare');
+                Route::get('/time/overview', [TimeController::class, 'weeklyOverview'])->name('time.overview');
+                Route::get('/time/change', [TimeController::class, 'change'])->name('time.change');
+                Route::post('/time/change/accept/{id}', [TimeController::class, 'acceptChange'])->name('time.change.accept');
+                Route::post('/time/change/reject/{id}', [TimeController::class, 'rejectChange'])->name('time.change.reject');
+                Route::get('/time/project/positions', [TimeController::class, 'thisProjectPositions'])->name('time.project.positions');
+            });
         }
 
         // Activity Timeline Routes
@@ -326,56 +347,60 @@ Route::middleware(['auth', 'role:admin'])
 
         // Supplier Routes
         if (config('modules.suppliers')) {
-            Route::get('suppliers', [SupplierController::class, 'index'])->name('suppliers.index');
-            Route::get('suppliers/get', [SupplierController::class, 'getSuppliers'])->name('suppliers.get');
-            Route::get('suppliers/create', [SupplierController::class, 'create'])->name('suppliers.create');
-            Route::post('suppliers', [SupplierController::class, 'store'])->name('suppliers.store');
-            Route::get('suppliers/edit/{supplier}', [SupplierController::class, 'edit'])->name('suppliers.edit');
-            Route::put('suppliers/{supplier}', [SupplierController::class, 'update'])->name('suppliers.update');
-            Route::delete('suppliers/{supplier}', [SupplierController::class, 'destroy'])->name('suppliers.destroy');
-            Route::get('suppliers/show/{supplier}', [SupplierController::class, 'show'])->name('suppliers.show');
-            Route::get('suppliers/projects', [SupplierController::class, 'projects'])->name('suppliers.projects');
-            Route::get('/suppliers/search', [SupplierController::class, 'search'])->name('suppliers.search');
+            Route::middleware('module:suppliers,read')->group(function () {
+                Route::get('suppliers', [SupplierController::class, 'index'])->name('suppliers.index');
+                Route::get('suppliers/get', [SupplierController::class, 'getSuppliers'])->name('suppliers.get');
+                Route::get('suppliers/create', [SupplierController::class, 'create'])->name('suppliers.create');
+                Route::post('suppliers', [SupplierController::class, 'store'])->name('suppliers.store');
+                Route::get('suppliers/edit/{supplier}', [SupplierController::class, 'edit'])->name('suppliers.edit');
+                Route::put('suppliers/{supplier}', [SupplierController::class, 'update'])->name('suppliers.update');
+                Route::delete('suppliers/{supplier}', [SupplierController::class, 'destroy'])->name('suppliers.destroy');
+                Route::get('suppliers/show/{supplier}', [SupplierController::class, 'show'])->name('suppliers.show');
+                Route::get('suppliers/projects', [SupplierController::class, 'projects'])->name('suppliers.projects');
+                Route::get('/suppliers/search', [SupplierController::class, 'search'])->name('suppliers.search');
+            });
         }
 
         // Projects Routes
         if (config('modules.tablar')) {
-            // Lager CRUD
-            Route::get('/lager', [AdminLagerController::class, 'lager'])->name('lager.index');
-            Route::post('/lager', [AdminLagerController::class, 'storeLager'])->name('lager.store');
-            Route::get('/lager/create', [AdminLagerController::class, 'createLager'])->name('lager.create');
-            Route::get('/lager/{id}/edit', [AdminLagerController::class, 'editLager'])->name('lager.edit');
-            Route::put('/lager/{id}', [AdminLagerController::class, 'updateLager'])->name('lager.update');
-            Route::get('/lager/{id}', [AdminLagerController::class, 'showLager'])->name('lager.show');
-            Route::delete('/lager/{id}', [AdminLagerController::class, 'destroyLager'])->name('lager.destroy');
+            Route::middleware('module:tablar,read')->group(function () {
+                // Lager CRUD
+                Route::get('/lager', [AdminLagerController::class, 'lager'])->name('lager.index');
+                Route::post('/lager', [AdminLagerController::class, 'storeLager'])->name('lager.store');
+                Route::get('/lager/create', [AdminLagerController::class, 'createLager'])->name('lager.create');
+                Route::get('/lager/{id}/edit', [AdminLagerController::class, 'editLager'])->name('lager.edit');
+                Route::put('/lager/{id}', [AdminLagerController::class, 'updateLager'])->name('lager.update');
+                Route::get('/lager/{id}', [AdminLagerController::class, 'showLager'])->name('lager.show');
+                Route::delete('/lager/{id}', [AdminLagerController::class, 'destroyLager'])->name('lager.destroy');
 
-            // Shelf CRUD
-            Route::get('/lager/{lager_id}/shelf', [AdminShelfController::class, 'index'])->name('shelf.index');
-            Route::get('/lager/{lager_id}/shelf/create', [AdminShelfController::class, 'create'])->name('shelf.create');
-            Route::post('/lager/{lager_id}/shelf', [AdminShelfController::class, 'store'])->name('shelf.store');
-            Route::get('/lager/{lager_id}/shelf/{id}/edit', [AdminShelfController::class, 'edit'])->name('shelf.edit');
-            Route::put('/lager/{lager_id}/shelf/{id}', [AdminShelfController::class, 'update'])->name('shelf.update');
-            Route::delete('/lager/{lager_id}/shelf/{id}', [AdminShelfController::class, 'destroy'])->name('shelf.destroy');
+                // Shelf CRUD
+                Route::get('/lager/{lager_id}/shelf', [AdminShelfController::class, 'index'])->name('shelf.index');
+                Route::get('/lager/{lager_id}/shelf/create', [AdminShelfController::class, 'create'])->name('shelf.create');
+                Route::post('/lager/{lager_id}/shelf', [AdminShelfController::class, 'store'])->name('shelf.store');
+                Route::get('/lager/{lager_id}/shelf/{id}/edit', [AdminShelfController::class, 'edit'])->name('shelf.edit');
+                Route::put('/lager/{lager_id}/shelf/{id}', [AdminShelfController::class, 'update'])->name('shelf.update');
+                Route::delete('/lager/{lager_id}/shelf/{id}', [AdminShelfController::class, 'destroy'])->name('shelf.destroy');
 
-            // Tablar — all scoped under a lager
-            Route::prefix('/lager/{lager_id}/tablar')->name('tablar.')->group(function () {
-                Route::get('/', [AdminTablarController::class, 'index'])->name('index');
-                Route::get('/overview', [AdminTablarController::class, 'overview'])->name('overview');
-                Route::get('/{id}', [AdminTablarController::class, 'show'])->name('show');
-                Route::post('/', [AdminTablarController::class, 'store'])->name('store');
-                Route::put('/{id}', [AdminTablarController::class, 'update'])->name('update');
-                Route::delete('/{id}', [AdminTablarController::class, 'destroy'])->name('destroy');
-                Route::get('/{id}/suppliers', [AdminTablarController::class, 'getSuppliers'])->name('suppliers');
-                Route::post('/{material}/suppliers', [AdminTablarController::class, 'attach'])->name('suppliers.attach');
-                Route::delete('/{material}/suppliers/{supplier}', [AdminTablarController::class, 'detach'])->name('suppliers.detach');
-                Route::get('/{id}/supplier-list', [AdminTablarController::class, 'supplierList'])->name('supplier-list');
-                Route::patch('/{id}/quantity', [AdminTablarController::class, 'updateQuantity'])->name('update-quantity');
-                Route::patch('/{id}/status', [AdminTablarController::class, 'updateStatus'])->name('update-status');
+                // Tablar — all scoped under a lager
+                Route::prefix('/lager/{lager_id}/tablar')->name('tablar.')->group(function () {
+                    Route::get('/', [AdminTablarController::class, 'index'])->name('index');
+                    Route::get('/overview', [AdminTablarController::class, 'overview'])->name('overview');
+                    Route::get('/{id}', [AdminTablarController::class, 'show'])->name('show');
+                    Route::post('/', [AdminTablarController::class, 'store'])->name('store');
+                    Route::put('/{id}', [AdminTablarController::class, 'update'])->name('update');
+                    Route::delete('/{id}', [AdminTablarController::class, 'destroy'])->name('destroy');
+                    Route::get('/{id}/suppliers', [AdminTablarController::class, 'getSuppliers'])->name('suppliers');
+                    Route::post('/{material}/suppliers', [AdminTablarController::class, 'attach'])->name('suppliers.attach');
+                    Route::delete('/{material}/suppliers/{supplier}', [AdminTablarController::class, 'detach'])->name('suppliers.detach');
+                    Route::get('/{id}/supplier-list', [AdminTablarController::class, 'supplierList'])->name('supplier-list');
+                    Route::patch('/{id}/quantity', [AdminTablarController::class, 'updateQuantity'])->name('update-quantity');
+                    Route::patch('/{id}/status', [AdminTablarController::class, 'updateStatus'])->name('update-status');
+                });
             });
         }
 
         if (config('modules.settings')) {
-            Route::prefix('settings')->name('settings.')->group(function () {
+            Route::middleware('module:settings,read')->prefix('settings')->name('settings.')->group(function () {
 
                 // Machine Status
                 Route::get('/machine-status', [MachineSettingsController::class, 'machineStatus'])
@@ -424,6 +449,9 @@ Route::middleware(['auth', 'role:admin'])
                 Route::post('/project-service/update/{id?}', [ProjectServicesController::class, 'projectServiceUpdate'])->name('project-service.update');
                 Route::patch('/project-service/toggle/{id}', [ProjectServicesController::class, 'toggleProjectService'])->name('project-service.toggle');
                 Route::delete('/project-service/{id}', [ProjectServicesController::class, 'deleteProjectService'])->name('project-service.delete');
+
+                // Roles
+                Route::resource('roles', RoleController::class)->except(['show']);
 
                 // Email Templates
                 Route::resource('email_templates', EmailTemplateController::class);

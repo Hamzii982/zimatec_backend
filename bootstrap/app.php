@@ -17,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'role' => \App\Http\Middleware\RoleMiddleware::class,
+            'module' => \App\Http\Middleware\ModuleAccessMiddleware::class,
             'workflow.access' => \App\Http\Middleware\EnsureWorkflowAccess::class,
         ]);
         // this will append your SetLocale middleware for the web group

@@ -11,14 +11,24 @@ class RoleMiddleware
     /**
      * Handle an incoming request.
      *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     * @param  \Closure(Request): (Response)  $next
      */
     public function handle(Request $request, Closure $next, string $role): Response
     {
-        if (! auth()->check() || auth()->user()->role !== $role) {
-            abort(403, 'Unauthorized.');
+        if (! auth()->check()) {
+            abort(403, 'Unberechtigt.');
         }
 
-        return $next($request);
+        $user = auth()->user();
+
+        if ($role === 'admin' && $user->isAdmin()) {
+            return $next($request);
+        }
+
+        if ($user->role === $role) {
+            return $next($request);
+        }
+
+        abort(403, 'Unberechtigt.');
     }
 }

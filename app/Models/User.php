@@ -23,6 +23,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'role_id',
         'company',
     ];
 
@@ -49,14 +50,65 @@ class User extends Authenticatable
         ];
     }
 
+    public function role(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Role::class);
+    }
+
     public function isAdmin(): bool
     {
+        $role = $this->getRelationValue('role') ?? $this->role()->first();
+
+        if ($role) {
+            return (bool) $role->is_admin;
+        }
+
         return $this->role === 'admin';
     }
 
     public function isUser(): bool
     {
+        $role = $this->getRelationValue('role') ?? $this->role()->first();
+
+        if ($role) {
+            return true;
+        }
+
         return $this->role === 'user';
+    }
+
+    public function hasModulePermission(string $module, string $action = 'read'): bool
+    {
+        if ($this->isAdmin()) {
+            return true;
+        }
+
+        $role = $this->getRelationValue('role') ?? $this->role()->first();
+
+        if (! $role) {
+            return false;
+        }
+
+        if ($action === 'read') {
+            return $role->hasModulePermission($module, 'read');
+        }
+
+        return $role->hasModulePermission($module, $action);
+    }
+
+    public function canAccessModule(string $module, string $action = 'read'): bool
+    {
+        return $this->hasModulePermission($module, $action);
+    }
+
+    public function canWriteModule(string $module): bool
+    {
+        return $this->canAccessModule($module, 'write');
+    }
+
+    public function canDeleteModule(string $module): bool
+    {
+        return $this->canAccessModule($module, 'delete');
     }
 
     public function timeRecords()

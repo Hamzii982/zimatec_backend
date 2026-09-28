@@ -11,7 +11,7 @@
     </a>
     
     {{-- Users with submenu --}}
-    @if(config('modules.teams'))
+    @if(config('modules.teams') && auth()->user()?->canAccessModule('teams', 'read'))
         @php
             $usersActive = request()->is('admin/users*');
         @endphp
@@ -27,7 +27,7 @@
     @endif
 
     {{-- Project offers with submenu --}}
-    @if(config('modules.project_offers'))
+    @if(config('modules.project_offers') && auth()->user()?->canAccessModule('project_offers', 'read'))
         @php
             $projectOffersActive = request()->is('admin/project_offers*');
         @endphp
@@ -43,7 +43,7 @@
     @endif
 
     {{-- Projects with submenu --}}
-    @if(config('modules.projects'))
+    @if(config('modules.projects') && auth()->user()?->canAccessModule('projects', 'read'))
         @php
             $projectsActive = request()->is('admin/projects*');
             $bauteileActive = request()->is('admin/bauteile*');
@@ -57,15 +57,15 @@
         <div class="collapse submenu {{ $projectsActive || $bauteileActive ? 'show' : '' }}" id="projectsSubmenu">
             <a href="{{ route('admin.projects') }}" class="{{ request()->is('admin/projects') ? 'active' : '' }}">Alle Projekten</a>
             <a href="{{ route('admin.bauteile.index') }}" class="{{ request()->is('admin/bauteile*') ? 'active' : '' }}">Alle Bauteilen</a>
-            <a href="{{ route('admin.projects.projects.index') }}" class="{{ request()->is('admin/projects/projects*') ? 'active' : '' }}">Alle Fertigungsprozesse</a>
-            <a href="{{ route('admin.projects.offers') }}" class="{{ request()->is('admin/projects/offer*') ? 'active' : '' }}">Alle Lieferantenangebote</a>
+            <a href="{{ route('admin.supplier-projects.index') }}" class="{{ request()->is('admin/supplier-projects*') ? 'active' : '' }}">Alle Fertigungsprozesse</a>
+            <a href="{{ route('admin.offers') }}" class="{{ request()->is('admin/offers*') ? 'active' : '' }}">Alle Lieferantenangebote</a>
             <a href="{{ route('admin.workflow.settings') }}" class="{{ request()->is('admin/workflow*') ? 'active' : '' }}">Workflow-Einstellungen
             </a>
         </div>
     @endif
 
     {{-- Time Records with submenu --}}
-    @if(config('modules.time'))
+    @if(config('modules.time') && auth()->user()?->canAccessModule('time', 'read'))
         @php
             $timeActive = request()->is('admin/time*');
         @endphp
@@ -85,7 +85,7 @@
     @endif
 
     {{-- Suppliers with submenu --}}
-    @if(config('modules.suppliers'))
+    @if(config('modules.suppliers') && auth()->user()?->canAccessModule('suppliers', 'read'))
         @php
             $supplierActive = request()->is('admin/suppliers*');
         @endphp
@@ -101,7 +101,7 @@
     @endif
 
     {{-- Emails with submenu --}}
-    @if(config('modules.emails'))
+    @if(config('modules.emails') && auth()->user()?->canAccessModule('emails', 'read'))
         @php
             $emailActive = request()->is('admin/emails*');
         @endphp
@@ -118,7 +118,7 @@
     @endif
 
     {{-- Feedback-Details --}}
-    @if(config('modules.feedback'))
+    @if(config('modules.feedback') && auth()->user()?->canAccessModule('feedback', 'read'))
         @php
             $feedbackActive = request()->is('admin/feedback*');
         @endphp
@@ -134,7 +134,7 @@
     @endif
 
     {{-- Tablar-übersicht --}}
-    @if(config('modules.tablar'))
+    @if(config('modules.tablar') && auth()->user()?->canAccessModule('tablar', 'read'))
         @php
             $lagers = \App\Models\Lager::orderBy('name')->get();
             $lagerActive = request()->is('admin/lager*');
@@ -185,7 +185,7 @@
     @endif
 
     {{-- Settings --}}
-    @if(config('modules.settings'))
+    @if(config('modules.settings') && auth()->user()?->canAccessModule('settings', 'read'))
         @php
             $settingsActive = request()->is('admin/settings*');
         @endphp
@@ -201,6 +201,7 @@
             <a href="{{ route('admin.settings.material-thresholds') }}" class="{{ request()->is('admin/settings/material-thresholds*') ? 'active' : '' }}">Material Schwellenwerte</a>
             <a href="{{ route('admin.settings.project-status') }}" class="{{ request()->is('admin/settings/project-status*') ? 'active' : '' }}">Projekt Status</a>
             <a href="{{ route('admin.settings.project-service') }}" class="{{ request()->is('admin/settings/project-service*') ? 'active' : '' }}">Projekt Leistung</a>
+            <a href="{{ route('admin.settings.roles.index') }}" class="{{ request()->is('admin/settings/roles*') ? 'active' : '' }}">Roles</a>
             <a href="{{ route('admin.settings.email_templates.index') }}" class="{{ request()->is('admin/settings/email_templates*') ? 'active' : '' }}">Email Template</a>
             <a href="#" class="">Logs</a>
         </div>

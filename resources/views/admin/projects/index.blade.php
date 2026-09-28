@@ -117,13 +117,15 @@
                                             <a href="{{ route('admin.projects.edit', $project) }}" class="zt-icon-btn zt-icon-btn--edit" title="Bearbeiten">
                                                 <i class="bi bi-pencil"></i>
                                             </a>
-                                            <form action="{{ route('admin.projects.destroy', $project) }}" method="POST" class="d-inline">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button class="zt-icon-btn zt-icon-btn--danger" onclick="return confirm('Projekt wirklich löschen?')" title="Löschen">
-                                                    <i class="bi bi-trash"></i>
-                                                </button>
-                                            </form>
+                                            @if(auth()->user()?->canDeleteModule('projects'))
+                                                <form action="{{ route('admin.projects.destroy', $project) }}" method="POST" class="d-inline">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button class="zt-icon-btn zt-icon-btn--danger" onclick="return confirm('Projekt wirklich löschen?')" title="Löschen">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </form>
+                                            @endif
                                         </div>
                                     </td>
                                 </tr>

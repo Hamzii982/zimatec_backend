@@ -198,6 +198,21 @@
                     </div>
 
                     <div class="col-md-6">
+                        <label class="form-label">Assigned Role</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-person-gear"></i></span>
+                            <select name="role_id" class="form-select">
+                                <option value="">-- Legacy / none --</option>
+                                @foreach($roles ?? [] as $roleOption)
+                                    <option value="{{ $roleOption->id }}" @selected(old('role_id', $user->role_id ?? null) == $roleOption->id)>
+                                        {{ $roleOption->label }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
                         <label class="form-label">Company</label>
                         <div class="input-group">
                             <span class="input-group-text"><i class="bi bi-building"></i></span>
