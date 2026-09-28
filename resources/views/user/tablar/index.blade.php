@@ -99,6 +99,7 @@
         <div class="modal-content text-center p-4">
 
             <h3 id="reserveModalMaterialName" class="mb-1 fs-4"></h3>
+            <code class="text-muted small d-none mb-2 d-block" id="reserveModalMaterialCode"></code>
             <p class="text-muted mb-1" id="reserveModalShelf"></p>
             <p class="text-muted small mb-1">
                 Verfügbar: <strong id="reserveModalAvailable"></strong>
@@ -138,6 +139,7 @@
         <div class="modal-content text-center p-4">
 
             <h3 id="modalMaterialName" class="mb-1 fs-4"></h3>
+            <code class="text-muted small d-none mb-2 d-block" id="modalMaterialCode"></code>
             <p class="text-muted mb-1" id="modalShelf"></p>
             <p class="text-muted small mb-4">
                 Verfügbar: <strong id="modalAvailable"></strong>

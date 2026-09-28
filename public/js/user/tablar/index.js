@@ -659,6 +659,12 @@ async function confirmDelivery(materialId) {
     }
 }
 
+function generateCodeHtml(code) {
+    return code
+        ? `<br><code class="text-muted small">${code}</code>`
+        : '';
+}
+
 // ─── MATERIAL LIST ────────────────────────────────────────────────────────────
 
 function filterMaterials() {
@@ -707,6 +713,7 @@ function renderMaterials(materials) {
 
         const imageTemplate = generateImageHtml(m.image, m.name);
         const orderTemplate = generateOrderHtml(m);
+        const codeTemplate  = generateCodeHtml(m.code);
         const onHoldText = isReserved
             ? `<span class="badge bg-info text-dark ms-2"><i class="bi bi-clock-history me-1"></i>Reserviert: ${onHold} ${m.unit ?? 'Stk.'}</span>`
             : '';
@@ -722,7 +729,7 @@ function renderMaterials(materials) {
                 <div class="d-flex align-items-center">
                     ${imageTemplate}
                     <div>
-                        <span class="text-decoration-line-through fw-semibold">${m.name}</span>
+                        <span class="text-decoration-line-through fw-semibold">${m.name}</span>${codeTemplate}
                         <div class="mt-1">${orderTemplate}</div>
                     </div>
                 </div>
@@ -732,11 +739,11 @@ function renderMaterials(materials) {
 
         return `
         <div class="d-flex justify-content-between align-items-center p-3 mb-2 rounded border material-item"
-            onclick="${modalType}(${m.id}, '${m.name}', ${m.quantity}, '${m.shelf}', ${onHold}, '${m.unit ?? 'Stk.'}')">
+            onclick="${modalType}(${m.id}, '${m.name}', ${m.quantity}, '${m.shelf}', ${onHold}, '${m.unit ?? 'Stk.'}', '${m.code ?? ''}')">
             <div class="d-flex align-items-center">
                 ${imageTemplate}
                 <div>
-                    <span class="fw-semibold">${m.name} ${onHoldText}${orderText}</span>
+                    <span class="fw-semibold">${m.name} ${onHoldText}${orderText}</span>${codeTemplate}
                     <div class="mt-1">${orderTemplate}</div>
                 </div>
             </div>
@@ -750,12 +757,22 @@ function renderMaterials(materials) {
 
 // ─── MODAL ────────────────────────────────────────────────────────────────────
 
-function openMaterialModal(id, name, quantity, shelf, onHoldQuantity, unit) {
+function openMaterialModal(id, name, quantity, shelf, onHoldQuantity, unit, code) {
     selectedMaterial = { id, name, quantity, shelf, onHoldQuantity, unit };
 
     document.getElementById('modalMaterialName').innerText = name;
     document.getElementById('modalShelf').innerText        = 'Tablar: ' + shelf;
     document.getElementById('modalAvailable').innerText    = quantity + ' ' + (selectedMaterial.unit ?? 'Stk.');
+
+    const codeEl = document.getElementById('modalMaterialCode');
+    if (codeEl) {
+        if (code) {
+            codeEl.innerText = code;
+            codeEl.classList.remove('d-none');
+        } else {
+            codeEl.classList.add('d-none');
+        }
+    }
 
     const input = document.getElementById('counterInput');
     input.value = 1;
@@ -765,13 +782,23 @@ function openMaterialModal(id, name, quantity, shelf, onHoldQuantity, unit) {
     new bootstrap.Modal(document.getElementById('materialModal')).show();
 }
 
-function openReserveModal(id, name, quantity, shelf, onHoldQuantity, unit) {
+function openReserveModal(id, name, quantity, shelf, onHoldQuantity, unit, code) {
     selectedMaterial = { id, name, quantity, shelf, onHoldQuantity, unit };
 
     document.getElementById('reserveModalMaterialName').innerText = name;
     document.getElementById('reserveModalShelf').innerText        = 'Tablar: ' + shelf;
     document.getElementById('reserveModalAvailable').innerText    = quantity + ' ' + (selectedMaterial.unit ?? 'Stk.');
     document.getElementById('reserveModalOnHold').innerText       = onHoldQuantity;
+
+    const codeEl = document.getElementById('reserveModalMaterialCode');
+    if (codeEl) {
+        if (code) {
+            codeEl.innerText = code;
+            codeEl.classList.remove('d-none');
+        } else {
+            codeEl.classList.add('d-none');
+        }
+    }
 
     const input = document.getElementById('reserveCounterInput');
     input.value = 0;
@@ -1088,6 +1115,7 @@ function filterByName() {
 
         const imageTemplate = generateImageHtml(m.image, m.name);
         const orderTemplate = generateOrderHtml(m);
+        const codeTemplate  = generateCodeHtml(m.code);
 
         const onHoldText = isReserved ? `<span class="badge bg-info text-dark ms-2"><i class="bi bi-clock-history me-1"></i>Reserviert: ${on_hold} ${m.unit ?? 'Stk.'}</span>` : '';
         const orderText = orderQty > 0
@@ -1102,8 +1130,7 @@ function filterByName() {
                 <div class="d-flex align-items-center">
                     ${imageTemplate}
                     <div>
-                        <span class="text-decoration-line-through fw-semibold">${m.name}</span>
-                        ${shelfHint}
+                        <span class="text-decoration-line-through fw-semibold">${m.name}</span>${codeTemplate}${shelfHint}
                         <div class="mt-1">${orderTemplate}</div>
                     </div>
                 </div>
@@ -1120,7 +1147,7 @@ function filterByName() {
             <div class="d-flex align-items-center">
                 ${imageTemplate}
                 <div>
-                    <span class="fw-semibold">${m.name} ${onHoldText}${orderText}</span>
+                    <span class="fw-semibold">${m.name} ${onHoldText}${orderText}</span>${codeTemplate}
                     ${shelfHint}
                     <div class="mt-1">${orderTemplate}</div>
                 </div>

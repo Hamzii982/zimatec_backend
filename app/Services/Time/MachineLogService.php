@@ -23,8 +23,20 @@ class MachineLogService
     {
         $range = $this->weekRangeResolver->resolve($request->get('week'));
 
+        $pauseSub = DB::table('process_pauses as pp')
+            ->join('processes as p2', 'p2.id', '=', 'pp.process_id')
+            ->selectRaw('
+                pp.process_id,
+                SUM(GREATEST(0, TIMESTAMPDIFF(
+                    SECOND,
+                    GREATEST(pp.pause_start, p2.start_time),
+                    LEAST(COALESCE(pp.pause_end, p2.end_time), p2.end_time)
+                ))) as pause_seconds
+            ')
+            ->groupBy('pp.process_id');
+
         $weeklyRecords = DB::table('processes as pr')
-            ->leftJoin('process_pauses as pp', 'pp.process_id', '=', 'pr.id')
+            ->leftJoinSub($pauseSub, 'pp', 'pp.process_id', '=', 'pr.id')
             ->join('projects as p', 'p.id', '=', 'pr.project_id')
             ->leftJoin('positions as po', 'po.id', '=', 'pr.position_id')
             ->join('machines as m', 'm.id', '=', 'pr.machine_id')
@@ -44,21 +56,7 @@ class MachineLogService
                 'm.name as machine_name',
                 DB::raw('SUM(TIMESTAMPDIFF(SECOND, pr.start_time, pr.end_time)) as process_seconds'),
                 // TOTAL PAUSE TIME
-                DB::raw('
-                    SUM(
-                        GREATEST(
-                            0,
-                            TIMESTAMPDIFF(
-                                SECOND,
-                                GREATEST(pp.pause_start, pr.start_time),
-                                LEAST(
-                                    COALESCE(pp.pause_end, pr.end_time),
-                                    pr.end_time
-                                )
-                            )
-                        )
-                    ) as pause_seconds
-                '),
+                DB::raw('SUM(COALESCE(pp.pause_seconds, 0)) as pause_seconds'),
             ])
             ->groupBy([
                 'calendar_week',
