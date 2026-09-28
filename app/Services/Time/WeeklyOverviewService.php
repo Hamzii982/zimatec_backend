@@ -135,15 +135,10 @@ class WeeklyOverviewService
         foreach ($processes as $process) {
             $key = $jobKey($process->project_id, $process->position_id, $process->machine_id);
 
-            $overlapsLoggedHours = ($statusLogsByJob->get($key) ?? collect())->contains(
-                fn ($log) => $process->start_time < $log->end_time && $process->end_time > $log->start_time
-            );
+            $logs = $statusLogsByJob->get($key) ?? collect();
+            $free = $this->uncoveredIntervals($process, $logs);
 
-            if ($overlapsLoggedHours) {
-                continue;
-            }
-
-            foreach ($this->duration->processDaySegments($process) as $segment) {
+            foreach ($this->duration->processDaySegments($process, $free) as $segment) {
                 if ($segment['seconds'] <= 0) {
                     continue;
                 }
@@ -219,7 +214,7 @@ class WeeklyOverviewService
 
         // --- Group into one table per machine ----------------------------------------------
         $machineTables = $rows
-            ->filter(fn ($r) => ($r->ruestzeit_seconds + $r->mit_aufsicht_seconds + $r->ohne_aufsicht_seconds) > 0)
+            ->filter(fn ($r) => ($r->ruestzeit_seconds + $r->mit_aufsicht_seconds + $r->ohne_aufsicht_seconds) >= 60)
             ->groupBy('machine_id')
             ->map(function ($rows) {
                 $rows = $rows->sortBy(['date', 'project_id', 'position_id'])->values();
@@ -266,5 +261,33 @@ class WeeklyOverviewService
                 abs($processStart->diffInSeconds($recordEnd))
             );
         })->first();
+    }
+
+    private function uncoveredIntervals($process, Collection $logs): array
+    {
+        $end = Carbon::parse($process->end_time);
+        $cursor = Carbon::parse($process->start_time);
+        $free = [];
+
+        $cuts = $logs
+            ->map(fn ($l) => [Carbon::parse($l->start_time), Carbon::parse($l->end_time)])
+            ->sortBy(fn ($c) => $c[0]->timestamp);
+
+        foreach ($cuts as [$s, $e]) {
+            if ($s->gte($end)) break;
+            if ($s->gt($cursor)) {
+                $free[] = [$cursor->copy(), $s->copy()];
+            }
+            if ($e->gt($cursor)) {
+                $cursor = $e->copy();
+            }
+            if ($cursor->gte($end)) break;
+        }
+
+        if ($cursor->lt($end)) {
+            $free[] = [$cursor->copy(), $end->copy()];
+        }
+
+        return $free;
     }
 }

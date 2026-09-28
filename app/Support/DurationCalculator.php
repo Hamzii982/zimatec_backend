@@ -98,26 +98,27 @@ class DurationCalculator
      *
      * @return array<int, array{date: string, start: Carbon, end: Carbon, seconds: int}>
      */
-    public function processDaySegments($process): array
+    public function processDaySegments($process, ?array $intervals = null): array
     {
-        $start = Carbon::parse($process->start_time);
-        $end = Carbon::parse($process->end_time);
-
+        $intervals ??= [[Carbon::parse($process->start_time), Carbon::parse($process->end_time)]];
         $segments = [];
-        $cursor = $start->copy();
 
-        while ($cursor->lt($end)) {
-            $midnight = $cursor->copy()->startOfDay()->addDay();
-            $segmentEnd = $midnight->lt($end) ? $midnight : $end->copy();
+        foreach ($intervals as [$start, $end]) {
+            $cursor = $start->copy();
 
-            $segments[] = [
-                'date' => $cursor->toDateString(),
-                'start' => $cursor->copy(),
-                'end' => $segmentEnd->copy(),
-                'seconds' => $this->activeSecondsInRange($process, $cursor, $segmentEnd),
-            ];
+            while ($cursor->lt($end)) {
+                $midnight = $cursor->copy()->startOfDay()->addDay();
+                $segmentEnd = $midnight->lt($end) ? $midnight : $end->copy();
 
-            $cursor = $segmentEnd;
+                $segments[] = [
+                    'date'    => $cursor->toDateString(),
+                    'start'   => $cursor->copy(),
+                    'end'     => $segmentEnd->copy(),
+                    'seconds' => $this->activeSecondsInRange($process, $cursor, $segmentEnd),
+                ];
+
+                $cursor = $segmentEnd;
+            }
         }
 
         return $segments;

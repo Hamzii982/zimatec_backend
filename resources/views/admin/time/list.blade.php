@@ -3,19 +3,10 @@
 @php
     if (! function_exists('secondsToIndustryMinutes')) {
         function secondsToIndustryMinutes($seconds) {
-            $totalMinutes = $seconds / 60;
-            $hours = floor($totalMinutes / 60);
-            $minutes = round($totalMinutes % 60);
+            $real = (int) round($seconds / 60);
+            $ind  = (int) round($seconds / 60 * 5 / 3);
 
-            $realTime = sprintf("%02d:%02d", $hours, $minutes);
-
-            $industryTotalMinutes = ($totalMinutes / 3) * 5;
-            $industryHours = floor($industryTotalMinutes / 60);
-            $industryMinutes = round($industryTotalMinutes % 60);
-
-            $industryTime = sprintf("%02d:%02d", $industryHours, $industryMinutes);
-
-            return "{$realTime} ({$industryTime})";
+            return sprintf('%02d:%02d (%02d:%02d)', intdiv($real, 60), $real % 60, intdiv($ind, 60), $ind % 60);
         }
     }
 @endphp
