@@ -164,6 +164,7 @@ Route::prefix('time-records')->name('time-records.')->group(function () {
     Route::post('/end/{id}', [TimeRecordController::class, 'end'])->name('end');
     Route::post('/switch/{log}', [TimeRecordController::class, 'switch'])->name('switch');
     Route::post('/processes/{process}/end', [TimeRecordController::class, 'endProcess'])->name('processes.end');
+    Route::get('/last-week', [TimeRecordController::class, 'lastWeekOverview'])->name('overview.last-week');
 });
 
 // Lager selection page (new)

@@ -13,6 +13,7 @@ use App\Models\TimeRecord;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use App\Services\Time\WeeklyOverviewService;
 
 class TimeRecordController extends Controller
 {
@@ -414,6 +415,24 @@ class TimeRecordController extends Controller
             'end_time' => null,
             'total_seconds' => 0,
             'source_file' => null,
+        ]);
+    }
+
+    public function lastWeekOverview(Request $request, WeeklyOverviewService $weeklyOverviewService)
+    {
+        $lastWeek = Carbon::now()->subWeek();
+
+        $request->merge([
+            'week' => $lastWeek->isoWeekYear . str_pad($lastWeek->isoWeek, 2, '0', STR_PAD_LEFT),
+        ]);
+
+        $data = $weeklyOverviewService->build($request);
+
+        return view('user.time_records.partials.last-week-table', [
+            'machineTables' => $data['machineTables'],
+            'weekLabel'     => sprintf('KW %02d / %d', $lastWeek->isoWeek, $lastWeek->isoWeekYear),
+            'rangeLabel'    => $lastWeek->copy()->startOfWeek()->format('d.m.')
+                . ' – ' . $lastWeek->copy()->endOfWeek()->format('d.m.Y'),
         ]);
     }
 }

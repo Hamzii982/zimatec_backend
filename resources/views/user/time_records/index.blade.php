@@ -33,6 +33,9 @@
                     </h5>
 
                     <div class="d-flex gap-2">
+                        <button type="button" class="zt-export-btn" data-bs-toggle="modal" data-bs-target="#lastWeekModal">
+                            <i class="bi bi-calendar-week"></i> Letzte Woche
+                        </button>
                         <a href="{{ route('time-records.list', request()->except('user_id', 'page')) }}"
                             class="zt-export-btn">
                             <i class="bi bi-arrow-left-circle"></i>
@@ -161,6 +164,8 @@
                 </div>
             </div>
         </div>
+
+        <x-last-week-overview-modal />
     @endif
 </div>
 <style>
