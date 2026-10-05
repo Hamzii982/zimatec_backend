@@ -3,12 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Project;
-use App\Traits\HandleMachineLogs;
 use Illuminate\Http\Request;
 
 class ProjectController extends Controller
 {
-    use HandleMachineLogs;
 
     /**
      * Create a new controller instance.
