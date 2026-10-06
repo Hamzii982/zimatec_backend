@@ -18,26 +18,40 @@
                             <th>Name</th>
                             <th>Beschreibung</th>
                             <th>Tablare</th>
-                            <th>Aktiv</th>
                             <th>Status</th>
-                            <th>Type</th>
                             <th class="text-end">Aktionen</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse ($lagers as $lager)
                             <tr>
-                                <td>{{ $lager->name }}</td>
-                                <td>{{ $lager->description }}</td>
-                                <td>{{ $lager->shelves->count() }}</td>
-                                <td>
-                                    <span class="zt-badge {{ $lager->is_active ? 'zt-badge--success' : 'zt-badge--pending' }}">
-                                        {{ $lager->is_active ? 'Ja' : 'Nein' }}
-                                    </span>
-                                </td>
-                                <td>{{ $lager->status }}</td>
-                                <td>{{ $lager->type }}</td>
-                                <td class="text-end">
+                                    <td>
+                                        {{-- status dot + type icon + name --}}
+                                        @php
+                                            $typeIcon = match($lager->type ?? '') {
+                                                'holz' => 'bi-tree-fill',
+                                                'metall' => 'bi-wrench',
+                                                'chemie' => 'bi-flask',
+                                                default => 'bi-box-seam',
+                                            };
+                                        @endphp
+                                        <span class="status-dot {{ $lager->is_active ? 'status-dot--active' : 'status-dot--inactive' }} me-2"></span>
+                                        <i class="bi {{ $typeIcon }} text-muted me-2"></i>
+                                        {{ $lager->name }}
+                                        {{-- small counts for materials / tools --}}
+                                        <div class="small text-muted mt-1">
+                                            @php
+                                                $materialsCount = $lager->materials()->where('is_werkzeug', false)->count();
+                                                $toolsCount = $lager->materials()->where('is_werkzeug', true)->count();
+                                            @endphp
+                                            <span class="badge bg-light text-dark me-1">Materialien: {{ $materialsCount }}</span>
+                                            <span class="badge bg-light text-dark">Werkzeuge: {{ $toolsCount }}</span>
+                                        </div>
+                                    </td>
+                                    <td>{{ $lager->description }}</td>
+                                    <td>{{ $lager->shelves->count() }}</td>
+                                    <td>{{ $lager->status }}</td>
+                                    <td class="text-end">
                                     <div class="d-flex gap-2 justify-content-end">
                                         <a href="{{ route('admin.shelf.index', $lager->id) }}" class="zt-icon-btn" title="Tablar Anzeigen">
                                             <i class="bi bi-eye"></i>
@@ -59,7 +73,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="zt-empty text-center py-4">Keine Lager gefunden.</td>
+                                <td colspan="5" class="zt-empty text-center py-4">Keine Lager gefunden.</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -114,5 +128,10 @@
     .zt-icon-btn--edit:hover { border-color: var(--zt-ink); color: var(--zt-ink); }
     .zt-icon-btn--danger { color: #B3261E; }
     .zt-icon-btn--danger:hover { border-color: #B3261E; background: #FBEAE9; }
+
+    /* status dot */
+    .status-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; }
+    .status-dot--active { background: #34D399; }
+    .status-dot--inactive { background: #D1D5DB; }
 </style>
 @endsection

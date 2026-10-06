@@ -13,7 +13,11 @@ class ShelfController extends Controller
     {
         // Fetch shelves for the given lager
         $shelves = Shelf::where('lager_id', $lagerId)->get();
-        $lager = Lager::findOrFail($lagerId);
+        $lager = Lager::withCount([ 
+            'materials as materials_count' => fn($q) => $q->where('is_werkzeug', false),
+            'materials as tools_count' => fn($q) => $q->where('is_werkzeug', true),
+        ])->findOrFail($lagerId);
+
         return view('admin.shelf.index', compact('shelves', 'lagerId', 'lager'));
     }
 
