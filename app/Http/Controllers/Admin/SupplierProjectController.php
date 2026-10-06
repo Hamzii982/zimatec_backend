@@ -92,7 +92,7 @@ class SupplierProjectController extends Controller
 
         SupplierProject::create($request->all());
 
-        return redirect()->route('admin.supplier-projects.index')
+        return redirect()->route('admin.projects.projects.index')
             ->with('success', 'Lieferantenprojekt erfolgreich erstellt.');
     }
 
@@ -126,7 +126,7 @@ class SupplierProjectController extends Controller
 
         $project->update($request->all());
 
-        return redirect()->route('admin.supplier-projects.index')
+        return redirect()->route('admin.projects.projects.index')
             ->with('success', 'Projekt erfolgreich aktualisiert.');
     }
 
@@ -134,7 +134,7 @@ class SupplierProjectController extends Controller
     {
         $project->delete();
 
-        return redirect()->route('admin.supplier-projects.index')
+        return redirect()->route('admin.projects.projects.index')
             ->with('success', 'Projekt gelöscht.');
     }
 }

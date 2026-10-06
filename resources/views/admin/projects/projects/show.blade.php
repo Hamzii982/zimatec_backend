@@ -5,7 +5,7 @@
     <div class="card shadow-sm">
         <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
             <h5 class="mb-0">Projekt: {{ $project->name }}</h5>
-            <a href="{{ route('admin.projects.projects.index') }}" class="btn btn-secondary btn-sm">
+            <a href="{{ route('admin.supplier-projects.index') }}" class="btn btn-secondary btn-sm">
                 <i class="bi bi-arrow-left"></i> Zurück
             </a>
         </div>

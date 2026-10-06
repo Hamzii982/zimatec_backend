@@ -8,7 +8,7 @@
         </div>
 
         <div class="card-body">
-            <form action="{{ route('admin.projects.projects.store') }}" method="POST">
+            <form action="{{ route('admin.supplier-projects.store') }}" method="POST">
                 @csrf
 
                 <div class="row mb-3">
@@ -70,7 +70,7 @@
                 </div>
 
                 <button type="submit" class="btn btn-wechsel">Speichern</button>
-                <a href="{{ route('admin.projects.projects.index') }}" class="btn btn-secondary">Abbrechen</a>
+                <a href="{{ route('admin.supplier-projects.index') }}" class="btn btn-secondary">Abbrechen</a>
             </form>
         </div>
     </div>

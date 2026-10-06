@@ -5,13 +5,13 @@
     <div class="card shadow-sm">
         <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
             <h5 class="mb-0">Lieferantenprojekte</h5>
-            <a href="{{ route('admin.projects.projects.create') }}" class="btn btn-secondary btn-sm">
+            <a href="{{ route('admin.supplier-projects.create') }}" class="btn btn-secondary btn-sm">
                 <i class="bi bi-plus-circle me-1"></i> Neues Projekt
             </a>
         </div>
 
         <div class="card-body">
-            <form method="GET" action="{{ route('admin.projects.projects.index') }}" class="mb-4">
+            <form method="GET" action="{{ route('admin.supplier-projects.index') }}" class="mb-4">
                 <div class="card border-0 shadow-sm">
                     <div class="card-header bg-light fw-semibold" data-bs-toggle="collapse" href="#filterCollapse" role="button" aria-expanded="true">
                         <i class="bi bi-funnel me-2"></i> Filteroptionen
@@ -100,7 +100,7 @@
                                     <button type="submit" class="btn btn-filter">
                                         <i class="bi bi-search me-1"></i> Filtern
                                     </button>
-                                    <a href="{{ route('admin.projects.projects.index') }}" class="btn btn-outline-secondary">
+                                    <a href="{{ route('admin.supplier-projects.index') }}" class="btn btn-outline-secondary">
                                         <i class="bi bi-x-circle me-1"></i> Zurücksetzen
                                     </a>
                                 </div>

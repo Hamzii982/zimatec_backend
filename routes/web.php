@@ -245,7 +245,7 @@ Route::middleware(['auth', 'role:admin'])
                 Route::get('/offers', [SupplierOfferController::class, 'index'])->name('offers');
                 Route::get('/offers/{offer}', [SupplierOfferController::class, 'show'])->name('offers.show');
                 Route::get('/supplier-projects', [SupplierProjectController::class, 'index'])->name('supplier-projects.index');
-                Route::get('/supplier-projects/{project}', [SupplierProjectController::class, 'show'])->name('supplier-projects.show');
+                Route::get('/supplier-projects/{project}', [SupplierProjectController::class, 'show'])->name('supplier-projects.show')->whereNumber('project');
             });
 
             Route::middleware('module:projects,write')->group(function () {

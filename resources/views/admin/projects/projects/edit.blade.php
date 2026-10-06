@@ -4,11 +4,11 @@
 <div class="container mt-4">
     <div class="card shadow-sm">
         <div class="card-header bg-dark text-white">
-            <h5 class="mb-0">Eidt Lieferantenprojekt</h5>
+            <h5 class="mb-0">Edit Lieferantenprojekt</h5>
         </div>
 
         <div class="card-body">
-            <form action="{{ route('admin.projects.projects.update', $project->id) }}" method="POST">
+            <form action="{{ route('admin.supplier-projects.update', $project->id) }}" method="POST">
                 @csrf
                 @method('PUT')
 
@@ -71,7 +71,7 @@
                 </div>
 
                 <button type="submit" class="btn btn-wechsel">Speichern</button>
-                <a href="{{ route('admin.projects.projects.index') }}" class="btn btn-secondary">Abbrechen</a>
+                <a href="{{ route('admin.supplier-projects.index') }}" class="btn btn-secondary">Abbrechen</a>
             </form>
         </div>
     </div>
