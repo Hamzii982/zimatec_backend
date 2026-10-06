@@ -30,6 +30,7 @@
                                         @php
                                             $typeIcon = match($lager->type ?? '') {
                                                 'holz' => 'bi-tree-fill',
+                                                'werkzeug' => 'bi-tools',
                                                 'metall' => 'bi-wrench',
                                                 'chemie' => 'bi-flask',
                                                 default => 'bi-box-seam',
