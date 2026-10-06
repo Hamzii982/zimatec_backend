@@ -8,7 +8,7 @@
                 <h2 class="h4 m-0">Lager Dashboard</h2>
                 <div>
                     <a href="{{ route('admin.lager.index') }}" class="btn btn-outline-secondary btn-sm me-2">Lagerverwaltung</a>
-                    <a href="#" class="btn btn-primary btn-sm">Export CSV</a>
+                    {{-- <a href="#" class="btn btn-primary btn-sm">Export CSV</a> --}}
                 </div>
             </div>
         </div>
@@ -179,47 +179,57 @@
 </div>
 @endsection
 
-@section('scripts')
+@push('scripts')
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         (function() {
-            const labels = @json($consumptionLabels ?? []);
-            const data = @json($consumptionData ?? []);
+            try {
+                const labels = @json($consumptionLabels ?? []);
+                const data = @json($consumptionData ?? []);
 
-            const ctx = document.getElementById('consumptionChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Verbrauch',
-                        data: data,
-                        fill: true,
-                        backgroundColor: 'rgba(54, 162, 235, 0.1)',
-                        borderColor: 'rgba(54, 162, 235, 1)',
-                        tension: 0.2,
-                    }]
-                },
-                options: {
-                    plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: true } }
+                const consumptionEl = document.getElementById('consumptionChart');
+                if (consumptionEl && consumptionEl.getContext) {
+                    const ctx = consumptionEl.getContext('2d');
+                    new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'Verbrauch',
+                                data: data,
+                                fill: true,
+                                backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                                borderColor: 'rgba(54, 162, 235, 1)',
+                                tension: 0.2,
+                            }]
+                        },
+                        options: {
+                            plugins: { legend: { display: false } },
+                            scales: { y: { beginAtZero: true } }
+                        }
+                    });
                 }
-            });
 
-            const stockData = @json(array_values($stockByType ?? []));
-            const stockLabels = @json(array_keys($stockByType ?? []));
-            const ctx2 = document.getElementById('stockTypeChart').getContext('2d');
-            new Chart(ctx2, {
-                type: 'doughnut',
-                data: {
-                    labels: stockLabels,
-                    datasets: [{
-                        data: stockData,
-                        backgroundColor: ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b'],
-                    }]
-                },
-                options: { plugins: { legend: { position: 'bottom' } } }
-            });
+                const stockData = @json(array_values($stockByType ?? []));
+                const stockLabels = @json(array_keys($stockByType ?? []));
+                const stockEl = document.getElementById('stockTypeChart');
+                if (stockEl && stockEl.getContext) {
+                    const ctx2 = stockEl.getContext('2d');
+                    new Chart(ctx2, {
+                        type: 'doughnut',
+                        data: {
+                            labels: stockLabels,
+                            datasets: [{
+                                data: stockData,
+                                backgroundColor: ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b'],
+                            }]
+                        },
+                        options: { plugins: { legend: { position: 'bottom' } } }
+                    });
+                }
+            } catch (err) {
+                console.error('Dashboard chart error:', err);
+            }
         })();
     </script>
-@endsection
+@endpush
