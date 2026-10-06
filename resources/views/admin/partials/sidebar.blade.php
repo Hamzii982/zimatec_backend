@@ -151,9 +151,16 @@
         </a>
         <div class="collapse submenu {{ $lagerMenuActive ? 'show' : '' }}" id="lagerSubmenu">
 
+            {{--
             <a href="{{ route('admin.lager.index') }}"
                 class="{{ request()->routeIs('admin.lager.index') ? 'active' : '' }}">
                 Lager Übersicht
+            </a>
+            --}}
+
+            <a href="{{ route('admin.lager.dashboard') }}"
+                class="{{ request()->routeIs('admin.lager.dashboard') ? 'active' : '' }}">
+                Lager Dashboard
             </a>
 
             @foreach($lagers as $lager)

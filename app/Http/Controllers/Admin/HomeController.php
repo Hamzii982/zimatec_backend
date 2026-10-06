@@ -29,7 +29,6 @@ class HomeController extends Controller
         // --- Summary counts ---
         $projectsCount = Project::count();
         $usersCount = User::count();
-        $processesCount = \DB::table('processes')->count();
     
         $hour = Carbon::now()->hour;
         switch (time()) {
@@ -98,7 +97,8 @@ class HomeController extends Controller
         // on the warehouse module you described (min/reorder level per material,
         // current stock derived from summed material_instances).
         $lagersCount = Lager::count();
-        $materialsCount = Material::count();
+        $materialsCount = Material::where("is_werkzeug", false)->count();
+        $werkzeugeCount = Material::where("is_werkzeug", true)->count();
     
         $lowStockQuery = function ($query) {
             $query->whereRaw('quantity <= COALESCE(threshold, 0)');
@@ -148,9 +148,9 @@ class HomeController extends Controller
             ->get();
     
         return view('admin.home.index', compact(
-            'projectsCount', 'usersCount', 'processesCount', 'recentProjects',
+            'projectsCount', 'usersCount', 'recentProjects',
             'projectLabels', 'projectData', 'userLabels', 'userData', 'greeting',
-            'mostActiveMachine', 'mostActiveUser', 'lagersCount', 'materialsCount',
+            'mostActiveMachine', 'mostActiveUser', 'lagersCount', 'materialsCount', 'werkzeugeCount',
             'lowStockMaterials', 'lowStockCount',
             'utilizationHeatmap', 'pendingTimeChangeRequestsCount', 'pendingTimeChangeRequests',
             'projectStatusDistribution', 'overdueAndAtRiskProjects', 'upcomingDeadlines'

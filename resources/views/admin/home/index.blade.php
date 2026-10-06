@@ -167,9 +167,9 @@
                 <div class="card-body d-flex align-items-center gap-3">
                     <div class="stat-icon bg-warning-soft"><i class="bi bi-list-task"></i></div>
                     <div>
-                        <div class="stat-label">Prozesse</div>
-                        <a class="text-decoration-none" href="{{ route('admin.time.logs_old') }}">
-                            <div class="stat-value counter" data-target="{{ $processesCount ?? 0 }}">0</div>
+                        <div class="stat-label">Werkzeuge</div>
+                        <a class="text-decoration-none" href="{{ route('admin.lager.index') }}">
+                            <div class="stat-value counter" data-target="{{ $werkzeugeCount ?? 0 }}">0</div>
                         </a>
                     </div>
                 </div>
@@ -182,7 +182,9 @@
                     <div class="stat-icon bg-info-soft"><i class="bi bi-boxes"></i></div>
                     <div>
                         <div class="stat-label">Materialien</div>
-                        <div class="stat-value counter" data-target="{{ $materialsCount ?? 0 }}">0</div>
+                        <a class="text-decoration-none" href="{{ route('admin.lager.index') }}">
+                            <div class="stat-value counter" data-target="{{ $materialsCount ?? 0 }}">0</div>
+                        </a>
                     </div>
                 </div>
             </div>
@@ -194,7 +196,9 @@
                     <div class="stat-icon bg-blue-soft"><i class="bi bi-diagram-3-fill"></i></div>
                     <div>
                         <div class="stat-label">Lager</div>
-                        <div class="stat-value counter" data-target="{{ $lagersCount ?? 0 }}">0</div>
+                        <a class="text-decoration-none" href="{{ route('admin.lager.index') }}">
+                            <div class="stat-value counter" data-target="{{ $lagersCount ?? 0 }}">0</div>
+                        </a>
                     </div>
                 </div>
             </div>
@@ -206,7 +210,9 @@
                     <div class="stat-icon bg-danger-soft"><i class="bi bi-exclamation-triangle-fill"></i></div>
                     <div>
                         <div class="stat-label">Niedriger Bestand</div>
-                        <div class="stat-value counter" data-target="{{ $lowStockCount ?? 0 }}">0</div>
+                        <a class="text-decoration-none" href="{{ route('admin.lager.index') }}">
+                            <div class="stat-value counter" data-target="{{ $lowStockCount ?? 0 }}">0</div>
+                        </a>
                     </div>
                 </div>
             </div>

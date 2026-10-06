@@ -366,6 +366,7 @@ Route::middleware(['auth', 'role:admin'])
         if (config('modules.tablar')) {
             Route::middleware('module:tablar,read')->group(function () {
                 // Lager CRUD
+                Route::get('/lager/dashboard', [AdminTablarController::class, 'dashboard'])->name('lager.dashboard');
                 Route::get('/lager', [AdminLagerController::class, 'lager'])->name('lager.index');
                 Route::post('/lager', [AdminLagerController::class, 'storeLager'])->name('lager.store');
                 Route::get('/lager/create', [AdminLagerController::class, 'createLager'])->name('lager.create');

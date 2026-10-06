@@ -555,6 +555,74 @@ class TablarController extends Controller
         ));
     }
 
+    /**
+     * Global dashboard across all lagers.
+     */
+    public function dashboard()
+    {
+        $lagersCount = Lager::count();
+        $totalMaterials = Material::count();
+        $totalUnits = Material::sum(DB::raw('COALESCE(quantity,0) + COALESCE(on_hold_quantity,0) + COALESCE(order_quantity,0)'));
+
+        // Low stock materials (top 10)
+        $lowStockMaterials = Material::whereNotNull('threshold')->where('threshold', '>', 0)
+            ->whereRaw('(quantity + COALESCE(on_hold_quantity, 0) + COALESCE(order_quantity, 0)) <= threshold')
+            ->orderByRaw('(quantity + COALESCE(on_hold_quantity, 0) + COALESCE(order_quantity, 0))')
+            ->take(10)->get();
+
+        $lowStockCount = Material::whereNotNull('threshold')->where('threshold', '>', 0)
+            ->whereRaw('(quantity + COALESCE(on_hold_quantity, 0) + COALESCE(order_quantity, 0)) <= threshold')
+            ->count();
+
+        // Top used materials (30 days)
+        $topUsed30Days = MaterialConsumption::select('material_id', DB::raw('SUM(quantity) as total_used'))
+            ->where('consumption_time', '>=', now()->subDays(30))
+            ->groupBy('material_id')
+            ->orderByDesc('total_used')
+            ->with('material')
+            ->take(10)->get();
+
+        // Tools count (is_werkzeug flag)
+        $toolsCount = Material::where('is_werkzeug', true)->count();
+
+        // Pending orders
+        $pendingOrders = Material::where('order_status', 'ordered')->count();
+
+        // Consumption over last 30 days (per day totals)
+        $start = now()->subDays(29)->startOfDay();
+        $end = now()->endOfDay();
+
+        $consumptionByDay = MaterialConsumption::select(DB::raw('DATE(consumption_time) as day'), DB::raw('SUM(quantity) as total'))
+            ->whereBetween('consumption_time', [$start, $end])
+            ->groupBy('day')
+            ->orderBy('day')
+            ->pluck('total', 'day')
+            ->toArray();
+
+        $consumptionLabels = [];
+        $consumptionData = [];
+        $cursor = $start->copy();
+        while ($cursor->lte($end)) {
+            $dayKey = $cursor->format('Y-m-d');
+            $consumptionLabels[] = $cursor->format('d.m.');
+            $consumptionData[] = (int) ($consumptionByDay[$dayKey] ?? 0);
+            $cursor->addDay();
+        }
+
+        // Stock by type (for doughnut)
+        $stockByType = Material::select('type', DB::raw('SUM(quantity) as total'))
+            ->groupBy('type')
+            ->orderByDesc('total')
+            ->get()
+            ->mapWithKeys(fn ($r) => [$r->type ?? 'Unbekannt' => (int) $r->total])
+            ->toArray();
+
+        return view('admin.tablar.dashboard', compact(
+            'lagersCount', 'totalMaterials', 'totalUnits', 'lowStockMaterials', 'topUsed30Days',
+            'toolsCount', 'pendingOrders', 'lowStockCount', 'consumptionLabels', 'consumptionData', 'stockByType'
+        ));
+    }
+
     private function createFullSheets(Material $material, int $qty, array $data): void
     {
         if ($qty <= 0 || $material->lager?->type !== 'holz') {
