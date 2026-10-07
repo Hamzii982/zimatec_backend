@@ -163,6 +163,7 @@
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <script>
     document.getElementById('addWeekBtn').addEventListener('click', function () {
         const slider = document.getElementById('weekSlider');
@@ -192,18 +193,175 @@
         slider.insertBefore(newButton, this);
     });
 
-    function exportMachineTable(tableId, machineName, weekLabel) {
+    async function exportMachineTable(tableId, machineName, weekLabel) {
         const table = document.getElementById(tableId);
         if (!table) return;
 
-        // Sheet names are capped at 31 chars by the xlsx spec.
+        // 1. Neues Workbook & Sheet erstellen
+        const workbook = new ExcelJS.Workbook();
         const sheetName = machineName.substring(0, 31);
-        const wb = XLSX.utils.table_to_book(table, { sheet: sheetName });
+        const worksheet = workbook.addWorksheet(sheetName);
 
-        const safeName = `Maschinenlaufstunden_${machineName}_${weekLabel}`
-            .replace(/[^a-zA-Z0-9_\-]/g, '_');
+        // Page Setup (A4 Querformat für Druck)
+        worksheet.pageSetup.orientation = 'landscape';
 
-        XLSX.writeFile(wb, `${safeName}.xlsx`);
+        // 2. Spaltenbreiten definieren (exakt passend zur Vorlage)
+        worksheet.columns = [
+            { width: 14 }, // A: Datum
+            { width: 24 }, // B: Auftrags-Nr. ZF
+            { width: 24 }, // C: Auftrags-Nr. ZIMATEC
+            { width: 14 }, // D: Pos.
+            { width: 18 }, // E: Rüstzeit
+            { width: 18 }, // F: mit Aufsicht
+            { width: 18 }, // G: ohne Aufsicht
+            { width: 20 }  // H: Bediener
+        ];
+
+        // Style-Helfer
+        const borderThin = {
+            top: { style: 'thin' },
+            left: { style: 'thin' },
+            bottom: { style: 'thin' },
+            right: { style: 'thin' }
+        };
+
+        // --- ROW 1: Titelzeile & Woche ---
+        worksheet.mergeCells('A1:D1');
+        const titleCell = worksheet.getCell('A1');
+        titleCell.value = `Maschinenlaufstunden für CNC-Fräse "${machineName}"`;
+        titleCell.font = { name: 'Arial', size: 14, bold: true };
+        titleCell.alignment = { vertical: 'middle', horizontal: 'left' };
+
+        worksheet.mergeCells('F1:H1');
+        const weekCell = worksheet.getCell('F1');
+        weekCell.value = `Woche: ${weekLabel}`;
+        weekCell.font = { name: 'Arial', size: 12, bold: true, underline: true };
+        weekCell.alignment = { vertical: 'middle', horizontal: 'right' };
+
+        // --- ROW 2: Sub-Header Laufstunden ---
+        worksheet.mergeCells('E3:G3');
+        const headerHours = worksheet.getCell('E3');
+        headerHours.value = 'Laufstunden am Tag:';
+        headerHours.font = { name: 'Arial', size: 12 };
+        headerHours.alignment = { vertical: 'middle', horizontal: 'center' };
+
+        // --- ROW 3: Tabellen-Kopfzeile ---
+        const headers = [
+            'Datum:', 'Auftrags-Nr. ZF:', 'Auftrags-Nr. ZIMATEC:', 
+            'Pos.', 'Rüstzeit', 'mit Aufsicht', 'ohne Aufsicht', 'Bediener:'
+        ];
+        
+        const headerRow = worksheet.getRow(4);
+        headerRow.height = 30;
+
+        headers.forEach((text, colIdx) => {
+            const cell = headerRow.getCell(colIdx + 1);
+            cell.value = text;
+            cell.font = { name: 'Arial', size: 10, bold: true };
+            cell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FFE0E0E0' } // Hellgrauer Hintergrund
+            };
+            cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+            cell.border = borderThin;
+        });
+
+        // --- ROWS: Daten aus der HTML-Tabelle extrahieren ---
+        const rows = table.querySelectorAll('tbody tr:not(.zt-admin-row)');
+        let currentRowIdx = 5;
+
+        rows.forEach((tr) => {
+            const cells = tr.querySelectorAll('td');
+            if (cells.length < 9) return; // Sicherheitsscheck
+
+            const row = worksheet.getRow(currentRowIdx);
+            row.height = 20;
+
+            // Werte & Ausrichtungen setzen
+            const values = [
+                cells[0].innerText.trim(), // Datum
+                cells[2].innerText.trim(), // ZF
+                cells[3].innerText.trim(), // ZT
+                cells[4].innerText.trim(), // Pos
+                cells[5].innerText.trim(), // Rüstzeit
+                cells[6].innerText.trim(), // mit Aufsicht
+                cells[7].innerText.trim(), // ohne Aufsicht
+                cells[8].innerText.trim()  // Bediener
+            ];
+
+            values.forEach((val, colIdx) => {
+                const cell = row.getCell(colIdx + 1);
+                cell.value = val;
+                cell.font = { name: 'Arial', size: 10 };
+                cell.border = borderThin;
+
+                // Zentrieren für Datum, Auftragsnr, Pos
+                if ([0, 1, 2, 3].includes(colIdx)) {
+                    cell.alignment = { vertical: 'middle', horizontal: 'center' };
+                } 
+                // Rechtsbündig für Zeiten
+                else if ([4, 5, 6].includes(colIdx)) {
+                    cell.alignment = { vertical: 'middle', horizontal: 'right' };
+                } 
+                // Linksbündig für Text
+                else {
+                    cell.alignment = { vertical: 'middle', horizontal: 'left' };
+                }
+            });
+
+            currentRowIdx++;
+        });
+
+        // --- ROW: Verwaltungshinweis ---
+        currentRowIdx++;
+        worksheet.mergeCells(`A${currentRowIdx}:H${currentRowIdx}`);
+        const adminCell = worksheet.getCell(`A${currentRowIdx}`);
+        adminCell.value = 'Ab hier wird nur von der Verwaltung ausgefüllt wenn Zeilen benötigt werden diese darüber einfügen';
+        adminCell.font = { name: 'Arial', size: 9, italic: true, color: { argb: 'FF555555' } };
+        adminCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFDF2D6' } }; // Sanftes Gelb
+        adminCell.alignment = { vertical: 'middle', horizontal: 'center' };
+        adminCell.border = borderThin;
+        currentRowIdx++;
+
+        // --- ROW: Summenzeile ---
+        const tfootRow = table.querySelector('tfoot tr');
+        if (tfootRow) {
+            const footCells = tfootRow.querySelectorAll('td');
+            const sumRow = worksheet.getRow(currentRowIdx);
+            sumRow.height = 22;
+
+            worksheet.mergeCells(`A${currentRowIdx}:D${currentRowIdx}`);
+            const sumLabelCell = sumRow.getCell(1);
+            sumLabelCell.value = 'Gesamt:';
+            sumLabelCell.font = { name: 'Arial', size: 10, bold: true };
+            sumLabelCell.alignment = { vertical: 'middle', horizontal: 'right' };
+
+            // Werte für Rüstzeit, mit Aufsicht, ohne Aufsicht
+            [4, 5, 6].forEach((colIdxInTable, index) => {
+                const excelCol = 5 + index; // Spalten E, F, G
+                const cell = sumRow.getCell(excelCol);
+                cell.value = footCells[index + 1]?.innerText.trim() || '0';
+                cell.font = { name: 'Arial', size: 10, bold: true };
+                cell.alignment = { vertical: 'middle', horizontal: 'right' };
+            });
+
+            // Borders auf die ganze Summenzeile legen
+            for (let c = 1; c <= 8; c++) {
+                sumRow.getCell(c).border = borderThin;
+            }
+        }
+
+        // --- Datei erzeugen und Download anstoßen ---
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        
+        const safeName = `KW_${weekLabel}_Maschinenlaufstd_ZiMaTec_${machineName}`.replace(/[^a-zA-Z0-9_\-]/g, '_');
+        link.download = `${safeName}.xlsx`;
+        link.click();
+        URL.revokeObjectURL(link.href);
     }
 </script>
 @endsection
