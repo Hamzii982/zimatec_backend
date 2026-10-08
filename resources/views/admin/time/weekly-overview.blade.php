@@ -8,10 +8,18 @@
     // simply loading the page twice in one test run). Logic is unchanged.
     if (! function_exists('secondsToIndustryMinutes')) {
         function secondsToIndustryMinutes($seconds) {
-            $real = (int) round($seconds / 60);
-            $ind  = (int) round($seconds / 60 * 5 / 3);
+            $totalSeconds = (int) round($seconds);
+            $hours = intdiv($totalSeconds, 3600);
+            $remainderSeconds = $totalSeconds % 3600;
 
-            return sprintf('%02d:%02d (%02d:%02d)', intdiv($real, 60), $real % 60, intdiv($ind, 60), $ind % 60);
+            $industryMinutes = (int) round(($remainderSeconds / 3600) * 100 / 25) * 25;
+
+            if ($industryMinutes >= 100) {
+                $industryMinutes = 0;
+                $hours++;
+            }
+
+            return sprintf('%d,%02d', $hours, $industryMinutes);
         }
     }
 @endphp
@@ -42,6 +50,36 @@
                     $tableId = 'machine-table-'.$loop->index;
                     $weekLabel = collect($weeks)->firstWhere('value', $selectedWeek)['label'] ?? $selectedWeek;
                     $machineName = $table['machine']->name ?? 'Maschine';
+                    $groupedRows = collect($table['rows'])
+                        ->groupBy(function ($row) {
+                            return implode('|', [
+                                $row->machine_id ?? $row->machine?->id ?? 'null',
+                                $row->project_id ?? $row->project?->id ?? 'null',
+                                $row->position_id ?? $row->position?->id ?? 'null',
+                                $row->user_id ?? 'null',
+                            ]);
+                        })
+                        ->map(function ($group) {
+                            $first = $group->first();
+                            $dates = $group
+                                ->pluck('date')
+                                ->unique()
+                                ->sort()
+                                ->map(fn ($date) => \Carbon\Carbon::parse($date)->format('d.m.Y'))
+                                ->values();
+
+                            return [
+                                'dates' => $dates,
+                                'project' => $first->project,
+                                'position' => $first->position,
+                                'user_name' => $first->user_name,
+                                'is_fallback_attribution' => $group->contains(fn ($row) => (bool) $row->is_fallback_attribution),
+                                'ruestzeit_seconds' => $group->sum('ruestzeit_seconds'),
+                                'mit_aufsicht_seconds' => $group->sum('mit_aufsicht_seconds'),
+                                'ohne_aufsicht_seconds' => $group->sum('ohne_aufsicht_seconds'),
+                            ];
+                        })
+                        ->values();
                 @endphp
                 <div class="d-flex justify-content-between align-items-center">
                     <h6 class="zt-machine-title">
@@ -73,20 +111,20 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach($table['rows'] as $row)
+                            @foreach($groupedRows as $groupedRow)
                                 <tr>
-                                    <td>{{ \Carbon\Carbon::parse($row->date)->format('d.m.Y') }}</td>
-                                    <td>{{ $row->project->project_name ?? '—' }}</td>
-                                    <td>{{ $row->project->auftragsnummer_zf ?? '—' }}</td>
-                                    <td>{{ $row->project->auftragsnummer_zt ?? '—' }}</td>
-                                    <td>{{ $row->position->name ?? '—' }}</td>
-                                    <td>{{ secondsToIndustryMinutes($row->ruestzeit_seconds) }}</td>
-                                    <td>{{ secondsToIndustryMinutes($row->mit_aufsicht_seconds) }}</td>
-                                    <td>{{ secondsToIndustryMinutes($row->ohne_aufsicht_seconds) }}</td>
+                                    <td>{{ $groupedRow['dates']->implode(', ') }}</td>
+                                    <td>{{ $groupedRow['project']->project_name ?? '—' }}</td>
+                                    <td>{{ $groupedRow['project']->auftragsnummer_zf ?? '—' }}</td>
+                                    <td>{{ $groupedRow['project']->auftragsnummer_zt ?? '—' }}</td>
+                                    <td>{{ $groupedRow['position']->name ?? '—' }}</td>
+                                    <td>{{ secondsToIndustryMinutes($groupedRow['ruestzeit_seconds']) }}</td>
+                                    <td>{{ secondsToIndustryMinutes($groupedRow['mit_aufsicht_seconds']) }}</td>
+                                    <td>{{ secondsToIndustryMinutes($groupedRow['ohne_aufsicht_seconds']) }}</td>
                                     <td>
-                                        @if($row->user_name)
-                                            {{ $row->user_name }}
-                                            @if($row->is_fallback_attribution)
+                                        @if($groupedRow['user_name'])
+                                            {{ $groupedRow['user_name'] }}
+                                            @if($groupedRow['is_fallback_attribution'])
                                                 <i class="bi bi-info-circle text-muted"
                                                     title="Kein Bediener an diesem Tag protokolliert — automatisch dem letzten Bediener dieses Auftrags zugeordnet."></i>
                                             @endif
