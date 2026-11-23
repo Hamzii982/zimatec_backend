@@ -67,9 +67,12 @@ class MachineLogService
                 'm.name',
                 'po.name',
             ])
+            ->orderBy('m.name')
             ->orderByDesc('calendar_week')
             ->get();
 
+        $weeklyRecords = $weeklyRecords->groupBy('machine_name');
+        
         return [
             'weeks' => $range->weeks,
             'weeklyRecords' => $weeklyRecords,

@@ -46,46 +46,46 @@
                 <button id="addWeekBtn" class="zt-week-btn zt-week-btn--ghost">+1</button>
             </div>
 
-            <div class="table-responsive">
-                <table class="table zt-table zt-table--excel align-middle mb-0">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>KW</th>
-                            <th>Maschine</th>
-                            <th>Auftragsnr.</th>
-                            <th>Position</th>
-                            <th>Gesamtzeit</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($weeklyRecords as $index => $row)
-                            @php
-                                $totalSeconds = $row->process_seconds - $row->pause_seconds;
-                            @endphp
+            @forelse($weeklyRecords as $machineName => $rows)
+                <div class="d-flex align-items-center gap-2 mt-4 mb-2">
+                    <h6 class="mb-0 fw-semibold">{{ $machineName }}</h6>
+                    <span class="zt-badge {{ $rows->first()->company === 'ZF' ? 'zt-badge--zf' : 'zt-badge--zt' }}">
+                        {{ $rows->first()->company }}
+                    </span>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table zt-table zt-table--excel align-middle mb-0">
+                        <thead>
                             <tr>
-                                <td>{{ $index + 1 }}</td>
-                                <td>KW {{ substr($row->calendar_week, 4) }}</td>
-                                <td>
-                                    {{ $row->machine_name }}
-                                    <span class="zt-badge {{ $row->company === 'ZF' ? 'zt-badge--zf' : 'zt-badge--zt' }}">
-                                        {{ $row->company }}
-                                    </span>
-                                </td>
-                                <td>{{ $row->auftragsnummer }}</td>
-                                <td>{{ $row->position_name }}</td>
-                                <td><strong>{{ secondsToIndustryMinutes($totalSeconds) }}</strong></td>
+                                <th>#</th>
+                                <th>KW</th>
+                                <th>Auftragsnr.</th>
+                                <th>Position</th>
+                                <th>Gesamtzeit</th>
                             </tr>
-                        @empty
-                            <tr>
-                                <td colspan="7" class="zt-empty text-center py-4">
-                                    Keine Daten für diese Kalenderwochen vorhanden.
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
+                        </thead>
+                        <tbody>
+                            @foreach($rows as $index => $row)
+                                @php
+                                    $totalSeconds = $row->process_seconds - $row->pause_seconds;
+                                @endphp
+                                <tr>
+                                    <td>{{ $index + 1 }}</td>
+                                    <td>KW {{ substr($row->calendar_week, 4) }}</td>
+                                    <td>{{ $row->auftragsnummer }}</td>
+                                    <td>{{ $row->position_name }}</td>
+                                    <td><strong>{{ secondsToIndustryMinutes($totalSeconds) }}</strong></td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @empty
+                <div class="zt-empty text-center py-4">
+                    Keine Daten für diese Kalenderwochen vorhanden.
+                </div>
+            @endforelse
 
         </div>
     </div>
