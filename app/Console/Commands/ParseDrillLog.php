@@ -11,7 +11,6 @@ use App\Models\Project;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Str;
-use RuntimeException;
 
 class ParseDrillLog extends Command
 {
@@ -237,7 +236,10 @@ class ParseDrillLog extends Command
 
             // --- basic validation ---
             if (count($parts) < 5) {
-                throw new RuntimeException('Path too short to be a valid CNC file '.$filename.' in path '.$fullPath);
+                $this->warn('Path too short to be a valid CNC file '.$filename.' in path '.$fullPath);
+                $state->currentProcName = null;
+
+                return true;
             }
 
             $machine = $parts[1];
