@@ -221,7 +221,15 @@
                                 @forelse($shelfActivity as $s)
                                 <tr class="shelf-js-row">
                                     <td class="ps-4 font-monospace text-secondary fw-semibold small">
-                                        <i class="bi bi-hdd-stack text-muted me-2"></i>{{ $s->tablar ?? 'Nicht zugewiesen' }}
+                                        <a href="{{ 
+                                            route('admin.tablar.index',
+                                                [
+                                                    'lager_id' => $lager->id,
+                                                    'shelf' => $s->tablar
+                                                ])
+                                            }}" class="text-decoration-none text-dark">
+                                            <i class="bi bi-hdd-stack text-muted me-2"></i>{{ $s->tablar ?? 'Nicht zugewiesen' }}
+                                        </a>
                                     </td>
                                     <td class="pe-4 text-end">
                                         <span class="badge bg-secondary-subtle text-secondary px-2.5 py-1.5 fw-bold">
@@ -261,7 +269,7 @@
                                 <div>
                                     <span class="fw-bold text-dark d-block mb-0.5 small">{{ $log->material->name ?? 'Gelöschtes Material' }}</span>
                                     <small class="text-muted text-xs">
-                                        <i class="bi bi-box-arrow-right text-danger me-1"></i> Entnommen: 
+                                        <i class="bi bi-box-arrow-right text-danger me-1"></i> {{ $log->type_label }}:
                                         <span class="fw-bold text-secondary">{{ $log->quantity }} Stk.</span>
                                     </small>
                                 </div>

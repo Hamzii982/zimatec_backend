@@ -5,7 +5,7 @@
 <div class="container py-4">
     <div class="card shadow-sm">
         <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Material Details — {{ $material->name }}</h5>
+            <h5 class="mb-0">{{ $material->name }} im {{ $lager->name }}</h5>
             <a href="{{ $backToListUrl }}" class="btn btn-secondary btn-sm">
                 <i class="bi bi-list"></i> {{ __('tablar.filter.reset') === 'Filter zurücksetzen' ? 'Alle Materialien' : 'Alle Materialien' }}
             </a>

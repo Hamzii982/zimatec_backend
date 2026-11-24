@@ -16,6 +16,25 @@ let selectedSupplierId = null;
 let searchTimeout = null;
 let filterTimeout = null;
 
+function maximizeMaterialImage(event, src) {
+    event.stopPropagation();
+    document.getElementById('materialLightboxImage').src = src;
+    new bootstrap.Modal(document.getElementById('materialImageLightboxModal')).show();
+}
+
+function setMaterialImagePreview(src) {
+    const preview = document.getElementById('imagePreview');
+    preview.src = src;
+    document.getElementById('imagePreviewContainer').classList.toggle('d-none', !src);
+}
+
+function removeMaterialImage() {
+    setMaterialImagePreview('');
+    document.getElementById('image').value = '';
+    document.getElementById('imageCaptured').value = '';
+    document.getElementById('removeImage').value = editMode && currentId ? '1' : '0';
+}
+
 // ─── CAMERA ──────────────────────────────────────────────────────────────────
 
 let cameraStream   = null;
@@ -55,9 +74,8 @@ function capturePhoto() {
     const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
 
     // Show preview
-    const preview = document.getElementById('imagePreview');
-    preview.src = dataUrl;
-    preview.classList.remove('d-none');
+    setMaterialImagePreview(dataUrl);
+    document.getElementById('removeImage').value = '0';
 
     // Store base64 for upload; clear file input so it doesn't override
     document.getElementById('imageCaptured').value = dataUrl;
@@ -72,14 +90,13 @@ function previewImage(input) {
     if (!input.files?.length) return;
     const reader = new FileReader();
     reader.onload = e => {
-        const preview = document.getElementById('imagePreview');
-        preview.src = e.target.result;
-        preview.classList.remove('d-none');
+        setMaterialImagePreview(e.target.result);
     };
     reader.readAsDataURL(input.files[0]);
 
     // Clear any previously captured camera image
     document.getElementById('imageCaptured').value = '';
+    document.getElementById('removeImage').value = '0';
 }
 
 // ─── OPEN ADD MODAL ───────────────────────────────────────────────────────────
@@ -90,7 +107,8 @@ function openAddModal() {
 
     document.getElementById('modalTitle').innerText = "Neues Material";
     document.getElementById('materialForm').reset();
-    document.getElementById('imagePreview').classList.add('d-none');
+    setMaterialImagePreview('');
+    document.getElementById('removeImage').value = '0';
     document.getElementById('shelfId').value = '';
     document.getElementById('tablar').value = '';
     document.getElementById('isActive').checked = true;
@@ -122,12 +140,11 @@ function openEditModal(button) {
     document.getElementById('isActive').checked         = row.getAttribute('data-is-active') === '1';
 
     const img = row.getAttribute('data-image');
-    const preview = document.getElementById('imagePreview');
+    document.getElementById('removeImage').value = '0';
     if (img) {
-        preview.src = img;
-        preview.classList.remove('d-none');
+        setMaterialImagePreview(img);
     } else {
-        preview.classList.add('d-none');
+        setMaterialImagePreview('');
     }
 
     new bootstrap.Modal(document.getElementById('materialModal')).show();
@@ -189,6 +206,7 @@ async function saveMaterial() {
     formData.append('order_status', document.getElementById('orderStatus').value || '');
     formData.append('is_werkzeug', document.getElementById('isWerkzeug').checked ? '1' : '0');
     formData.append('is_active', document.getElementById('isActive').checked ? '1' : '0');
+    formData.append('remove_image', document.getElementById('removeImage').value);
 
     if (isHolzLager && addQty > 0) {
         formData.append('sheet_length_mm', document.getElementById('sheetLengthMm').value);
@@ -286,14 +304,6 @@ async function deleteMaterial(id) {
     }
 }
 
-function previewImage(input) {
-    const preview = document.getElementById('imagePreview');
-    if (input.files && input.files[0]) {
-        preview.src = URL.createObjectURL(input.files[0]);
-        preview.classList.remove('d-none');
-    }
-}
-
 // ─── OPEN SUPPLIER MODAL ──────────────────────────────────────────────────────
 
 async function openSupplierModal(button) {
@@ -350,6 +360,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const filterName     = document.getElementById('filterName');
     const filterCode     = document.getElementById('filterCode');
+    const filterType     = document.getElementById('filterType');
     const filterQuantity = document.getElementById('filterQuantity');
     const filterShelf    = document.getElementById('filterShelf');
     const qtyValue       = document.getElementById('qtyValue');
@@ -368,7 +379,7 @@ document.addEventListener('DOMContentLoaded', () => {
         filterTimeout = setTimeout(() => filterForm.submit(), 1500);
     }
 
-    [filterName, filterCode, filterShelf].forEach(input => {
+    [filterName, filterCode, filterType, filterShelf].forEach(input => {
         input.addEventListener('input', debounceSubmit);
 
         input.addEventListener('keydown', (e) => {
@@ -576,10 +587,19 @@ async function detachSupplier(supplierId) {
 // ─── SHOW ALERT ───────────────────────────────────────────────────────────────
 
 function showAlert(message, type = 'danger') {
-    const container = document.getElementById('alert-container');
+    const materialModal = document.getElementById('materialModal');
+    const modalIsOpen = materialModal?.classList.contains('show');
+    const container = (modalIsOpen && document.getElementById('materialFormAlertContainer'))
+        || document.getElementById('alert-container');
     const alert     = document.createElement('div');
-    alert.className = `alert alert-${type} shadow-lg border-0 fade show`;
-    alert.innerHTML = `<strong>${message}</strong>`;
+    alert.className = `alert alert-${type} shadow-lg border-0 fade show mb-0 mx-3 mt-3`;
+    alert.setAttribute('role', 'alert');
+    alert.style.whiteSpace = 'pre-line';
+
+    const content = document.createElement('strong');
+    content.textContent = message;
+    alert.appendChild(content);
+    container.innerHTML = '';
     container.appendChild(alert);
 
     setTimeout(() => {

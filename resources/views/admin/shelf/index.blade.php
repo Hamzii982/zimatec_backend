@@ -33,7 +33,17 @@
                     <tbody>
                         @forelse ($shelves as $shelf)
                             <tr>
-                                <td>{{ $shelf->name }}</td>
+                                <td>
+                                    <a href="{{ 
+                                            route('admin.tablar.index',
+                                            [
+                                                'lager_id' => $lager->id,
+                                                'shelf' => $shelf->name
+                                            ])
+                                        }}" class="text-decoration-none text-dark">
+                                        {{ $shelf->name }}
+                                    </a>
+                                </td>
                                 <td>{{ $shelf->code ?? '—' }}</td>
                                 <td>
                                     <span class="zt-badge {{ $shelf->is_active ? 'zt-badge--success' : 'zt-badge--pending' }}">

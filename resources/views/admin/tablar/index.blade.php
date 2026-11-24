@@ -9,7 +9,7 @@
         <!-- HEADER CARD -->
         <div class="card shadow-sm zt-card">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h4 class="mb-0">Materialverwaltung (Werkstatt)</h4>
+                <h4 class="mb-0">{{ $lager->name }}</h4>
 
                 <!-- ADD BUTTON -->
                 <button class="zt-export-btn" onclick="openAddModal()">
@@ -61,19 +61,19 @@
 
                             <!-- Name Filter -->
                             <div class="col-md-3">
-                                <label class="zt-form-label">Materialname</label>
+                                <label class="zt-form-label">Name / Details</label>
                                 <input
                                     type="text"
                                     name="name"
                                     id="filterName"
                                     class="form-control zt-select"
-                                    placeholder="z.B. Schraube"
+                                    placeholder="Name oder Beschreibung"
                                     value="{{ request('name') }}"
                                 >
                             </div>
 
                             <!-- Code Filter -->
-                            <div class="col-md-3">
+                            <div class="col-md-2">
                                 <label class="zt-form-label">Code</label>
                                 <input
                                     type="text"
@@ -85,8 +85,21 @@
                                 >
                             </div>
 
+                            <!-- Type Filter -->
+                            <div class="col-md-2">
+                                <label class="zt-form-label">Typ</label>
+                                <input
+                                    type="text"
+                                    name="type"
+                                    id="filterType"
+                                    class="form-control zt-select"
+                                    placeholder="z.B. Schrauben"
+                                    value="{{ request('type') }}"
+                                >
+                            </div>
+
                             <!-- Quantity Range -->
-                            <div class="col-md-3">
+                            <div class="col-md-2">
                                 <label class="zt-form-label">
                                     Menge (max): <span id="qtyValue">{{ request('max_qty', $maxQuantity) }}</span>
                                 </label>
@@ -124,7 +137,7 @@
                         </div>
 
                         <!-- Active filters + reset -->
-                        @if(request()->hasAny(['name', 'code', 'shelf', 'max_qty', 'low_stock', 'empty', 'status']))
+                        @if(request()->hasAny(['name', 'code', 'type', 'shelf', 'max_qty', 'low_stock', 'empty', 'status']))
                         <div class="mt-2">
                             <a href="{{ route('admin.tablar.index', $lager->id) }}" class="zt-btn zt-btn--ghost">
                                 <i class="bi bi-x-circle"></i> {{ __('tablar.filter.reset') }}
@@ -144,7 +157,7 @@
                                 <th>Beschreibung</th>
                                 <th>Menge</th>
                                 <th>Regal</th>
-                                <th>Mindestbestand</th>
+                                <th>Typ</th>
                                 <th>Status</th>
                                 <th class="text-end">Aktionen</th>
                             </tr>
@@ -178,7 +191,7 @@
                                 >
                                     <td>
                                         @if($material->image)
-                                            <img src="{{ asset('storage/'.$material->image) }}" alt="" width="40" height="40" class="rounded object-fit-cover">
+                                            <img src="{{ asset('storage/'.$material->image) }}" alt="{{ $material->name }}" width="40" height="40" class="rounded object-fit-cover" style="cursor: zoom-in;" onclick="maximizeMaterialImage(event, this.src)">
                                         @else
                                             <div class="zt-thumb-placeholder">
                                                 <i class="bi bi-image"></i>
@@ -219,15 +232,12 @@
                                                 <i class="bi bi-truck me-1"></i>{{ (int) $material->order_quantity }} {{ $material->unit ?? "stk." }}
                                             </span>
                                         @endif
-                                    </td>
-                                    <td class="text-muted small">{{ $material->tablar }}</td>
-                                    <td>
                                         @if(!is_null($material->threshold) && (int) $material->threshold > 0)
-                                            <span class="zt-tag" data-bs-toggle="tooltip" title="0 = keine Warnung">{{ $material->threshold }}</span>
-                                        @else
-                                            <span class="text-muted small" data-bs-toggle="tooltip" title="0 = keine Warnung">—</span>
+                                            <span class="text-muted small d-block mt-1">Mindestbestand: {{ $material->threshold }} {{ $material->unit ?? "stk." }}</span>
                                         @endif
                                     </td>
+                                    <td class="text-muted small">{{ $material->tablar }}</td>
+                                    <td class="text-muted small">{{ $material->type ?: '—' }}</td>
                                     <td>
                                         @if($material->order_status)
                                             <span class="zt-badge zt-badge--info" data-bs-toggle="tooltip" title="{{ $material->status_label }}">{{ $material->status_label }}</span>
@@ -270,16 +280,29 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
 
+                <div id="materialFormAlertContainer"></div>
+
                 <div class="modal-body">
                     <form id="materialForm" enctype="multipart/form-data">
                         <input type="hidden" id="materialId">
 
                         <!-- IMAGE -->
                         <div class="mb-3 text-center">
-                            <img id="imagePreview" class="d-none rounded mb-2 object-fit-cover" style="width:100px;height:100px;">
+                            <div id="imagePreviewContainer" class="d-none position-relative d-inline-block mb-2">
+                                <img id="imagePreview" class="rounded object-fit-contain" style="width:100px;height:100px;background:#f8f9fa;">
+                                <div class="position-absolute top-0 end-0 d-flex gap-1 p-1">
+                                    <button type="button" class="btn btn-sm btn-light p-0" style="width:26px;height:26px;" aria-label="Bild vergrößern" title="Bild vergrößern" onclick="maximizeMaterialImage(event, document.getElementById('imagePreview').src)">
+                                        <i class="bi bi-arrows-fullscreen"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-light p-0" style="width:26px;height:26px;" aria-label="Bild entfernen" title="Bild entfernen" onclick="removeMaterialImage()">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
 
                             <!-- Captured via camera (hidden, populated by JS) -->
                             <input type="hidden" id="imageCaptured">
+                            <input type="hidden" id="removeImage" value="0">
 
                             <div class="d-flex gap-2 justify-content-center">
                                 <label class="zt-btn zt-btn--ghost mb-0">
@@ -547,6 +570,17 @@
         </div>
     </div>
 
+    <div class="modal fade" id="materialImageLightboxModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content bg-dark text-white text-center p-2 position-relative">
+                <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3" data-bs-dismiss="modal" aria-label="Schließen"></button>
+                <div class="p-3">
+                    <img id="materialLightboxImage" src="" alt="" class="img-fluid rounded" style="max-height: 80vh; object-fit: contain;">
+                </div>
+            </div>
+        </div>
+    </div>
+
     <style>
         .zt-compare {
             --zt-bg: #F5F6F8;
@@ -674,6 +708,6 @@
             }
         });
     </script>
-    <script src="{{ asset('js/admin/tablar/index.js') }}?v=1.0"></script>
+    <script src="{{ asset('js/admin/tablar/index.js') }}?v=1.1"></script>
 
 @endsection

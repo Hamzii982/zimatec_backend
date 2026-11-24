@@ -75,6 +75,61 @@ test('index filter status returns only matching order_status', function () {
         ->not->toContain($m3->id);
 });
 
+test('index name filter searches partial matches in names and descriptions', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $this->actingAs($admin);
+
+    $nameMatch = Material::create([
+        'name' => 'Premium Edelstahl-Schraube',
+        'quantity' => 1,
+        'lager_id' => 2,
+    ]);
+    $descriptionMatch = Material::create([
+        'name' => 'Befestigungsteil',
+        'description' => 'Geeignet für Edelstahl-Konstruktionen',
+        'quantity' => 1,
+        'lager_id' => 2,
+    ]);
+    $nonMatch = Material::create([
+        'name' => 'Holzleiste',
+        'description' => 'Für Innenausbau',
+        'quantity' => 1,
+        'lager_id' => 2,
+    ]);
+
+    $response = $this->get(route('admin.tablar.index', ['lager_id' => 2, 'name' => 'stahl']));
+
+    $response->assertOk();
+    $ids = collect($response->viewData('materials')->items())->pluck('id')->all();
+    expect($ids)->toContain($nameMatch->id, $descriptionMatch->id)
+        ->not->toContain($nonMatch->id);
+});
+
+test('index type filter supports partial matching', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $this->actingAs($admin);
+
+    $match = Material::create([
+        'name' => 'Schraube',
+        'type' => 'Edelstahlschrauben',
+        'quantity' => 1,
+        'lager_id' => 2,
+    ]);
+    $nonMatch = Material::create([
+        'name' => 'Rohr',
+        'type' => 'Kunststoff',
+        'quantity' => 1,
+        'lager_id' => 2,
+    ]);
+
+    $response = $this->get(route('admin.tablar.index', ['lager_id' => 2, 'type' => 'stahl']));
+
+    $response->assertOk();
+    $ids = collect($response->viewData('materials')->items())->pluck('id')->all();
+    expect($ids)->toContain($match->id)
+        ->not->toContain($nonMatch->id);
+});
+
 test('supplier list returns only materials attached to the requested supplier in this lager', function () {
     $admin = User::factory()->create(['role' => 'admin']);
     $this->actingAs($admin);

@@ -25,17 +25,27 @@ class TablarController extends Controller
             ->where('lager_id', $lager_id)
             ->orderBy('name');
 
-        if ($request->filled('name')) {
-            $query->where('name', 'like', '%'.$request->name.'%');
+        $name = trim((string) $request->input('name', ''));
+        if ($name !== '') {
+            $query->where(function ($q) use ($name) {
+                $q->where('name', 'like', '%'.$name.'%')
+                    ->orWhere('description', 'like', '%'.$name.'%');
+            });
         }
         if ($request->filled('code')) {
             $query->where('code', 'like', '%'.$request->code.'%');
         }
+        $type = trim((string) $request->input('type', ''));
+        if ($type !== '') {
+            $query->where('type', 'like', '%'.$type.'%');
+        }
         if ($request->filled('shelf')) {
-            $query->whereHas('shelf', function ($q) use ($request) {
-                $q->where('name', 'like', '%'.$request->shelf.'%');
-            })
-                ->orWhere('tablar', 'like', '%'.$request->shelf.'%');
+            $shelf = $request->shelf;
+            $query->where(function ($q) use ($shelf) {
+                $q->whereHas('shelf', function ($q) use ($shelf) {
+                    $q->where('name', 'like', '%'.$shelf.'%');
+                })->orWhere('tablar', 'like', '%'.$shelf.'%');
+            });
         }
         if ($request->filled('max_qty')) {
             $query->where('quantity', '<=', $request->max_qty);
@@ -427,6 +437,7 @@ class TablarController extends Controller
             'is_werkzeug' => 'nullable|boolean',
             'is_active' => 'nullable|boolean',
             'image' => 'nullable|image|max:4096',
+            'remove_image' => 'nullable|boolean',
             'sheet_length_mm' => 'nullable|numeric|min:1',
             'sheet_width_mm' => 'nullable|numeric|min:1',
             'sheet_thickness_mm' => 'nullable|numeric|min:0.1',
@@ -441,6 +452,11 @@ class TablarController extends Controller
                 Storage::disk('public')->delete($material->image);
             }
             $data['image'] = $request->file('image')->store('materials', 'public');
+        } elseif ($request->boolean('remove_image')) {
+            if ($material->image) {
+                Storage::disk('public')->delete($material->image);
+            }
+            $data['image'] = null;
         }
 
         $oldQuantity = $material->quantity;

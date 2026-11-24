@@ -6,6 +6,7 @@ use App\Models\Notification;
 use App\Models\Shelf;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 
 uses(RefreshDatabase::class);
 
@@ -166,6 +167,34 @@ test('update material as admin persists code and description', function () {
     $material->refresh();
     expect($material->code)->toBe('ART-002');
     expect($material->description)->toBe('Aktualisierte Notiz');
+});
+
+test('admin can remove a material image while updating the material', function () {
+    Storage::fake('public');
+    $admin = User::factory()->create(['role' => 'admin']);
+    $this->actingAs($admin);
+
+    $imagePath = 'materials/material.jpg';
+    Storage::disk('public')->put($imagePath, 'image contents');
+
+    $material = Material::create([
+        'name' => 'Mutter M10',
+        'quantity' => 10,
+        'lager_id' => 2,
+        'image' => $imagePath,
+    ]);
+
+    $this->putJson(
+        route('admin.tablar.update', ['lager_id' => 2, 'id' => $material->id]),
+        [
+            'name' => 'Mutter M10',
+            'quantity' => 10,
+            'remove_image' => true,
+        ]
+    )->assertOk();
+
+    expect($material->fresh()->image)->toBeNull();
+    Storage::disk('public')->assertMissing($imagePath);
 });
 
 test('admin tablar overview excludes materials with null or zero threshold from low stock', function () {
