@@ -236,8 +236,8 @@
                                             <span class="text-muted small d-block mt-1">Mindestbestand: {{ $material->threshold }} {{ $material->unit ?? "stk." }}</span>
                                         @endif
                                     </td>
-                                    <td class="text-muted small">{{ $material->tablar }}</td>
-                                    <td class="text-muted small">{{ $material->type ?: '—' }}</td>
+                                    <td class="text-muted small" style="max-width: 220px;">{{ $material->tablar }}</td>
+                                    <td class="text-muted smal">{{ $material->type ?: '—' }}</td>
                                     <td>
                                         @if($material->order_status)
                                             <span class="zt-badge zt-badge--info" data-bs-toggle="tooltip" title="{{ $material->status_label }}">{{ $material->status_label }}</span>
