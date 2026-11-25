@@ -100,7 +100,7 @@
                                         <td>{{ $index + 1 }}</td>
                                         <td>
                                             <a
-                                                onclick="getDailyRecords({{ $index }}, {{ $row->calendar_week }}, {{ $row->auftragsnummer }}, {{ $row->position_id }}, {{ $row->machine_id }})"
+                                                onclick="getDailyRecords({{ $index }}, {{ $row->calendar_week }}, {{ trim(explode('/', $row->auftragsnummer)[0]) }}, {{ $row->position_id }}, {{ $row->machine_id }})"
                                                 data-bs-toggle="collapse"
                                                 href="#collapse{{ $index }}"
                                                 aria-expanded="false"
@@ -128,7 +128,7 @@
                                                     <x-daily-records-table
                                                         :index="$index"
                                                         :week="$row->calendar_week"
-                                                        :auftragsnummer="$row->auftragsnummer"
+                                                        :auftragsnummer="trim(explode('/', $row->auftragsnummer)[0])"
                                                         :positionId="$row->position_id"
                                                         :machineId="$row->machine_id"
                                                         :autoLoad="false" />
