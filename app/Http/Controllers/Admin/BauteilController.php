@@ -36,12 +36,13 @@ class BauteilController extends Controller
         return view('admin.bauteile.index', compact('bauteile'));
     }
 
-    public function create()
+    public function create(Request $request)
     {
         $projects = Project::all();
         $bauteile = Bauteil::all();
+        $selectedProject = Project::find($request->query('project_id'));
 
-        return view('admin.bauteile.create', compact('projects', 'bauteile'));
+        return view('admin.bauteile.create', compact('projects', 'bauteile', 'selectedProject'));
     }
 
     public function store(Request $request)

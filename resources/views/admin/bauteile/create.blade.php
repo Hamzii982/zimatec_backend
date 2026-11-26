@@ -23,14 +23,17 @@
 
                     <div class="col-md-6">
                         <label for="project_id" class="form-label">Auftrag</label>
-                        <select name="project_id" id="project_id" class="form-select" required>
+                        <select name="project_id" id="project_id" class="form-select" required @disabled($selectedProject)>
                             <option value="">Auftrag auswählen</option>
                             @foreach($projects as $project)
-                                <option value="{{ $project->id }}" {{ old('project_id') == $project->id ? 'selected' : '' }}>
+                                <option value="{{ $project->id }}" @selected($selectedProject ? $selectedProject->id == $project->id : old('project_id') == $project->id)>
                                     {{ $project->project_name }}
                                 </option>
                             @endforeach
                         </select>
+                        @if($selectedProject)
+                            <input type="hidden" name="project_id" value="{{ $selectedProject->id }}">
+                        @endif
                     </div>
                 </div>
 

@@ -41,7 +41,12 @@
 
             <hr>
 
-            <h5 class="mb-3"><i class="bi bi-cpu me-2"></i> Zugehörige Positionen<span class="text-muted"> - {{ $project->positions->count() ?? '0' }}</span></h5>
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+                <h5 class="mb-0"><i class="bi bi-cpu me-2"></i> Zugehörige Positionen<span class="text-muted"> - {{ $project->positions->count() ?? '0' }}</span></h5>
+                <a href="{{ route('admin.projects.positions.create', $project) }}" class="btn btn-primary btn-sm">
+                    <i class="bi bi-plus-circle me-1"></i> Neue
+                </a>
+            </div>
             @if($project->positions->isEmpty())
                 <p class="text-muted">Keine Positionen gefunden.</p>
             @else
@@ -88,7 +93,12 @@
 
             <hr>
 
-            <h5 class="mb-3"><i class="bi bi-cpu me-2"></i> Zugehörige Bauteile<span class="text-muted"> - {{ $project->bauteile->count() ?? '0' }}</span></h5>
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+                <h5 class="mb-0"><i class="bi bi-cpu me-2"></i> Zugehörige Bauteile<span class="text-muted"> - {{ $project->bauteile->count() ?? '0' }}</span></h5>
+                <a href="{{ route('admin.bauteile.create', ['project_id' => $project->id]) }}" class="btn btn-primary btn-sm">
+                    <i class="bi bi-plus-circle me-1"></i> Neue
+                </a>
+            </div>
             @if($project->bauteile->isEmpty())
                 <p class="text-muted">Keine Bauteile gefunden.</p>
             @else
