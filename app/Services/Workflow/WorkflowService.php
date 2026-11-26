@@ -190,7 +190,7 @@ class WorkflowService
     protected function assertStepBelongsToProject(WorkflowProject $workflowProject, ProjectStep $projectStep): void
     {
         if ($projectStep->workflow_project_id !== $workflowProject->id) {
-            abort(404, 'Schritt gehört nicht zum Projekt.');
+            abort(404, 'Schritt gehört nicht zum Auftrag.');
         }
     }
 

@@ -4,7 +4,7 @@
 <div class="container mt-4">
     <div class="card shadow-sm">
         <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Projekt Angebote</h5>
+            <h5 class="mb-0">Auftragsangebote</h5>
             <a href="{{ route('admin.project_offers.create') }}" class="btn btn-secondary btn-sm">
                 <i class="bi bi-plus-circle me-1"></i> Neue Angebot
             </a>

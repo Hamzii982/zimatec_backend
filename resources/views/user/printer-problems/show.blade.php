@@ -61,10 +61,10 @@
         {{-- ── Left column ──────────────────────────────────────────────── --}}
         <div class="col-lg-8">
 
-            {{-- Projektinformation --}}
+            {{-- Auftragsinformationen --}}
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-header bg-white border-bottom py-2">
-                    <h6 class="mb-0 fw-semibold">Projektinformation</h6>
+                    <h6 class="mb-0 fw-semibold">Auftragsinformationen</h6>
                 </div>
                 <div class="card-body">
                     <dl class="row mb-0 small">

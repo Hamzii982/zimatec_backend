@@ -1,0 +1,550 @@
+metadata:
+  generated: "2026-11-26"
+  source_tasks: ".claude/plans/05-auftrag-terminology-linking/plan.md#tasks"
+  last_updated: "2026-11-26"
+
+summary:
+  total_tasks: 7
+  completed_tasks: 7
+  in_progress_tasks: 0
+  pending_tasks: 0
+  completion_percentage: 100.0
+
+tasks:
+  - task_id: "T001"
+    description: "Add Pest regression coverage for number links and access."
+    status: "completed"
+    implementation:
+      files_changed:
+        - file: "tests/Feature/ProjectTerminologyTest.php"
+          changes:
+            - change_type: "added"
+              description: "Covers correct admin detail links for populated ZF/ZT numbers, missing numbers, and existing access restrictions."
+    verification:
+      build_passed: true
+      test_results:
+        command: "php artisan test --filter=ProjectTerminologyTest"
+        passed: 2
+        failed: 0
+        skipped: 0
+        failures: []
+      notes: "10 assertions passed."
+    upstream_trace:
+      plan_item: "1.1"
+      requirements: ["REQ-002", "REQ-003", "REQ-008"]
+      full_trace: "REQ-002, REQ-003, REQ-008 -> Phase-1.1 -> T001 -> tests/Feature/ProjectTerminologyTest.php"
+  - task_id: "T002"
+    description: "Update core admin views and add admin-only number links."
+    status: "completed"
+    implementation:
+      files_changed:
+        - file: "resources/views/admin/projects/index.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates terminology and links each populated ZF/ZT number to its owning existing admin detail route."
+        - file: "resources/views/admin/projects/create.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates visible field terminology."
+        - file: "resources/views/admin/projects/edit.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates visible field terminology."
+        - file: "resources/views/admin/projects/show.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates the detail-page terminology."
+    verification:
+      build_passed: true
+      test_results:
+        command: "php artisan test --filter=ProjectTerminologyTest"
+        passed: 2
+        failed: 0
+        skipped: 0
+        failures: []
+      notes: "Feature test confirms links use Project route binding and front users gain no admin link or access."
+    upstream_trace:
+      plan_item: "2.1"
+      requirements: ["REQ-001", "REQ-002", "REQ-003", "REQ-006"]
+      full_trace: "REQ-001, REQ-002, REQ-003, REQ-006 -> Phase-2.1 -> T002 -> admin project views"
+  - task_id: "T003"
+    description: "Update connected admin views without changing contracts."
+    status: "completed"
+    implementation:
+      files_changed:
+        - file: "resources/views/admin/activity-timeline/index.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates the visible Auftrag label."
+        - file: "resources/views/admin/bauteile/create.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates Auftrag terminology."
+        - file: "resources/views/admin/bauteile/edit.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates Auftrag terminology."
+        - file: "resources/views/admin/bauteile/show.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates core and supplier-order labels."
+        - file: "resources/views/admin/home/index.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates dashboard terminology."
+        - file: "resources/views/admin/home/search.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates search terminology."
+        - file: "resources/views/admin/partials/sidebar.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates navigation terminology."
+        - file: "resources/views/admin/project_offers/create.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates offer terminology."
+        - file: "resources/views/admin/project_offers/edit.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates offer terminology."
+        - file: "resources/views/admin/project_offers/index.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates offer terminology."
+        - file: "resources/views/admin/project_offers/items/create.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates offer-item terminology."
+        - file: "resources/views/admin/project_offers/items/edit.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates offer-item terminology."
+        - file: "resources/views/admin/project_offers/items/show.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates offer-item terminology."
+        - file: "resources/views/admin/project_offers/email_templates/select.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates the offer-template empty-state copy."
+        - file: "resources/views/admin/projects/offers/index.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates supplier-offer terminology."
+        - file: "resources/views/admin/projects/offers/show.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates offer terminology."
+        - file: "resources/views/admin/projects/positions/create.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates position form terminology."
+        - file: "resources/views/admin/projects/positions/edit.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates position form terminology."
+        - file: "resources/views/admin/projects/positions/index.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates position list terminology."
+        - file: "resources/views/admin/projects/projects/create.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates supplier-order form terminology."
+        - file: "resources/views/admin/projects/projects/edit.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates supplier-order form terminology."
+        - file: "resources/views/admin/projects/projects/index.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates supplier-order list terminology."
+        - file: "resources/views/admin/projects/projects/show.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates supplier-order detail terminology."
+        - file: "resources/views/admin/settings/project-service-show.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates service terminology."
+        - file: "resources/views/admin/settings/project-service.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates service terminology."
+        - file: "resources/views/admin/settings/project-status-show.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates status terminology."
+        - file: "resources/views/admin/settings/project-status.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates status labels and confirmation copy."
+        - file: "resources/views/admin/time/change-logs.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates time-record labels."
+        - file: "resources/views/admin/time/compare-old.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates the order selector label."
+        - file: "resources/views/admin/time/compare.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates time comparison labels."
+        - file: "resources/views/admin/time/list.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates time-record list labels."
+        - file: "resources/views/admin/time/list_old.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates time-record list labels."
+        - file: "resources/views/admin/time/logs_old.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates time-log labels."
+        - file: "resources/views/admin/time/record-edit.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates time-record edit labels."
+        - file: "resources/views/admin/time/show.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates time-record detail labels."
+        - file: "resources/views/admin/time/weekly-overview.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates weekly overview labels."
+    verification:
+      build_passed: true
+      test_results:
+        command: "php artisan test --filter=ProjectTerminologyTest"
+        passed: 2
+        failed: 0
+        skipped: 0
+        failures: []
+      notes: "Admin view terminology audit found no remaining Projekt terms."
+    upstream_trace:
+      plan_item: "2.2"
+      requirements: ["REQ-001", "REQ-004", "REQ-005", "REQ-006"]
+      full_trace: "REQ-001, REQ-004, REQ-005, REQ-006 -> Phase-2.2 -> T003 -> related admin views"
+  - task_id: "T004"
+    description: "Update user-facing labels only; add no number links."
+    status: "completed"
+    implementation:
+      files_changed:
+        - file: "resources/views/user/home/index.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates home page terminology."
+        - file: "resources/views/user/layouts/index.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates navigation terminology."
+        - file: "resources/views/user/printer-problems/__form.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates printer-problem form terminology."
+        - file: "resources/views/user/printer-problems/create.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates printer-problem creation terminology."
+        - file: "resources/views/user/printer-problems/show.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates printer-problem detail terminology."
+        - file: "resources/views/user/projects/index.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates front-user order list terminology."
+        - file: "resources/views/user/projects/logs.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates order log terminology."
+        - file: "resources/views/user/scheduler/index.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates scheduler terminology."
+        - file: "resources/views/user/time_records/create.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates order selection terminology."
+        - file: "resources/views/user/time_records/create_old.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates order selection terminology."
+        - file: "resources/views/user/time_records/index-old.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates time-record list labels."
+        - file: "resources/views/user/time_records/index.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates time-record list labels."
+        - file: "resources/views/user/time_records/partials/last-week-table.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates time-record table label."
+        - file: "resources/views/user/time_records/request-form.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates time-change request label."
+        - file: "resources/views/user/time_records/show.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates time-record detail label."
+        - file: "resources/views/user/time_records/show_old.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates legacy time-record detail label."
+        - file: "resources/views/auth/register.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates the visible overview label."
+        - file: "resources/views/components/assistant-chat.blade.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates assistant example copy."
+        - file: "public/js/workflow.js"
+          changes:
+            - change_type: "modified"
+              description: "Updates the workflow advance confirmation string."
+    verification:
+      build_passed: true
+      test_results:
+        command: "php artisan test --filter=ProjectTerminologyTest"
+        passed: 2
+        failed: 0
+        skipped: 0
+        failures: []
+      notes: "User-facing view search found no remaining Projekt terminology; the public workflow confirmation was also updated."
+    upstream_trace:
+      plan_item: "3.1"
+      requirements: ["REQ-004", "REQ-006"]
+      full_trace: "REQ-004, REQ-006 -> Phase-3.1 -> T004 -> user-facing views and public/js/workflow.js"
+  - task_id: "T005"
+    description: "Update runtime messages and existing locale resources."
+    status: "completed"
+    implementation:
+      files_changed:
+        - file: "app/Console/Commands/ParseDrillLog.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates operator-facing order terminology."
+        - file: "app/Http/Controllers/Admin/ProjectController.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates core Auftrag flash messages."
+        - file: "app/Http/Controllers/Admin/ProjectOfferController.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates offer notification and flash copy."
+        - file: "app/Http/Controllers/Admin/SupplierProjectController.php"
+          changes:
+            - change_type: "modified"
+              description: "Uses Lieferantenauftrag wording."
+        - file: "app/Http/Controllers/Admin/Workflow/AssignmentController.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates assignment success messages."
+        - file: "app/Http/Controllers/Admin/Workflow/StageController.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates stage and step success messages."
+        - file: "app/Http/Controllers/Admin/Settings/ProjectSettingsController.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates work-order status messages."
+        - file: "app/Http/Controllers/Admin/Settings/ProjectServicesController.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates work-order service messages."
+        - file: "app/Http/Controllers/Admin/Settings/RoleController.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates visible permission module labels without changing permission keys."
+        - file: "app/Http/Controllers/HomeController.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates dashboard module description."
+        - file: "app/Http/Controllers/SchedulerController.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates schedule notification copy."
+        - file: "app/Http/Controllers/TimeRecordController.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates time-record validation copy."
+        - file: "app/Http/Controllers/Workflow/ProjectStepController.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates workflow handoff copy."
+        - file: "app/Services/AI/AiConversationOrchestrator.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates assistant guidance."
+        - file: "app/Services/Workflow/StageAdvancer.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates workflow notification copy."
+        - file: "app/Services/Workflow/WorkflowService.php"
+          changes:
+            - change_type: "modified"
+              description: "Updates workflow error copy."
+        - file: "lang/de/workflow.php"
+          changes:
+            - change_type: "modified"
+              description: "Uses Auftrag terminology in German workflow UI copy."
+        - file: "lang/en/workflow.php"
+          changes:
+            - change_type: "modified"
+              description: "Uses Work Order terminology in English workflow UI copy."
+        - file: "lang/en.json"
+          changes:
+            - change_type: "modified"
+              description: "Updates/adds English translations for the changed German UI strings."
+    verification:
+      build_passed: true
+      test_results:
+        command: "php artisan test --filter=ProjectWorkflowTest"
+        passed: 7
+        failed: 0
+        skipped: 0
+        failures: []
+      notes: "29 workflow assertions passed."
+    upstream_trace:
+      plan_item: "3.2"
+      requirements: ["REQ-004", "REQ-005", "REQ-006", "REQ-007"]
+      full_trace: "REQ-004, REQ-005, REQ-006, REQ-007 -> Phase-3.2 -> T005 -> app and lang resources"
+  - task_id: "T006"
+    description: "Search and review stale user-facing wording."
+    status: "completed"
+    implementation:
+      files_changed: []
+    verification:
+      build_passed: true
+      test_results:
+        command: "rg user-facing terminology audit across app, resources/views, public, lang, and config"
+        passed: 1
+        failed: 0
+        skipped: 0
+        failures: []
+      notes: "No remaining user-facing Projekt terminology in views, locale resources, or public assets; remaining app matches are internal comments and preserved storage/default naming."
+    upstream_trace:
+      plan_item: "4.1"
+      requirements: ["REQ-003", "REQ-004", "REQ-005", "REQ-006", "REQ-007"]
+      full_trace: "REQ-003, REQ-004, REQ-005, REQ-006, REQ-007 -> Phase-4.1 -> T006 -> terminology and compatibility audit"
+  - task_id: "T007"
+    description: "Run focused Pest tests and Pint; review compatibility."
+    status: "completed"
+    implementation:
+      files_changed: []
+    verification:
+      build_passed: true
+      test_results:
+        command: "php artisan test --filter=ProjectTerminologyTest; php artisan test --filter=ProjectWorkflowTest; vendor\\bin\\pint --test [modified PHP files]; git diff --exit-code -- routes database"
+        passed: 10
+        failed: 0
+        skipped: 0
+        failures: []
+      notes: "10 tests passed across the two Pest runs (39 assertions total). Pint passed; no route or database changes."
+    upstream_trace:
+      plan_item: "4.2"
+      requirements: ["REQ-003", "REQ-004", "REQ-005", "REQ-006", "REQ-007", "REQ-009"]
+      full_trace: "REQ-003, REQ-004, REQ-005, REQ-006, REQ-007, REQ-009 -> Phase-4.2 -> T007 -> Pest, Pint, and diff checks"
+
+pending_tasks: []
+untracked_changes: []
+
+traceability_chain:
+  - chain_id: "TRACE-001"
+    requirement: "REQ-001"
+    plan_phase: "Phase-2"
+    plan_item: "2.1"
+    tasks: ["T002", "T003"]
+    files:
+      - "resources/views/admin/projects/index.blade.php"
+      - "resources/views/admin/projects/create.blade.php"
+      - "resources/views/admin/projects/edit.blade.php"
+      - "resources/views/admin/projects/show.blade.php"
+    status: "complete"
+  - chain_id: "TRACE-002"
+    requirement: "REQ-002"
+    plan_phase: "Phase-1 and Phase-2"
+    plan_item: "1.1, 2.1"
+    tasks: ["T001", "T002"]
+    files:
+      - "tests/Feature/ProjectTerminologyTest.php"
+      - "resources/views/admin/projects/index.blade.php"
+    status: "complete"
+  - chain_id: "TRACE-003"
+    requirement: "REQ-003"
+    plan_phase: "Phase-1 and Phase-2"
+    plan_item: "1.1, 2.1"
+    tasks: ["T001", "T002"]
+    files:
+      - "tests/Feature/ProjectTerminologyTest.php"
+      - "resources/views/admin/projects/index.blade.php"
+    status: "complete"
+  - chain_id: "TRACE-004"
+    requirement: "REQ-004"
+    plan_phase: "Phase-2 and Phase-3"
+    plan_item: "2.2, 3.1, 3.2"
+    tasks: ["T003", "T004", "T005"]
+    files:
+      - "resources/views"
+      - "app"
+      - "lang"
+      - "public/js/workflow.js"
+    status: "complete"
+  - chain_id: "TRACE-005"
+    requirement: "REQ-005"
+    plan_phase: "Phase-2 and Phase-3"
+    plan_item: "2.2, 3.2"
+    tasks: ["T003", "T005"]
+    files:
+      - "resources/views/admin/projects/projects"
+      - "app/Http/Controllers/Admin/SupplierProjectController.php"
+    status: "complete"
+  - chain_id: "TRACE-006"
+    requirement: "REQ-006"
+    plan_phase: "Phase-2 and Phase-3"
+    plan_item: "2.1, 2.2, 3.1, 3.2"
+    tasks: ["T002", "T003", "T004", "T005"]
+    files:
+      - "resources/views"
+      - "app"
+    status: "complete"
+  - chain_id: "TRACE-007"
+    requirement: "REQ-007"
+    plan_phase: "Phase-3"
+    plan_item: "3.2"
+    tasks: ["T005"]
+    files:
+      - "lang/de/workflow.php"
+      - "lang/en/workflow.php"
+      - "lang/en.json"
+    status: "complete"
+  - chain_id: "TRACE-008"
+    requirement: "REQ-008"
+    plan_phase: "Phase-1"
+    plan_item: "1.1"
+    tasks: ["T001"]
+    files:
+      - "tests/Feature/ProjectTerminologyTest.php"
+    status: "complete"
+  - chain_id: "TRACE-009"
+    requirement: "REQ-009"
+    plan_phase: "Phase-4"
+    plan_item: "4.2"
+    tasks: ["T007"]
+    files:
+      - "tests/Feature/ProjectTerminologyTest.php"
+    status: "complete"
+
+validation:
+  passed: true
+  errors: []
+  warnings: []
+  blocking_issues: []

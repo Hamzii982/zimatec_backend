@@ -20,7 +20,7 @@
             </div>
             <div class="d-flex flex-column gap-2 mb-3" id="faqButtons">
                 <button type="button" class="btn btn-outline-secondary btn-sm text-start faq-btn"
-                        data-answer="Mit dem Chat können Sie Materialien suchen, Projekte abfragen und Empfehlungen erhalten. Sie können z. B. fragen: 'Zeig mir alle HSS Bohrer' oder 'Welche Projekte laufen gerade?'">
+                        data-answer="Mit dem Chat können Sie Materialien suchen, Aufträge abfragen und Empfehlungen erhalten. Sie können z. B. fragen: 'Zeig mir alle HSS Bohrer' oder 'Welche Aufträge laufen gerade?'">
                     Was kann diese chatbot machen?
                 </button>
                 <button type="button" class="btn btn-outline-secondary btn-sm text-start faq-btn"
@@ -28,8 +28,8 @@
                     Wie finde ich Materialien?
                 </button>
                 <button type="button" class="btn btn-outline-secondary btn-sm text-start faq-btn"
-                        data-answer="Sie können Projekte über den Chat abfragen, z. B. 'Zeig mir alle Projekte'.">
-                    Wie finde ich Projekte?
+                        data-answer="Sie können Aufträge über den Chat abfragen, z. B. 'Zeig mir alle Aufträge'.">
+                    Wie finde ich Aufträge?
                 </button>
             </div>
         </div>

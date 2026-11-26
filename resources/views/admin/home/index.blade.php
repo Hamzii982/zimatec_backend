@@ -139,7 +139,7 @@
                 <div class="card-body d-flex align-items-center gap-3">
                     <div class="stat-icon bg-blue-soft"><i class="bi bi-kanban-fill"></i></div>
                     <div>
-                        <div class="stat-label">Projekte</div>
+                        <div class="stat-label">Aufträge</div>
                         <a class="text-decoration-none" href="{{ route('admin.projects') }}">
                             <div class="stat-value counter" data-target="{{ $projectsCount ?? 0 }}">0</div>
                         </a>
@@ -382,21 +382,21 @@
         </div>
     </div>
 
-    {{-- Project Status Chart + Overdue/At-Risk Projects --}}
+    {{-- Auftrag status chart + overdue/at-risk orders --}}
     <div class="row g-4 mb-4">
         <div class="col-lg-4">
             <div class="card chart-card shadow-sm border-0 h-100 fade-in-up delay-1">
-                <div class="card-header"><h5 class="mb-0"><i class="bi bi-pie-chart-fill me-2"></i>Projektstatus</h5></div>
+                <div class="card-header"><h5 class="mb-0"><i class="bi bi-pie-chart-fill me-2"></i>Auftragsstatus</h5></div>
                 <div class="card-body"><canvas id="statusChart" height="220"></canvas></div>
             </div>
         </div>
 
         <div class="col-lg-8">
             <div class="card shadow-sm border-0 rounded-3 h-100 fade-in-up delay-2">
-                <div class="card-header card-header-clean"><h5 class="mb-0">Überfällige & gefährdete Projekte</h5></div>
+                <div class="card-header card-header-clean"><h5 class="mb-0">Überfällige & gefährdete Aufträge</h5></div>
                 <div class="card-body table-responsive-wrapper">
                     <table class="table table-hover align-middle mb-0">
-                        <thead><tr><th>Projekt</th><th>Ende</th><th>Status</th></tr></thead>
+                        <thead><tr><th>Auftrag</th><th>Ende</th><th>Status</th></tr></thead>
                         <tbody>
                             @forelse($overdueAndAtRiskProjects as $project)
                                 <tr>
@@ -411,7 +411,7 @@
                                     </td>
                                 </tr>
                             @empty
-                                <tr><td colspan="3" class="text-muted small">Keine überfälligen oder gefährdeten Projekte ✅</td></tr>
+                                <tr><td colspan="3" class="text-muted small">Keine überfälligen oder gefährdeten Aufträge ✅</td></tr>
                             @endforelse
                         </tbody>
                     </table>
@@ -425,7 +425,7 @@
         <div class="col-lg-6">
             <div class="card chart-card shadow-sm border-0 fade-in-up delay-1">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="bi bi-bar-chart-fill me-2"></i>Projektübersicht</h5>
+                    <h5 class="mb-0"><i class="bi bi-bar-chart-fill me-2"></i>Auftragsübersicht</h5>
                 </div>
                 <div class="card-body">
                     <canvas id="projectsChart" height="200"></canvas>
@@ -450,14 +450,14 @@
         <div class="col-12">
             <div class="card shadow-sm border-0 rounded-3 fade-in-up delay-3">
                 <div class="card-header card-header-clean">
-                    <h5 class="mb-0">Aktuelle Projekte</h5>
+                    <h5 class="mb-0">Aktuelle Aufträge</h5>
                 </div>
                 <div class="card-body table-responsive-wrapper">
                     <table class="table table-hover align-middle mb-0">
                         <thead>
                             <tr>
                                 <th>#</th>
-                                <th>Projekt Name</th>
+                                <th>Auftragsbezeichnung</th>
                                 <th>Start</th>
                                 <th>Ende</th>
                                 <th>Status</th>
@@ -520,7 +520,7 @@
         data: {
             labels: @json($projectLabels),
             datasets: [{
-                label: 'Prozesse pro Projekt',
+                label: 'Prozesse pro Auftrag',
                 data: @json($projectData),
                 backgroundColor: 'rgba(0, 39, 82, 0.65)',
                 borderColor: brandBlue,

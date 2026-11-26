@@ -38,7 +38,7 @@
                 <button id="addWeekBtn" class="zt-week-btn zt-week-btn--ghost">+1</button>
             </div>
 
-            {{-- Weekly aggregate: one card per Projekt / Position / Maschine --}}
+            {{-- Weekly aggregate: one card per Auftrag / Position / Maschine --}}
             @if(count($aggregate) > 0)
                 <h6 class="zt-section-title">Wochenübersicht</h6>
                 <div class="zt-agg-row mb-4">
@@ -86,7 +86,7 @@
                         <tr>
                             <th>Bediener</th>
                             <th>Maschine</th>
-                            <th>Projekt</th>
+                            <th>Auftrag</th>
                             <th>Position</th>
                             <th>Bediener-Zeit</th>
                             <th>Prozesse</th>

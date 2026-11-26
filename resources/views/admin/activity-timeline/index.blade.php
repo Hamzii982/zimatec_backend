@@ -93,7 +93,7 @@
                                         <th>Date</th>
                                         <th>User</th>
                                         <th>Machine</th>
-                                        <th>Project</th>
+                                        <th>Auftrag</th>
                                         <th>Position</th>
                                         <th>Duration (Hours)</th>
                                         <th>Action</th>
@@ -110,11 +110,11 @@
         </div>
     </div>
 
-    {{-- Project/Position Tooltip --}}
+    {{-- Auftrag/Position tooltip --}}
     <div id="activityTooltip" class="position-absolute bg-white border border-secondary rounded p-2" 
         style="display: none; z-index: 1000; max-width: 300px;">
         <small>
-            <strong>Project:</strong> <span id="tooltipProject"></span><br>
+            <strong>Auftrag:</strong> <span id="tooltipProject"></span><br>
             <strong>Position:</strong> <span id="tooltipPosition"></span>
         </small>
     </div>

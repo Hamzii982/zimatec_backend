@@ -55,7 +55,7 @@
                         </div>
 
                         {{-- Service Selection --}}
-                        <label class="form-label fw-semibold">Projektleistung wählen</label>
+                        <label class="form-label fw-semibold">Auftragsleistung wählen</label>
                         <div class="service-select-container">
                             <select class="form-select service-select" data-level="0" name="service_select_temp">
                                 <option value="">-- auswählen --</option>

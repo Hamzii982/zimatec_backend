@@ -19,7 +19,7 @@
           <div class="row g-2 align-items-center">
               <div class="col-auto">
                   <select name="project_id" id="projectFilter" class="form-select form-select-sm">
-                      <option value="">Alle Projekte</option>
+                      <option value="">Alle Aufträge</option>
                       @foreach($allProjects as $proj)
                           @php
                             $auftragsnummer = ($proj->auftragsnummer_zt && $proj->auftragsnummer_zf) ? $proj->auftragsnummer_zt ."/".$proj->auftragsnummer_zf :

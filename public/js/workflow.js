@@ -82,7 +82,7 @@
 
         const result = await Swal.fire({
             title: 'Weitergeben?',
-            text: 'Projekt an die nächste Stufe übergeben?',
+            text: 'Auftrag an die nächste Stufe übergeben?',
             icon: 'question',
             showCancelButton: true,
             confirmButtonText: 'Ja, weitergeben',

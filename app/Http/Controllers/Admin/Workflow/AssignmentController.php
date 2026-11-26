@@ -33,7 +33,7 @@ class AssignmentController extends Controller
 
         return redirect()
             ->route('admin.workflow.settings')
-            ->with('success', 'Projekt dem Workflow zugeordnet.');
+            ->with('success', 'Auftrag dem Workflow zugeordnet.');
     }
 
     public function attachProjectSelection(Request $request, WorkflowService $service)
@@ -58,7 +58,7 @@ class AssignmentController extends Controller
 
         return redirect()
             ->route('admin.workflow.settings')
-            ->with('success', 'Projekt dem Workflow zugeordnet.');
+            ->with('success', 'Auftrag dem Workflow zugeordnet.');
     }
 
     public function assign(Request $request, BaseProject $project, WorkflowService $service)

@@ -4,7 +4,7 @@
 <div class="container mt-4">
     <div class="card shadow-sm">
         <div class="card-header bg-dark text-white">
-            <h5 class="mb-0">Edit Lieferantenprojekt</h5>
+            <h5 class="mb-0">Lieferantenauftrag bearbeiten</h5>
         </div>
 
         <div class="card-body">
@@ -14,7 +14,7 @@
 
                 <div class="row mb-3">
                     <div class="col-md-6">
-                        <label class="form-label">Projektname</label>
+                        <label class="form-label">Bezeichnung des Lieferantenauftrags</label>
                         <input type="text" name="name" class="form-control" value="{{ old('name', $project->name) }}" required>
                     </div>
 

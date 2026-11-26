@@ -54,7 +54,7 @@
                 </div>
                 <div style="min-width: 220px;">
                     <select id="projectFilter" class="form-select form-select-sm bg-white border" onchange="applyFilters()">
-                        <option value="">Alle Projekte</option>
+                        <option value="">Alle Aufträge</option>
                         @foreach($projects as $project)
                             <option value="{{ $project->id }}">
                                 {{ $project->project_name }} ({{ $project->auftragsnummer_zf ?? $project->auftragsnummer_zt ?? 'N/A' }})
@@ -112,11 +112,11 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
-                    <!-- Project Selection -->
+                    <!-- Auftrag selection -->
                     <div class="mb-3">
-                        <label for="modalProject" class="form-label fw-bold">Projekt</label>
+                        <label for="modalProject" class="form-label fw-bold">Auftrag</label>
                         <select id="modalProject" name="project_id" class="form-select" required>
-                            <option value="">-- Projekt wählen --</option>
+                            <option value="">-- Auftrag wählen --</option>
                             @foreach($projects as $project)
                                 <option value="{{ $project->id }}">
                                     {{ $project->project_name }} ({{ $project->auftragsnummer_zf ?? $project->auftragsnummer_zt ?? 'Allgemein' }})

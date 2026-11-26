@@ -1,6 +1,6 @@
 @extends('admin.layouts.index')
 
-@section('title', $service->exists ? 'Edit Projekt Leistung' : 'Add Projekt Leistung')
+@section('title', $service->exists ? 'Auftragsleistung bearbeiten' : 'Auftragsleistung hinzufügen')
 
 @section('content')
 <div class="container mt-4">
@@ -8,7 +8,7 @@
         <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
             <h5 class="mb-0">{{ $service->exists ? 'Edit '.$service->name : 'Add Neue Leistung' }}</h5>
             <a href="{{ route('admin.settings.project-service') }}" class="btn btn-secondary btn-sm">
-                <i class="bi bi-book-circle me-1"></i> Alle Projekte Leistungen
+                <i class="bi bi-book-circle me-1"></i> Alle Auftragsleistungen
             </a>
         </div>
 

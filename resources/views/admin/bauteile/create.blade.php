@@ -22,9 +22,9 @@
                     </div>
 
                     <div class="col-md-6">
-                        <label for="project_id" class="form-label">Projekt</label>
+                        <label for="project_id" class="form-label">Auftrag</label>
                         <select name="project_id" id="project_id" class="form-select" required>
-                            <option value="">Projekt auswählen</option>
+                            <option value="">Auftrag auswählen</option>
                             @foreach($projects as $project)
                                 <option value="{{ $project->id }}" {{ old('project_id') == $project->id ? 'selected' : '' }}>
                                     {{ $project->project_name }}

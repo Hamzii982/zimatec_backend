@@ -139,10 +139,10 @@
                         </a>
                     </li>
 
-                    {{-- Projekte --}}
+                    {{-- Aufträge --}}
                     <li class="nav-item dropdown mx-2 my-1 my-lg-0">
                         <a class="nav-link dropdown-toggle {{ request()->routeIs(['projects', 'workflow.*']) ? 'active fw-bold text-navitem' : '' }}" href="#" id="projectDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="bi bi-kanban-fill me-1"></i> Projekte
+                            <i class="bi bi-kanban-fill me-1"></i> Aufträge
                         </a>
                         <ul class="dropdown-menu" aria-labelledby="projectDropdown">
                             <li>

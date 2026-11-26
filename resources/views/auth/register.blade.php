@@ -19,7 +19,7 @@
                         </div>
                         <div class="d-flex align-items-center mb-3">
                             <i class="bi bi-check-circle-fill text-success fs-4 me-3"></i>
-                            <span class="fs-5">{{ __('Projektübersicht in Echtzeit') }}</span>
+                            <span class="fs-5">{{ __('Auftragsübersicht in Echtzeit') }}</span>
                         </div>
                         <div class="d-flex align-items-center">
                             <i class="bi bi-check-circle-fill text-success fs-4 me-3"></i>

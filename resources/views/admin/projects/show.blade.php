@@ -5,7 +5,7 @@
     <div class="card shadow-sm border-0">
         <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
             <h5 class="mb-0">
-                <i class="bi bi-folder2-open me-2"></i> {{ $project->project_name }}
+                <i class="bi bi-folder2-open me-2"></i> Auftrag: {{ $project->project_name }}
             </h5>
             <a href="{{ route('admin.projects') }}" class="btn btn-secondary btn-sm">
                 <i class="bi bi-arrow-left-circle"></i> Zurück
@@ -152,7 +152,7 @@
                                                 </div>
                                             @else
                                                 <div class="mt-2">
-                                                    <span class="badge bg-light text-dark">Kein Projektstatus</span>
+                                                    <span class="badge bg-light text-dark">Kein Auftragsstatus</span>
                                                 </div>
                                             @endif
                                         </div>
@@ -180,7 +180,7 @@
                 @if(auth()->user()?->canDeleteModule('projects'))
                     <form action="{{ route('admin.projects.destroy', $project->id) }}" method="POST" class="d-inline">
                         @csrf @method('DELETE')
-                        <button class="btn btn-outline-danger" onclick="return confirm('Dieses Projekt löschen?')">
+                        <button class="btn btn-outline-danger" onclick="return confirm('Diesen Auftrag löschen?')">
                             <i class="bi bi-trash"></i>
                         </button>
                     </form>

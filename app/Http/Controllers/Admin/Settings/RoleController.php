@@ -100,7 +100,7 @@ class RoleController extends Controller
     {
         return [
             'teams' => 'Team',
-            'projects' => 'Projects',
+            'projects' => 'Aufträge',
             'time' => 'Time',
             'suppliers' => 'Suppliers',
             'settings' => 'Settings',
@@ -108,7 +108,7 @@ class RoleController extends Controller
             'tablar' => 'Lager',
             'scheduler' => 'Scheduler',
             'emails' => 'Emails',
-            'project_offers' => 'Project Offers',
+            'project_offers' => 'Auftragsangebote',
         ];
     }
 }

@@ -133,13 +133,13 @@ class ProjectOfferController extends Controller
         Notification::create([
             'user_id' => $offer->assigned_user_id ?? auth()->id(),
             'type' => 'project_offer_created',
-            'message' => 'Neues Projektangebot erstellt: '.$offer->subject,
+            'message' => 'Neues Auftragsangebot erstellt: '.$offer->subject,
             'url' => route('admin.project_offers.show', $offer),
         ]);
 
         return redirect()
             ->route('admin.project_offers.show', $offer)
-            ->with('success', 'Projektangebot wurde erfolgreich erstellt.');
+            ->with('success', 'Auftragsangebot wurde erfolgreich erstellt.');
     }
 
     public function edit($offer)
@@ -311,7 +311,7 @@ class ProjectOfferController extends Controller
         }
 
         return redirect()->route('admin.project_offers.show', $offer)
-            ->with('success', 'Projektangebot wurde erfolgreich aktualisiert.');
+            ->with('success', 'Auftragsangebot wurde erfolgreich aktualisiert.');
     }
 
     public function destroy($offer)
@@ -503,7 +503,7 @@ class ProjectOfferController extends Controller
         Notification::create([
             'user_id' => $offer->assigned_user_id ?? auth()->id(),
             'type' => 'project_offer_calculated',
-            'message' => 'Projektangebot Kalkuliert: '.$offer->subject,
+            'message' => 'Auftragsangebot kalkuliert: '.$offer->subject,
             'url' => route('admin.project_offers.calculations', $offer),
         ]);
 

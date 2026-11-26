@@ -1,0 +1,100 @@
+metadata:
+  generated: "2026-11-26"
+  source_plan: ".claude/plans/05-auftrag-terminology-linking/plan.md"
+  target_tasks: ".claude/plans/05-auftrag-terminology-linking/plan.md#tasks"
+
+summary:
+  total_plan_items: 7
+  covered_plan_items: 7
+  missing_plan_items: 0
+  coverage_percentage: 100.0
+  total_tasks_generated: 7
+  orphan_tasks: 0
+
+phases:
+  - phase_id: "Phase-1"
+    phase_name: "Foundational"
+    items:
+      - item_id: "1.1"
+        description: "Add link and access regression coverage."
+        tasks:
+          - task_id: "T001"
+            description: "Add Pest regression coverage for number links and access."
+        notes: "Test-first prerequisite for the admin link."
+  - phase_id: "Phase-2"
+    phase_name: "Admin Auftrag list and detail"
+    items:
+      - item_id: "2.1"
+        description: "Update core admin Auftrag pages and link numbers."
+        tasks:
+          - task_id: "T002"
+            description: "Update core admin views and add admin-only number links."
+      - item_id: "2.2"
+        description: "Update related admin-side terminology."
+        tasks:
+          - task_id: "T003"
+            description: "Update connected admin views without changing contracts."
+  - phase_id: "Phase-3"
+    phase_name: "Connected modules and translations"
+    items:
+      - item_id: "3.1"
+        description: "Update connected user-facing terminology."
+        tasks:
+          - task_id: "T004"
+            description: "Update user-facing labels only; add no number links."
+      - item_id: "3.2"
+        description: "Update controller messages and translations."
+        tasks:
+          - task_id: "T005"
+            description: "Update runtime messages and existing locale resources."
+  - phase_id: "Phase-4"
+    phase_name: "Polish and validation"
+    items:
+      - item_id: "4.1"
+        description: "Audit terminology and compatibility."
+        tasks:
+          - task_id: "T006"
+            description: "Search and review stale user-facing wording."
+      - item_id: "4.2"
+        description: "Run tests and formatting validation."
+        tasks:
+          - task_id: "T007"
+            description: "Run focused Pest tests and Pint; review compatibility."
+
+missing_plan_items: []
+orphan_tasks: []
+
+upstream_trace:
+  - plan_item: "1.1"
+    source_requirements: ["REQ-002", "REQ-003", "REQ-008"]
+    tasks: ["T001"]
+    full_trace: "REQ-002,REQ-003,REQ-008 → Phase-1.1 → T001"
+  - plan_item: "2.1"
+    source_requirements: ["REQ-001", "REQ-002", "REQ-003", "REQ-006"]
+    tasks: ["T002"]
+    full_trace: "REQ-001,REQ-002,REQ-003,REQ-006 → Phase-2.1 → T002"
+  - plan_item: "2.2"
+    source_requirements: ["REQ-001", "REQ-004", "REQ-005", "REQ-006"]
+    tasks: ["T003"]
+    full_trace: "REQ-001,REQ-004,REQ-005,REQ-006 → Phase-2.2 → T003"
+  - plan_item: "3.1"
+    source_requirements: ["REQ-004", "REQ-006"]
+    tasks: ["T004"]
+    full_trace: "REQ-004,REQ-006 → Phase-3.1 → T004"
+  - plan_item: "3.2"
+    source_requirements: ["REQ-004", "REQ-005", "REQ-006", "REQ-007"]
+    tasks: ["T005"]
+    full_trace: "REQ-004,REQ-005,REQ-006,REQ-007 → Phase-3.2 → T005"
+  - plan_item: "4.1"
+    source_requirements: ["REQ-003", "REQ-004", "REQ-005", "REQ-006", "REQ-007"]
+    tasks: ["T006"]
+    full_trace: "REQ-003,REQ-004,REQ-005,REQ-006,REQ-007 → Phase-4.1 → T006"
+  - plan_item: "4.2"
+    source_requirements: ["REQ-003", "REQ-004", "REQ-005", "REQ-006", "REQ-007", "REQ-009"]
+    tasks: ["T007"]
+    full_trace: "REQ-003,REQ-004,REQ-005,REQ-006,REQ-007,REQ-009 → Phase-4.2 → T007"
+
+validation:
+  passed: true
+  errors: []
+  warnings: []

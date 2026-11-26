@@ -100,7 +100,7 @@
                         <thead>
                             <tr>
                                 <th>Datum</th>
-                                <th>Projekt</th>
+                                <th>Auftrag</th>
                                 <th>Auftrags-Nr. ZF</th>
                                 <th>Auftrags-Nr. ZIMATEC</th>
                                 <th>Pos.</th>

@@ -81,7 +81,7 @@
                         <div class="zt-info-tile">
                             <i class="bi bi-folder-fill"></i>
                             <div>
-                                <span class="zt-info-label">Projekt</span>
+                                <span class="zt-info-label">Auftrag</span>
                                 <span class="zt-info-value">{{ $record->project->project_name }}</span>
                             </div>
                         </div>

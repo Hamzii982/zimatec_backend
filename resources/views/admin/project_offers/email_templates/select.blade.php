@@ -14,7 +14,7 @@
 
         <div class="card-body">
             @if($templates->isEmpty())
-                <p class="text-muted">No active email templates found for Project Offers.</p>
+                <p class="text-muted">Keine aktiven E-Mail-Vorlagen für Auftragsangebote gefunden.</p>
             @else
                 <div class="table-responsive">
                     <table class="table table-striped align-middle">

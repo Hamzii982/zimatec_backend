@@ -36,7 +36,7 @@
                             <h6 class="card-subtitle mb-2 text-muted">
                                 ZF: {{ $result->auftragsnummer_zf }}
                             </h6>
-                            <p class="card-text text-secondary small">Details zum Projekt können hier stehen...</p>
+                            <p class="card-text text-secondary small">Details zum Auftrag können hier stehen...</p>
                         </div>
                         <div class="card-footer bg-transparent border-0 pb-3">
                             <a href="{{ route('admin.projects.show', $result->id) }}" class="btn btn-sm btn-light">Ansehen</a>

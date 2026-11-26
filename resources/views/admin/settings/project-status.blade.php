@@ -1,14 +1,14 @@
 @extends('admin.layouts.index')
 
-@section('title', 'Settings - Project Statuses')
+@section('title', 'Auftragsstatus')
 
 @section('content')
 <div class="zt-compare container mt-4">
     <div class="card shadow-sm zt-card">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Projektstatus</h5>
+            <h5 class="mb-0">Auftragsstatus</h5>
             <a href="{{ route('admin.settings.project-status.show') }}" class="zt-export-btn">
-                <i class="bi bi-plus-circle"></i> Neue Projektstatus
+                <i class="bi bi-plus-circle"></i> Neuen Auftragsstatus
             </a>
         </div>
 
@@ -133,9 +133,9 @@ document.querySelectorAll('.toggle-active').forEach((checkbox) => {
         .then(res => res.json())
         .then(data => {
             if (data.success) {
-                const status = data.active ? 'activated' : 'deactivated';
+                const status = data.active ? 'aktiviert' : 'deaktiviert';
                 console.log(`Status ${id} ${status}`);
-                showAlert(`Project status ${status} successfully.`, 'success');
+                showAlert(`Auftragsstatus ${status}.`, 'success');
             } else {
                 showAlert('Something went wrong.', 'danger');
             }

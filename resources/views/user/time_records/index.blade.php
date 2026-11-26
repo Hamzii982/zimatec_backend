@@ -52,9 +52,9 @@
                     {{-- ========== FILTER BAR ========== --}}
                     <form method="GET" class="zt-filter-form row g-3 mb-4">
                         <div class="col-md-3">
-                            <label class="zt-form-label">Projekt</label>
+                            <label class="zt-form-label">Auftrag</label>
                             <select name="project_id" class="form-select zt-select">
-                                <option value="">Alle Projekte</option>
+                                <option value="">Alle Aufträge</option>
                                 @foreach($projects as $project)
                                     <option value="{{ $project->id }}" {{ request('project_id') == $project->id ? 'selected' : '' }}>
                                         {{ $project->project_name }}
@@ -97,7 +97,7 @@
                                     @if(!$selectedUser)
                                         <th>Bediener</th>
                                     @endif
-                                    <th>Projekt</th>
+                                    <th>Auftrag</th>
                                     <th>Position</th>
                                     <th>Maschine</th>
                                     <th>Start</th>

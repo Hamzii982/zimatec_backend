@@ -2,12 +2,12 @@
 
 return [
     'board' => [
-        'title' => 'Project Workflow',
-        'subtitle' => 'Overview of all projects by processing stage',
-        'my_projects' => 'My Projects',
-        'all_projects' => 'All Projects',
+        'title' => 'Work Order Workflow',
+        'subtitle' => 'Overview of all work orders by processing stage',
+        'my_projects' => 'My Work Orders',
+        'all_projects' => 'All Work Orders',
         'filter_assignee' => 'Assignee',
-        'no_projects' => 'No projects in this stage.',
+        'no_projects' => 'No work orders in this stage.',
     ],
     'stages' => [
         'office' => 'Office',
@@ -53,13 +53,13 @@ return [
         'assignee_removed' => 'removed assignee :user',
         'project_attached' => 'was attached to the workflow',
         'project_completed' => 'finished all stages',
-        'stage_advanced' => 'advanced the project to the next stage',
+        'stage_advanced' => 'advanced the work order to the next stage',
     ],
     'messages' => [
         'confirm_complete' => 'Mark this step as completed?',
-        'confirm_advance' => 'Advance the project to the next stage?',
+        'confirm_advance' => 'Advance the work order to the next stage?',
         'confirm_reassign' => 'Change the assignee?',
-        'success_advanced' => 'Project has been handed off.',
+        'success_advanced' => 'Work order has been handed off.',
         'success_completed' => 'Step completed.',
         'error_incomplete_steps' => 'Not all required steps are completed yet.',
         'error_generic' => 'Something went wrong.',
@@ -91,12 +91,12 @@ return [
             'update' => 'Update',
         ],
         'project' => [
-            'title' => 'Create workflow for a project',
-            'project' => 'Project',
+            'title' => 'Create workflow for a work order',
+            'project' => 'Work order',
             'stage' => 'Starting stage',
             'default_stage' => 'First active stage',
             'assignee' => 'Initial assignee',
-            'attach' => 'Attach project',
+            'attach' => 'Attach work order',
         ],
     ],
 ];

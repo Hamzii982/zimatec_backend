@@ -1,6 +1,6 @@
 @extends('admin.layouts.index')
 
-@section('title', $status->exists ? 'Edit Projekt Status' : 'Add Projekt Status')
+@section('title', $status->exists ? 'Auftragsstatus bearbeiten' : 'Auftragsstatus hinzufügen')
 
 @section('content')
 <div class="container mt-4">
@@ -8,7 +8,7 @@
         <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
             <h5 class="mb-0">{{ $status->exists ? 'Edit '.$status->name : 'Add New Status' }}</h5>
             <a href="{{ route('admin.settings.project-status') }}" class="btn btn-secondary btn-sm">
-                <i class="bi bi-book-circle me-1"></i> Alle Projektestatus
+                <i class="bi bi-book-circle me-1"></i> Alle Auftragsstatus
             </a>
         </div>
 

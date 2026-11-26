@@ -6,7 +6,7 @@
 <div class="container mt-4">
     <div class="card shadow-sm">
         <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Projekte Leistungen</h5>
+            <h5 class="mb-0">Auftragsleistungen</h5>
             <a href="{{ route('admin.settings.project-service.show') }}" class="btn btn-secondary btn-sm">
                 <i class="bi bi-plus-circle me-1"></i> Neue Leistung
             </a>

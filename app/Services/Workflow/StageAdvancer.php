@@ -133,7 +133,7 @@ class StageAdvancer
         $baseProject = $workflowProject->project;
 
         $message = sprintf(
-            'Projekt %s wurde an die Stufe "%s" übergeben.',
+            'Auftrag %s wurde an die Stufe "%s" übergeben.',
             $baseProject?->project_name ?? ('#' . ($baseProject?->id ?? '?')),
             $nextStage->name
         );

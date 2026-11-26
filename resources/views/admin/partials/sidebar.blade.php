@@ -38,7 +38,7 @@
             <i class="bi bi-file-earmark-text me-2"></i> AngebotManagement
         </a>
         <div class="collapse submenu {{ $projectOffersActive ? 'show' : '' }}" id="projectOffersSubmenu">
-            <a href="{{ route('admin.project_offers.index') }}" class="{{ request()->is('admin/project_offers*') ? 'active' : '' }}">Alle ProjektAngebote</a>
+            <a href="{{ route('admin.project_offers.index') }}" class="{{ request()->is('admin/project_offers*') ? 'active' : '' }}">Alle Auftragsangebote</a>
         </div>
     @endif
 
@@ -52,10 +52,10 @@
         aria-expanded="{{ $projectsActive || $bauteileActive ? 'true' : 'false' }}"
         aria-controls="projectsSubmenu"
         class="{{ $projectsActive || $bauteileActive ? 'active' : '' }}">
-            <i class="bi bi-kanban me-2"></i> Projektmanagement
+            <i class="bi bi-kanban me-2"></i> Auftragsverwaltung
         </a>
         <div class="collapse submenu {{ $projectsActive || $bauteileActive ? 'show' : '' }}" id="projectsSubmenu">
-            <a href="{{ route('admin.projects') }}" class="{{ request()->is('admin/projects') ? 'active' : '' }}">Alle Projekten</a>
+            <a href="{{ route('admin.projects') }}" class="{{ request()->is('admin/projects') ? 'active' : '' }}">Alle Aufträge</a>
             <a href="{{ route('admin.bauteile.index') }}" class="{{ request()->is('admin/bauteile*') ? 'active' : '' }}">Alle Bauteilen</a>
             <a href="{{ route('admin.supplier-projects.index') }}" class="{{ request()->is('admin/supplier-projects*') ? 'active' : '' }}">Alle Fertigungsprozesse</a>
             <a href="{{ route('admin.offers') }}" class="{{ request()->is('admin/offers*') ? 'active' : '' }}">Alle Lieferantenangebote</a>
@@ -206,8 +206,8 @@
             <a href="{{ route('admin.settings.machines') }}" class="{{ request()->is('admin/settings/machines*') ? 'active' : '' }}">Machinen</a>
             <a href="{{ route('admin.settings.machine-status') }}" class="{{ request()->is('admin/settings/machine-status*') ? 'active' : '' }}">Machine Status</a>
             <a href="{{ route('admin.settings.material-thresholds') }}" class="{{ request()->is('admin/settings/material-thresholds*') ? 'active' : '' }}">Material Schwellenwerte</a>
-            <a href="{{ route('admin.settings.project-status') }}" class="{{ request()->is('admin/settings/project-status*') ? 'active' : '' }}">Projekt Status</a>
-            <a href="{{ route('admin.settings.project-service') }}" class="{{ request()->is('admin/settings/project-service*') ? 'active' : '' }}">Projekt Leistung</a>
+            <a href="{{ route('admin.settings.project-status') }}" class="{{ request()->is('admin/settings/project-status*') ? 'active' : '' }}">Auftragsstatus</a>
+            <a href="{{ route('admin.settings.project-service') }}" class="{{ request()->is('admin/settings/project-service*') ? 'active' : '' }}">Auftragsleistung</a>
             <a href="{{ route('admin.settings.roles.index') }}" class="{{ request()->is('admin/settings/roles*') ? 'active' : '' }}">Roles</a>
             <a href="{{ route('admin.settings.email_templates.index') }}" class="{{ request()->is('admin/settings/email_templates*') ? 'active' : '' }}">Email Template</a>
             <a href="#" class="">Logs</a>

@@ -102,7 +102,7 @@ class ProjectController extends Controller
 
         // Create folder structure
         // $this->createProject($request->kunde, $request->auftragsnummer_zt, $request->project_name);
-        return redirect()->route('admin.projects')->with('success', 'Projekt erfolgreich erstellt!');
+        return redirect()->route('admin.projects')->with('success', 'Auftrag erfolgreich erstellt!');
     }
 
     public function createProject($kunde = 'KundeName', $auftragsnummer = '12345', $projekt = 'ProjektName')
@@ -205,7 +205,7 @@ class ProjectController extends Controller
             'end_time',
         ]));
 
-        return redirect()->route('admin.projects')->with('success', 'Projekt erfolgreich aktualisiert!');
+        return redirect()->route('admin.projects')->with('success', 'Auftrag erfolgreich aktualisiert!');
     }
 
     public function updateStatus(Request $request, Project $project)
@@ -242,6 +242,6 @@ class ProjectController extends Controller
 
         $project->delete();
 
-        return redirect()->route('admin.projects')->with('success', 'Projekt erfolgreich gelöscht!');
+        return redirect()->route('admin.projects')->with('success', 'Auftrag erfolgreich gelöscht!');
     }
 }

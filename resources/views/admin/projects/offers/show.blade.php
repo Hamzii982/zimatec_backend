@@ -26,7 +26,7 @@
                     </a>
                 </div>
                 <div class="col-md-3">
-                    <h6 class="text-muted">Lieferant Projekt</h6>
+                    <h6 class="text-muted">Lieferantenauftrag</h6>
                     @if($offer->project)
                         <a href="{{ route('admin.projects.projects.show', $offer->project->id) }}" class="h6 text-decoration-none text-dark">
                             <p class="fw-semibold">{{ $offer->project->name }}</p>

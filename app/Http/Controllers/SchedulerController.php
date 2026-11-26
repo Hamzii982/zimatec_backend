@@ -97,7 +97,7 @@ class SchedulerController extends Controller
             Notification::create([
                 'user_id' => $schedule->user_id,
                 'type' => 'scheduler',
-                'message' => "Sie wurden für das Projekt '{$projectName}' vom {$startDate} bis {$endDate} eingeteilt.",
+                'message' => "Sie wurden für den Auftrag '{$projectName}' vom {$startDate} bis {$endDate} eingeteilt.",
                 'url' => route('scheduler.index'),
             ]);
         }
@@ -159,7 +159,7 @@ class SchedulerController extends Controller
             Notification::create([
                 'user_id' => $schedule->user_id,
                 'type' => 'scheduler',
-                'message' => "Ihr Einsatzplan für das Projekt '{$projectName}' wurde geändert (Zeitraum: {$startDate} bis {$endDate}).",
+                'message' => "Ihr Einsatzplan für den Auftrag '{$projectName}' wurde geändert (Zeitraum: {$startDate} bis {$endDate}).",
                 'url' => route('scheduler.index'),
             ]);
         }
@@ -186,7 +186,7 @@ class SchedulerController extends Controller
             Notification::create([
                 'user_id' => $schedule->user_id,
                 'type' => 'scheduler',
-                'message' => "Ihr Einsatz am {$startDate} für das Projekt '{$projectName}' wurde abgesagt.",
+                'message' => "Ihr Einsatz am {$startDate} für den Auftrag '{$projectName}' wurde abgesagt.",
                 'url' => route('scheduler.index'),
             ]);
         }

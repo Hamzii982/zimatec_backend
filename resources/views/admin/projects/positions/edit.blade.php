@@ -30,7 +30,7 @@
                     </div>
 
                     <div class="col-md-6">
-                        <label class="form-label">Projekt Leistung</label>
+                        <label class="form-label">Auftragsleistung</label>
                         <select name="project_service_id" class="form-select">
                             <option value="">— None —</option>
                             @foreach($services as $service)

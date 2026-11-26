@@ -44,9 +44,9 @@
 
                 <div class="row mb-4">
                     <div class="col-md-6">
-                        <label class="form-label">Projekt</label>
+                        <label class="form-label">Auftrag</label>
                         <select onchange="fetchPositions()" name="project_id" class="form-select" id="project-select" required>
-                            <option value="">Projekt auswählen</option>
+                            <option value="">Auftrag auswählen</option>
                             @foreach($projects as $project)
                                 <option value="{{ $project->id }}" {{ $record->project_id == $project->id ? 'selected' : '' }}>
                                     {{ $project->project_name }}

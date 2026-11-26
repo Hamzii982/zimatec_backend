@@ -23,7 +23,7 @@
                     </div>
 
                     <div class="col-md-6">
-                        <label class="form-label">Projekt</label>
+                        <label class="form-label">Auftrag</label>
                         <select name="project_id" class="form-select">
                             @foreach($projects as $project)
                                 <option value="{{ $project->id }}" {{ $project->id == $bauteil->project_id ? 'selected' : '' }}>

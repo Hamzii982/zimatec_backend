@@ -5,7 +5,7 @@
 
     <div class="card shadow-sm">
         <div class="card-header bg-dark text-white d-flex justify-content-between">
-            <h5 class="mb-0">Projektangebot bearbeiten</h5>
+            <h5 class="mb-0">Auftragsangebot bearbeiten</h5>
             <a href="{{ route('admin.project_offers.show', $offer) }}" class="btn btn-secondary btn-sm">
                 <i class="bi bi-arrow-left-circle"></i> Zurück
             </a>

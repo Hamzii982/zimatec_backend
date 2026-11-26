@@ -55,7 +55,7 @@ class StageController extends Controller
 
             return redirect()
                 ->route('admin.workflow.settings')
-                ->with('success', 'Stufe deaktiviert (Projekte vorhanden).');
+                ->with('success', 'Stufe deaktiviert (Aufträge vorhanden).');
         }
 
         $stage->delete();
@@ -98,7 +98,7 @@ class StageController extends Controller
 
             return redirect()
                 ->route('admin.workflow.settings')
-                ->with('success', 'Schritt deaktiviert (Projektschritte vorhanden).');
+                ->with('success', 'Schritt deaktiviert (Auftragsschritte vorhanden).');
         }
 
         $step->delete();

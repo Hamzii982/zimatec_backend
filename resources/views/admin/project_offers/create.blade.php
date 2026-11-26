@@ -13,7 +13,7 @@
 @endif
     <div class="card shadow-sm">
         <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Neues Projektangebot Erstellen</h5>
+            <h5 class="mb-0">Neues Auftragsangebot erstellen</h5>
             <a href="{{ route('admin.project_offers.index') }}" class="btn btn-secondary btn-sm">
                 <i class="bi bi-arrow-left-circle"></i> Zurück
             </a>

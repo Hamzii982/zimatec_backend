@@ -44,7 +44,7 @@
             
                         <div class="col-md-6">
                             <i class="bi bi-kanban me-1 text-dark"></i>
-                            <strong>Projekt</strong><br>
+                            <strong>Auftrag</strong><br>
                             {{ $record->project->project_name }}
                         </div>
             

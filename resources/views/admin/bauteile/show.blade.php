@@ -18,7 +18,7 @@
                     </div>
                     
                     <div class="mb-3">
-                        <strong>Project:</strong> 
+                        <strong>Auftrag:</strong>
                         <a href="{{ route('admin.projects.show', $bauteil->project->id) }}" class="text-decoration-none text-dark">
                             {{ $bauteil->project->project_name ?? '—' }}
                         </a>
@@ -26,7 +26,7 @@
 
                     @if($bauteil->supplierProjects)
                     <div class="mb-3">
-                        <strong>Lieferant Projekt:</strong> 
+                        <strong>Lieferantenauftrag:</strong>
                         @foreach ($bauteil->supplierProjects as $sProject)
                             <a href="{{ route('admin.suppliers.projects.show', $sProject->id) }}" class="text-decoration-none text-dark">
                                 {{ $sProject->name }} <span class="badge" style="background-color: {{ $sProject->status->color ?? 'gray' }};">{{ $sProject->status->name }}</span>

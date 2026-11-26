@@ -4,9 +4,9 @@
 <div class="container mt-4">
     <div class="card shadow-sm">
         <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Lieferantenprojekte</h5>
+            <h5 class="mb-0">Lieferantenaufträge</h5>
             <a href="{{ route('admin.supplier-projects.create') }}" class="btn btn-secondary btn-sm">
-                <i class="bi bi-plus-circle me-1"></i> Neues Projekt
+                <i class="bi bi-plus-circle me-1"></i> Neuer Lieferantenauftrag
             </a>
         </div>
 
@@ -20,9 +20,9 @@
                         <div class="card-body">
                             <div class="row g-3">
             
-                                {{-- Project Status --}}
+                                {{-- Supplier order status --}}
                                 <div class="col-md-3">
-                                    <label class="form-label">Projekt Status</label>
+                                    <label class="form-label">Lieferantenauftragsstatus</label>
                                     <select name="project_status_id" class="form-select">
                                         <option value="">-- Alle Status --</option>
                                         @foreach($statuses as $status)
@@ -77,9 +77,9 @@
                                     </div>
                                 </div>
             
-                                {{-- Past Projects --}}
+                                {{-- Past supplier orders --}}
                                 <div class="col-md-2">
-                                    <label class="form-label">Abgelaufene Projekte</label>
+                                    <label class="form-label">Abgelaufene Lieferantenaufträge</label>
                                     <select name="past_projects" class="form-select">
                                         <option value="">-- Alle --</option>
                                         <option value="1" {{ request('past_projects') == '1' ? 'selected' : '' }}>Nur Vergangene</option>
@@ -147,7 +147,7 @@
                                     <a href="{{ route('admin.projects.projects.edit', $project->id) }}" class="btn btn-outline-primary btn-sm">
                                         <i class="bi bi-pencil"></i>
                                     </a>
-                                    <form action="{{ route('admin.projects.projects.destroy', $project->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Projekt löschen?')">
+                                    <form action="{{ route('admin.projects.projects.destroy', $project->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Lieferantenauftrag löschen?')">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn btn-outline-danger btn-sm">
@@ -157,7 +157,7 @@
                                 </td>
                             </tr>
                         @empty
-                            <tr><td colspan="9" class="text-center text-muted">Keine Projekte gefunden.</td></tr>
+                            <tr><td colspan="9" class="text-center text-muted">Keine Lieferantenaufträge gefunden.</td></tr>
                         @endforelse
                     </tbody>
                 </table>

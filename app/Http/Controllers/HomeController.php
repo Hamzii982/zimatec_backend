@@ -21,8 +21,8 @@ class HomeController extends Controller
 
         $leistungen = [
             [
-                'name' => 'Projekte',
-                'description' => 'Alle unternehmensprojekte effizient Manage und Uberwachen.',
+                'name' => 'Aufträge',
+                'description' => 'Alle Unternehmensaufträge effizient verwalten und überwachen.',
                 'image' => 'images/cards/project card.png',
                 'route' => 'projects',
             ],

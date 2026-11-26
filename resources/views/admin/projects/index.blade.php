@@ -4,9 +4,9 @@
 <div class="zt-compare container">
     <div class="card shadow-sm zt-card">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Alle Projekte</h5>
+            <h5 class="mb-0">Alle Aufträge</h5>
             <a href="{{ route('admin.projects.create') }}" class="zt-export-btn">
-                <i class="bi bi-plus-circle"></i> Projekt erstellen
+                <i class="bi bi-plus-circle"></i> Auftrag erstellen
             </a>
         </div>
 
@@ -19,7 +19,7 @@
                     <div class="input-group input-group-sm">
                         <span class="input-group-text zt-input-icon"><i class="bi bi-search"></i></span>
                         <input type="text" name="search" id="search" class="form-control zt-select"
-                               placeholder="Projektname oder Auftragsnummer..."
+                               placeholder="Auftragsbezeichnung oder Auftragsnummer..."
                                value="{{ request('search') }}">
                     </div>
                 </div>
@@ -50,14 +50,14 @@
             {{-- ================================ --}}
 
             @if($projects->isEmpty())
-                <p class="zt-empty text-center mb-0">Keine Projekte gefunden.</p>
+                <p class="zt-empty text-center mb-0">Keine Aufträge gefunden.</p>
             @else
                 <div class="table-responsive">
                     <table class="table zt-table zt-table--excel align-middle mb-0">
                         <thead>
                             <tr>
                                 <th>#</th>
-                                <th>Projektname</th>
+                                <th>Auftragsbezeichnung</th>
                                 <th>Erstellt am</th>
                                 <th>Positionen</th>
                                 <th>Bauteile</th>
@@ -73,10 +73,10 @@
                                         <span class="fw-bold">{{ $project->project_name }}</span>
                                         <div class="mt-1">
                                             @if($project->auftragsnummer_zt)
-                                                <span class="zt-tag">ZT: {{ $project->auftragsnummer_zt }}</span>
+                                                <a href="{{ route('admin.projects.show', $project) }}" class="zt-tag" title="Auftrag anzeigen">ZT: {{ $project->auftragsnummer_zt }}</a>
                                             @endif
                                             @if($project->auftragsnummer_zf)
-                                                <span class="zt-tag">ZF: {{ $project->auftragsnummer_zf }}</span>
+                                                <a href="{{ route('admin.projects.show', $project) }}" class="zt-tag" title="Auftrag anzeigen">ZF: {{ $project->auftragsnummer_zf }}</a>
                                             @endif
                                         </div>
                                     </td>
@@ -121,7 +121,7 @@
                                                 <form action="{{ route('admin.projects.destroy', $project) }}" method="POST" class="d-inline">
                                                     @csrf
                                                     @method('DELETE')
-                                                    <button class="zt-icon-btn zt-icon-btn--danger" onclick="return confirm('Projekt wirklich löschen?')" title="Löschen">
+                                                    <button class="zt-icon-btn zt-icon-btn--danger" onclick="return confirm('Auftrag wirklich löschen?')" title="Löschen">
                                                         <i class="bi bi-trash"></i>
                                                     </button>
                                                 </form>

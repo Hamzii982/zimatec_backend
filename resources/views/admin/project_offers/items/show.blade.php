@@ -41,7 +41,7 @@
                     <thead class="table-dark">
                         <tr>
                             <th>#</th>
-                            <th>Projektleistung</th>
+                            <th>Auftragsleistung</th>
                             <th>Stunden</th>
                             <th>€/Std.</th>
                             <th>Stück</th>

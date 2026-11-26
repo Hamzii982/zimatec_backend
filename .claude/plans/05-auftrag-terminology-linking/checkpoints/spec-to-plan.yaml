@@ -1,0 +1,119 @@
+metadata:
+  generated: "2026-11-26"
+  source_spec: ".claude/specs/05-auftrag-terminology-linking.md"
+  target_plan: ".claude/plans/05-auftrag-terminology-linking/plan.md"
+
+summary:
+  total_requirements: 9
+  covered_requirements: 9
+  missing_requirements: 0
+  coverage_percentage: 100.0
+
+requirements:
+  - req_id: "REQ-001"
+    req_description: "Core admin pages use Auftrag terminology."
+    priority: "P1"
+    plan_mapping:
+      phase: "Phase-2"
+      phase_name: "Admin Auftrag list and detail"
+      items:
+        - item_id: "2.1"
+          description: "Update core admin pages and link numbers."
+        - item_id: "2.2"
+          description: "Update related admin-side terminology."
+  - req_id: "REQ-002"
+    req_description: "Populated company order numbers link to the correct detail page."
+    priority: "P1"
+    plan_mapping:
+      phase: "Phase-1 & Phase-2"
+      phase_name: "Regression coverage and admin detail link"
+      items:
+        - item_id: "1.1"
+          description: "Add link and access regression coverage."
+        - item_id: "2.1"
+          description: "Update core admin pages and link numbers."
+  - req_id: "REQ-003"
+    req_description: "Admin-only link scope and existing access control are preserved."
+    priority: "P1"
+    plan_mapping:
+      phase: "Phase-1 & Phase-2"
+      phase_name: "Regression coverage and admin detail link"
+      items:
+        - item_id: "1.1"
+          description: "Add link and access regression coverage."
+        - item_id: "2.1"
+          description: "Update core admin pages and link numbers."
+  - req_id: "REQ-004"
+    req_description: "Connected module text uses Auftrag terminology."
+    priority: "P1"
+    plan_mapping:
+      phase: "Phase-2"
+      phase_name: "Connected modules and translations"
+      items:
+        - item_id: "2.2"
+          description: "Update related admin-side terminology."
+        - item_id: "3.1"
+          description: "Update connected user-facing terminology."
+        - item_id: "3.2"
+          description: "Update controller messages and translations."
+  - req_id: "REQ-005"
+    req_description: "Supplier-side work retains its distinct Lieferantenauftrag label."
+    priority: "P1"
+    plan_mapping:
+      phase: "Phase-2"
+      phase_name: "Connected modules and translations"
+      items:
+        - item_id: "2.2"
+          description: "Update related admin-side terminology."
+        - item_id: "3.2"
+          description: "Update controller messages and translations."
+  - req_id: "REQ-006"
+    req_description: "Existing route, schema, model, data, and storage contracts remain stable."
+    priority: "P1"
+    plan_mapping:
+      phase: "Phase-2"
+      phase_name: "Compatibility-preserving terminology update"
+      items:
+        - item_id: "2.1"
+          description: "Update core admin pages and links."
+        - item_id: "2.2"
+          description: "Update related admin-side terminology."
+        - item_id: "3.1"
+          description: "Update connected user-facing terminology."
+        - item_id: "3.2"
+          description: "Update controller messages and translations."
+  - req_id: "REQ-007"
+    req_description: "German and English copy is consistent."
+    priority: "P1"
+    plan_mapping:
+      phase: "Phase-2"
+      phase_name: "Connected modules and translations"
+      items:
+        - item_id: "3.2"
+          description: "Update controller messages and translations."
+  - req_id: "REQ-008"
+    req_description: "Pest covers number links and access behavior."
+    priority: "P1"
+    plan_mapping:
+      phase: "Phase-1"
+      phase_name: "Foundational regression coverage"
+      items:
+        - item_id: "1.1"
+          description: "Add link and access regression coverage."
+  - req_id: "REQ-009"
+    req_description: "Targeted tests and Pint pass."
+    priority: "P1"
+    plan_mapping:
+      phase: "Phase-4"
+      phase_name: "Polish and validation"
+      items:
+        - item_id: "4.2"
+          description: "Run tests and formatting validation."
+
+missing_requirements: []
+orphan_plan_items: []
+
+validation:
+  passed: true
+  errors: []
+  warnings: []

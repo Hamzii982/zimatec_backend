@@ -169,7 +169,7 @@
                         </div>
                         <div class="col-md-2">
                             <select name="project_id" class="form-select zt-select">
-                                <option value="">Alle Projekte</option>
+                                <option value="">Alle Aufträge</option>
                                 @foreach($projects as $project)
                                     <option value="{{ $project->id }}" {{ request('project_id') == $project->id ? 'selected' : '' }}>
                                         {{ $project->project_name }}
@@ -202,7 +202,7 @@
                                 <tr>
                                     <th>#</th>
                                     <th>Bediener</th>
-                                    <th>Projekt</th>
+                                    <th>Auftrag</th>
                                     <th>Position</th>
                                     <th>Maschine</th>
                                     <th>Start</th>

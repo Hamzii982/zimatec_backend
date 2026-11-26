@@ -5,10 +5,10 @@
         <div class="card shadow-sm border-0">
             <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">
-                    <i class="bi bi-kanban-fill me-2"></i>Alle Projekten
+                    <i class="bi bi-kanban-fill me-2"></i>Alle Aufträge
                 </h5>
                 @if(!$projects->isEmpty())
-                    <span class="badge bg-secondary">{{ $projects->count() }} {{ $projects->count() === 1 ? 'Projekt' : 'Projekte' }}</span>
+                    <span class="badge bg-secondary">{{ $projects->count() }} {{ $projects->count() === 1 ? 'Auftrag' : 'Aufträge' }}</span>
                 @endif
             </div>
 
@@ -16,7 +16,7 @@
                 @if($projects->isEmpty())
                     <div class="text-center text-muted py-5">
                         <i class="bi bi-inbox display-4 d-block mb-3"></i>
-                        <p class="mb-0">Keine Projekte gefunden.</p>
+                        <p class="mb-0">Keine Aufträge gefunden.</p>
                     </div>
                 @else
                     <div class="row g-4">

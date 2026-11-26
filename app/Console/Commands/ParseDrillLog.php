@@ -258,7 +258,7 @@ class ParseDrillLog extends Command
                     ->first();
 
                 if (! $state->currentProject) {
-                    $this->info("Project not found for auftragsnummer {$auftragsnummer} — skipping process");
+                    $this->info("Auftrag mit Auftragsnummer {$auftragsnummer} nicht gefunden — Prozess wird übersprungen");
 
                     return true;
                 }
@@ -309,7 +309,7 @@ class ParseDrillLog extends Command
 
             }
 
-            $this->info("Neue START fur projekt: {$projectName} ({$auftragsnummer}) auf Machine {$state->machineId}, {$machine}");
+            $this->info("Neue START fur Auftrag: {$projectName} ({$auftragsnummer}) auf Machine {$state->machineId}, {$machine}");
             $this->info("   └─ Postion: {$position}");
             if ($bauteil !== null) {
                 $this->info("       └─ Bauteil: {$bauteil}");

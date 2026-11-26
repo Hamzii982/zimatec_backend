@@ -13,7 +13,7 @@
             <form method="GET" class="row mb-4">
                 <div class="col-md-4">
                     <select class="form-select" id="project_id" name="project_id">
-                        <option value="">Select Project</option>
+                        <option value="">Auftrag auswählen</option>
                         @foreach($projects as $project)
                             <option value="{{ $project->id }}" 
                                 {{ request('project_id') == $project->id ? 'selected' : '' }}>
@@ -36,7 +36,7 @@
                     <thead class="table-dark">
                         <tr>
                             <th>Bediener</th>
-                            <th>Projekte</th>
+                            <th>Aufträge</th>
                             <th>Start Zeit</th>
                             <th>End Zeit</th>
                             <th>Rustzeit</th>

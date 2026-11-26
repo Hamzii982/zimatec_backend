@@ -149,7 +149,7 @@ class ProjectStepController extends Controller
 
         return redirect()
             ->route('workflow.index')
-            ->with('success', 'Projekt an die nächste Stufe übergeben.');
+            ->with('success', 'Auftrag an die nächste Stufe übergeben.');
     }
 
     public function reassign(ReassignProjectRequest $request, BaseProject $project)

@@ -54,7 +54,7 @@ class ProjectServicesController extends Controller
                 'active' => $request->has('active'),
                 'parent_id' => $validated['parent_id'] ?? null,
             ]);
-            $message = 'Project service updated successfully!';
+            $message = 'Work order service updated successfully!';
         } else {
             // Create new
             $service = ProjectService::create([
@@ -63,7 +63,7 @@ class ProjectServicesController extends Controller
                 'active' => $request->has('active'),
                 'parent_id' => $validated['parent_id'] ?? null,
             ]);
-            $message = 'New project service created successfully!';
+            $message = 'New work order service created successfully!';
         }
 
         return redirect()->route('admin.settings.project-service')
@@ -83,12 +83,12 @@ class ProjectServicesController extends Controller
     }
 
     /**
-     * Delete Project service.
+     * Delete work order service.
      */
     public function deleteProjectService($id)
     {
         ProjectService::findOrFail($id)->delete();
 
-        return back()->with('success', 'Project service deleted successfully.');
+        return back()->with('success', 'Work order service deleted successfully.');
     }
 }

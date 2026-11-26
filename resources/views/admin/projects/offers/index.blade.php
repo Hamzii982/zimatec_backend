@@ -64,9 +64,9 @@
                                 {{-- Has Supplier Project --}}
                                 <div class="col-md-3">
                                     <select name="has_project" id="has_project" class="form-select">
-                                        <option value="">-- Lieferantprojekte --</option>
-                                        <option value="1" {{ request('has_project') == '1' ? 'selected' : '' }}>Mit Projekt</option>
-                                        <option value="0" {{ request('has_project') == '0' ? 'selected' : '' }}>Ohne Projekt</option>
+                                        <option value="">-- Lieferantenaufträge --</option>
+                                        <option value="1" {{ request('has_project') == '1' ? 'selected' : '' }}>Mit Lieferantenauftrag</option>
+                                        <option value="0" {{ request('has_project') == '0' ? 'selected' : '' }}>Ohne Lieferantenauftrag</option>
                                     </select>
                                 </div>
                         
@@ -91,7 +91,7 @@
                             <th>Angebotsnr.</th>
                             <th>Lieferant</th>
                             <th>Bauteil</th>
-                            <th>Liefer.  Projekt</th>
+                            <th>Lieferantenauftrag</th>
                             <th>Datum</th>
                             <th>Leistung</th>
                             <th>Preis (€)</th>

@@ -11,7 +11,7 @@
             <div>
                 <a href="{{ route('admin.projects') }}"
                    class="btn btn-outline-light btn-sm me-2">
-                    <i class="bi bi-arrow-left"></i> Projekte
+                    <i class="bi bi-arrow-left"></i> Aufträge
                 </a>
 
                 <a href="{{ route('admin.projects.positions.create', $project) }}"
@@ -24,7 +24,7 @@
         <div class="card-body">
             @if($positions->isEmpty())
                 <p class="text-muted text-center mb-0">
-                    Für dieses Projekt wurden keine Stellen gefunden..
+                    Für diesen Auftrag wurden keine Positionen gefunden.
                 </p>
             @else
                 <div class="table-responsive-wrapper">

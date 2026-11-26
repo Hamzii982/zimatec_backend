@@ -12,7 +12,7 @@
     {{-- ================= STEP 1 ================= --}}
     <div class="card border-0 shadow-sm mb-3">
         <div class="card-header bg-white d-flex justify-content-between">
-            <strong>1. Projektinformationen</strong>
+            <strong>1. Auftragsinformationen</strong>
             <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#step1">
                 Öffnen
             </button>

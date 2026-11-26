@@ -32,7 +32,7 @@
             </div>
 
             <div class="d-flex justify-content-between small text-muted">
-                <span id="step-1-ind">Projekt</span>
+                <span id="step-1-ind">Auftrag</span>
                 <span id="step-2-ind">Maschine</span>
                 <span id="step-3-ind">Fehler</span>
                 <span id="step-4-ind">Wartung</span>

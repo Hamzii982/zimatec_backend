@@ -23,7 +23,7 @@
                     
                         <div>
                             <i class="bi bi-folder-fill me-1 text-primary"></i>
-                            <strong>Projekt:</strong> {{ $record->project->project_name }}
+                            <strong>Auftrag:</strong> {{ $record->project->project_name }}
                         </div>
                     
                         <div>

@@ -149,12 +149,12 @@
                     <!-- STEP 2: PROJECT SELECTION (UX UPGRADED) -->
                     <div id="step-project" class="mb-4 {{ isset($selectedUser) ? '' : 'd-none' }}">
                         <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                            <h6 class="mb-0">Projekte Auswahlen</h6>
+                            <h6 class="mb-0">Aufträge auswählen</h6>
                             
                             <!-- Search Input -->
                             <div class="input-group" style="max-width: 300px;">
                                 <span class="input-group-text bg-white border-end-0"><i class="bi bi-search"></i></span>
-                                <input type="text" id="project-search" class="form-control border-start-0 ps-0" placeholder="Projekt / Auftragsnr..." autocomplete="off">
+                                <input type="text" id="project-search" class="form-control border-start-0 ps-0" placeholder="Auftrag / Auftragsnummer..." autocomplete="off">
                             </div>
                         </div>
                     
@@ -187,7 +187,7 @@
                         <!-- No Results Message -->
                         <div id="no-projects-msg" class="text-center text-muted mt-4 d-none">
                             <i class="bi bi-search fs-3 d-block mb-2 text-secondary"></i>
-                            Keine Projekte gefunden.
+                            Keine Aufträge gefunden.
                         </div>
                     </div>
                     

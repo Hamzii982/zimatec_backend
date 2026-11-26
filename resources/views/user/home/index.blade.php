@@ -33,7 +33,7 @@
                             </a>
                         @else
                             <a href="{{ route('projects.logs') }}" class="btn btn-modern-primary px-4 py-2-5 shadow-sm">
-                                <i class="bi bi-grid-1x2-fill me-2"></i>{{ __('Projekte Anzeigen') }}
+                                <i class="bi bi-grid-1x2-fill me-2"></i>{{ __('Aufträge anzeigen') }}
                             </a>
                             <a href="{{ route('printer-problems.index') }}" class="btn btn-modern-secondary px-4 py-2-5">
                                 <i class="bi bi-printer-fill me-2"></i>{{ __('Druckprobleme melden') }}
@@ -87,7 +87,7 @@
                         {{ __('Wir bündeln unsere Kompetenzen in Technik, Messtechnik und Konstruktion.') }}
                     </p>
                     <p class="text-muted">
-                        {{ __('Dieses Portal unterstützt uns dabei, zielführende Lösungen für komplexe Probleme zu finden egal ob in der Fertigung oder Konstruktion. Nutzen Sie die verfügbaren Daten und Tools, um Projekte effizient abzuwickeln und unsere langjährige Erfahrung gemeinsam optimal einzusetzen. Vom Spritzgussverfahren bis zur optischen Vermessung.') }}
+                        {{ __('Dieses Portal unterstützt uns dabei, zielführende Lösungen für komplexe Probleme zu finden egal ob in der Fertigung oder Konstruktion. Nutzen Sie die verfügbaren Daten und Tools, um Aufträge effizient abzuwickeln und unsere langjährige Erfahrung gemeinsam optimal einzusetzen. Vom Spritzgussverfahren bis zur optischen Vermessung.') }}
                     </p>
                 </div>
                 <div class="col-lg-6">
@@ -128,7 +128,7 @@
             <div class="col-md-3 col-6">
                 <div class="stat-item">
                     <h2 class="fw-bold text-title display-5">{{ $stats['projects'] ?? 0 }}</h2>
-                    <p class="text-muted text-uppercase small fw-bold mb-0">Projekte</p>
+                    <p class="text-muted text-uppercase small fw-bold mb-0">Aufträge</p>
                 </div>
             </div>
             <div class="col-md-3 col-6">

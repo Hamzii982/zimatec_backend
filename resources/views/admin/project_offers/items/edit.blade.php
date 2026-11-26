@@ -55,7 +55,7 @@
                         </div>
 
                         {{-- Service Selection --}}
-                        <label class="form-label fw-semibold">Projektleistung wählen</label>
+                        <label class="form-label fw-semibold">Auftragsleistung wählen</label>
                         <div class="service-select-container">
 
                             @foreach($item->service->getCascadingSelectOptions() as $level => $options)

@@ -125,7 +125,7 @@ class TimeRecordController extends Controller
 
         if ($existingRecord) {
             return redirect()->back()
-                ->withErrors(['duplicate' => 'Für diesen Benutzer, dieses Projekt und diesen Maschine existiert bereits ein laufender Datensatz..'])
+                ->withErrors(['duplicate' => 'Für diesen Benutzer, diesen Auftrag und diese Maschine existiert bereits ein laufender Datensatz.'])
                 ->withInput();
         }
 

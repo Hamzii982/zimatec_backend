@@ -23,9 +23,9 @@
                         </select>
                     </div>
                     <div class="col-md-4">
-                        <label>Projekt</label>
+                        <label>Auftrag</label>
                         <select name="project_id" class="form-select" required>
-                            <option value="">Projekt auswählen</option>
+                            <option value="">Auftrag auswählen</option>
                             @foreach($projects as $project)
                                 <option value="{{ $project->id }}">{{ $project->project_name }}</option>
                             @endforeach

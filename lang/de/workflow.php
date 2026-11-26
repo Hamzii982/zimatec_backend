@@ -2,12 +2,12 @@
 
 return [
     'board' => [
-        'title' => 'Projekt-Workflow',
-        'subtitle' => 'Übersicht aller Projekte nach Bearbeitungsstufe',
-        'my_projects' => 'Meine Projekte',
-        'all_projects' => 'Alle Projekte',
+        'title' => 'Auftragsworkflow',
+        'subtitle' => 'Übersicht aller Aufträge nach Bearbeitungsstufe',
+        'my_projects' => 'Meine Aufträge',
+        'all_projects' => 'Alle Aufträge',
         'filter_assignee' => 'Zuständige:r',
-        'no_projects' => 'Keine Projekte in dieser Stufe.',
+        'no_projects' => 'Keine Aufträge in dieser Stufe.',
     ],
     'stages' => [
         'office' => 'Büro',
@@ -53,13 +53,13 @@ return [
         'assignee_removed' => 'hat Bearbeiter :user entfernt',
         'project_attached' => 'wurde dem Workflow zugeordnet',
         'project_completed' => 'hat alle Stufen abgeschlossen',
-        'stage_advanced' => 'hat das Projekt an die nächste Stufe übergeben',
+        'stage_advanced' => 'hat den Auftrag an die nächste Stufe übergeben',
     ],
     'messages' => [
         'confirm_complete' => 'Schritt wirklich als erledigt markieren?',
-        'confirm_advance' => 'Projekt an die nächste Stufe übergeben?',
+        'confirm_advance' => 'Auftrag an die nächste Stufe übergeben?',
         'confirm_reassign' => 'Zuständigkeit wirklich ändern?',
-        'success_advanced' => 'Projekt wurde weitergereicht.',
+        'success_advanced' => 'Auftrag wurde weitergereicht.',
         'success_completed' => 'Schritt abgeschlossen.',
         'error_incomplete_steps' => 'Es sind noch nicht alle Pflichtschritte abgeschlossen.',
         'error_generic' => 'Ein Fehler ist aufgetreten.',
@@ -91,12 +91,12 @@ return [
             'update' => 'Aktualisieren',
         ],
         'project' => [
-            'title' => 'Workflow für Projekt anlegen',
-            'project' => 'Projekt',
+            'title' => 'Workflow für Auftrag anlegen',
+            'project' => 'Auftrag',
             'stage' => 'Startstufe',
             'default_stage' => 'Erste aktive Stufe',
             'assignee' => 'Initialer Verantwortlicher',
-            'attach' => 'Projekt zuordnen',
+            'attach' => 'Auftrag zuordnen',
         ],
     ],
 ];

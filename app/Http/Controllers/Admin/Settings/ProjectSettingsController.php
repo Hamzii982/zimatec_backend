@@ -44,7 +44,7 @@ class ProjectSettingsController extends Controller
                 'color' => $validated['color'] ?? null,
                 'active' => $request->has('active'),
             ]);
-            $message = 'Project status updated successfully!';
+            $message = 'Work order status updated successfully!';
         } else {
             // Create new
             $status = ProjectStatus::create([
@@ -52,7 +52,7 @@ class ProjectSettingsController extends Controller
                 'color' => $validated['color'] ?? null,
                 'active' => $request->has('active'),
             ]);
-            $message = 'New project status created successfully!';
+            $message = 'New work order status created successfully!';
         }
 
         return redirect()->route('admin.settings.project-status.show', $status->id)
@@ -72,12 +72,12 @@ class ProjectSettingsController extends Controller
     }
 
     /**
-     * Delete Project status.
+     * Delete work order status.
      */
     public function deleteProjectStatus($id)
     {
         ProjectStatus::findOrFail($id)->delete();
 
-        return back()->with('success', 'Project status deleted successfully.');
+        return back()->with('success', 'Work order status deleted successfully.');
     }
 }

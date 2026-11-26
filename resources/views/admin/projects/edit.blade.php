@@ -4,7 +4,7 @@
     <div class="container mt-4 zt-compare">
         <div class="card zt-card shadow-sm">
             <div class="card-header d-flex justify-content-between align-items-center py-2">
-                <h5 class="mb-0">Projekt bearbeiten</h5>
+                <h5 class="mb-0">Auftrag bearbeiten</h5>
                 <a href="{{ route('admin.projects') }}" class="zt-btn zt-btn--ghost btn-sm">
                     <i class="bi bi-arrow-left-circle"></i> Zurück
                 </a>
@@ -66,14 +66,14 @@
                         </label>
                     </div>
                     <div id="path_preview" class="zt-subcard zt-path-preview mb-3 is-hidden">
-                        <i class="bi bi-folder2 me-2"></i><span id="path_preview_text">storage/app/[Kunde]/[Auftragsnummer]_[Projekt]</span>
+                        <i class="bi bi-folder2 me-2"></i><span id="path_preview_text">storage/app/[Kunde]/[Auftragsnummer]_[Auftragsbezeichnung]</span>
                     </div>
 
                     <div class="row mb-2">
                         <div class="col-md-6">
-                            <label for="project_name" class="zt-form-label">Projektname *</label>
+                            <label for="project_name" class="zt-form-label">Auftragsbezeichnung *</label>
                             <input type="text" name="project_name" id="project_name" class="form-control zt-select form-control-sm"
-                                   value="{{ old('project_name', $project->project_name) }}" placeholder="Projektname" required>
+                                   value="{{ old('project_name', $project->project_name) }}" placeholder="Auftragsbezeichnung" required>
                         </div>
                         <div class="col-md-6">
                             <label for="kunde" class="zt-form-label">Kundenname</label>
@@ -84,12 +84,12 @@
 
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label for="start_time" class="zt-form-label">Projektstart</label>
+                            <label for="start_time" class="zt-form-label">Auftragsbeginn</label>
                             <input type="datetime-local" name="start_time" id="start_time" class="form-control zt-select form-control-sm"
                                 value="{{ old('start_time', isset($project) ? $project->start_time : '') }}">
                         </div>
                         <div class="col-md-6">
-                            <label for="end_time" class="zt-form-label">Projektende</label>
+                            <label for="end_time" class="zt-form-label">Auftragsende</label>
                             <input type="datetime-local" name="end_time" id="end_time" class="form-control zt-select form-control-sm"
                                 value="{{ old('end_time', isset($project) && $project->end_time ? $project->end_time : '') }}">
                         </div>
@@ -255,7 +255,7 @@
             function updatePath() {
                 const kunde = kundeInput.value.trim() || "[Kunde]";
                 const auftrag = (auftragZt.value.trim() || auftragZf.value.trim()) || "[Auftragsnummer]";
-                const projekt = projektInput.value.trim() || "[Projekt]";
+                const projekt = projektInput.value.trim() || "[Auftragsbezeichnung]";
                 pathText.textContent = `storage/app/${kunde}/${auftrag}_${projekt}`;
             }
 
