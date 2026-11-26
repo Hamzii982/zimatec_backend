@@ -35,7 +35,7 @@ class PositionController extends Controller
 
         return redirect()
             ->route('admin.projects.positions.index', $project)
-            ->with('success', 'Position created successfully');
+            ->with('success', 'Position erfolgreich erstellt!');
     }
 
     public function edit(Project $project, Position $position)
@@ -56,13 +56,13 @@ class PositionController extends Controller
 
         return redirect()
             ->route('admin.projects.positions.index', $project)
-            ->with('success', 'Position updated successfully');
+            ->with('success', 'Position erfolgreich aktualisiert!');
     }
 
     public function destroy(Project $project, Position $position)
     {
         $position->delete();
 
-        return back()->with('success', 'Position deleted successfully');
+        return back()->with('success', 'Position erfolgreich gelöscht!');
     }
 }

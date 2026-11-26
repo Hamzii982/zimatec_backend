@@ -95,16 +95,16 @@
                                 @forelse($weeklyRecords as $index => $row)
                                     @php
                                         $totalSeconds = $row->rustzeit_seconds + $row->mit_aufsicht_seconds;
-                                        $c_auftrag = $row->company === 'ZF' ? trim(explode('/', $row->auftragsnummer)[0]) : trim(explode('/', $row->auftragsnummer)[1]);
-                                        if (is_null($c_auftrag)) {
-                                            $c_auftrag = $row->auftragsnummer;
-                                        }
+                                        $auftragNumbers = array_map('trim', explode(' / ', $row->auftragsnummer));
+                                        $c_auftrag = $row->company === 'ZF'
+                                            ? ($auftragNumbers[0] ?? '')
+                                            : ($auftragNumbers[1] ?? $auftragNumbers[0] ?? '');
                                     @endphp
                                     <tr>
                                         <td>{{ $index + 1 }}</td>
                                         <td>
                                             <a
-                                                onclick="getDailyRecords({{ $index }}, {{ $row->calendar_week }}, {{ $c_auftrag }}, {{ $row->position_id }}, {{ $row->machine_id }})"
+                                                onclick="getDailyRecords(@js($index), @js($row->calendar_week), @js($c_auftrag), @js($row->position_id), @js($row->machine_id), @js($row->company))"
                                                 data-bs-toggle="collapse"
                                                 href="#collapse{{ $index }}"
                                                 aria-expanded="false"
@@ -135,6 +135,7 @@
                                                         :auftragsnummer="$c_auftrag"
                                                         :positionId="$row->position_id"
                                                         :machineId="$row->machine_id"
+                                                        :userCompany="$row->company"
                                                         :autoLoad="false" />
                                                 </div>
                                             </div>

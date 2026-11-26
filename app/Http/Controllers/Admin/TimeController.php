@@ -19,8 +19,7 @@ class TimeController extends Controller
         private readonly MachineLogService $machineLogService,
         private readonly WeeklyComparisonService $weeklyComparisonService,
         private readonly WeeklyOverviewService $weeklyOverviewService,
-    ) {
-    }
+    ) {}
 
     public function records(Request $request)
     {
@@ -29,11 +28,21 @@ class TimeController extends Controller
 
     public function dailyRecords(Request $request)
     {
+        $request->validate([
+            'auftragsnummer' => ['required', 'string'],
+            'user_company' => ['required', 'in:ZF,ZT'],
+        ]);
+
         return response()->json(['dailyRecords' => $this->timeRecordService->getDailyRecords($request)]);
     }
 
     public function dayDetails(Request $request)
     {
+        $request->validate([
+            'auftragsnummer' => ['required', 'string'],
+            'user_company' => ['required', 'in:ZF,ZT'],
+        ]);
+
         return response()->json(['entries' => $this->timeRecordService->getDayDetails($request)]);
     }
 
@@ -57,7 +66,7 @@ class TimeController extends Controller
 
         return redirect()
             ->route('admin.time.records')
-            ->with('success', 'Time record updated successfully.');
+            ->with('success', 'Zeitprotokoll erfolgreich aktualisiert.');
     }
 
     public function thisProjectPositions(Request $request)
@@ -71,7 +80,7 @@ class TimeController extends Controller
     {
         $this->timeRecordService->deleteRecord($id);
 
-        return back()->with('success', 'Machine status deleted successfully.');
+        return back()->with('success', 'Machine status erfolgreich gelöscht.');
     }
 
     public function changeTimeLogs($id)
@@ -97,7 +106,7 @@ class TimeController extends Controller
             $request->record_end_time,
         );
 
-        return redirect()->back()->with('success', 'Changes applied and recorded successfully.');
+        return redirect()->back()->with('success', 'Änderungen erfolgreich angewendet und protokolliert.');
     }
 
     public function show($id)
@@ -109,7 +118,7 @@ class TimeController extends Controller
     {
         $this->timeRecordService->endRecord($id);
 
-        return redirect()->route('admin.time.records')->with('success', 'Session ended successfully.');
+        return redirect()->route('admin.time.records')->with('success', 'Session erfolgreich beendet.');
     }
 
     public function switch(Request $request, TimeLog $log)
@@ -122,7 +131,7 @@ class TimeController extends Controller
 
         // Redirect back to the same record page
         return redirect()->route('admin.time.show', $timeRecordId)
-            ->with('success', 'Status switched successfully.');
+            ->with('success', 'Status erfolgreich gewechselt.');
     }
 
     public function compare(Request $request)

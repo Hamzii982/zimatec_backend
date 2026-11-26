@@ -10,6 +10,7 @@ use App\Models\TimeLog;
 use App\Models\TimeRecord;
 use App\Models\User;
 use App\Support\WeekRangeResolver;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -17,8 +18,7 @@ class TimeRecordService
 {
     public function __construct(
         private readonly WeekRangeResolver $weekRangeResolver,
-    ) {
-    }
+    ) {}
 
     /**
      * Data for the paginated/filterable time records list plus the
@@ -122,8 +122,9 @@ class TimeRecordService
         $auftragsnummer = $request->input('auftragsnummer');
         $positionId = $request->input('position_id');
         $machineId = $request->input('machine_id');
+        $userCompany = $request->input('user_company');
 
-        return DB::table('time_logs as tl')
+        $query = DB::table('time_logs as tl')
             ->join('time_records as tr', 'tr.id', '=', 'tl.time_record_id')
             ->join('users as u', 'u.id', '=', 'tr.user_id')
             ->join('projects as p', 'p.id', '=', 'tr.project_id')
@@ -131,11 +132,11 @@ class TimeRecordService
             ->join('machines as m', 'm.id', '=', 'tr.machine_id')
             ->join('machine_statuses as ms', 'ms.id', '=', 'tl.machine_status_id')
             ->whereNotNull('tl.end_time')
-            ->whereRaw('YEARWEEK(tl.start_time, 1) = ?', [$calendarWeek])
-            ->where(function ($query) use ($auftragsnummer) {
-                $query->whereRaw("(u.company = 'ZF' AND COALESCE(p.auftragsnummer_zf, '') = ?)", [$auftragsnummer])
-                    ->orWhereRaw("(u.company = 'ZT' AND COALESCE(p.auftragsnummer_zt, '') = ?)", [$auftragsnummer]);
-            })
+            ->whereRaw('YEARWEEK(tl.start_time, 1) = ?', [$calendarWeek]);
+
+        $this->filterDailyRecordsByCompanyAndOrderNumber($query, $auftragsnummer, $userCompany);
+
+        return $query
             ->where('pos.id', $positionId)
             ->where('m.id', $machineId)
             ->select([
@@ -143,8 +144,8 @@ class TimeRecordService
                 'u.company',
                 DB::raw("
                     CASE
-                        WHEN u.company = 'ZF' THEN p.auftragsnummer_zf
-                        ELSE p.auftragsnummer_zt
+                        WHEN u.company = 'ZF' THEN COALESCE(NULLIF(p.auftragsnummer_zf, ''), p.auftragsnummer_zt)
+                        ELSE COALESCE(NULLIF(p.auftragsnummer_zt, ''), p.auftragsnummer_zf)
                     END as auftragsnummer
                 "),
                 'pos.id as position_id',
@@ -175,7 +176,7 @@ class TimeRecordService
             ->get()
             ->map(function ($row) {
                 // Add the daily_key in PHP
-                $row->daily_key = "{$row->record_date}-{$row->auftragsnummer}-{$row->position_id}-{$row->machine_id}";
+                $row->daily_key = "{$row->company}-{$row->record_date}-{$row->auftragsnummer}-{$row->position_id}-{$row->machine_id}";
 
                 return $row;
             });
@@ -188,18 +189,19 @@ class TimeRecordService
         $auftragsnummer = $request->input('auftragsnummer');
         $positionId = $request->input('position_id');
         $machineId = $request->input('machine_id');
+        $userCompany = $request->input('user_company');
 
-        return DB::table('time_logs as tl')
+        $query = DB::table('time_logs as tl')
             ->join('time_records as tr', 'tr.id', '=', 'tl.time_record_id')
             ->join('users as u', 'u.id', '=', 'tr.user_id')
             ->join('projects as p', 'p.id', '=', 'tr.project_id')
             ->join('machine_statuses as ms', 'ms.id', '=', 'tl.machine_status_id')
             ->whereDate('tl.start_time', $date)
-            ->whereRaw('YEARWEEK(tl.start_time, 1) = ?', [$calendarWeek])
-            ->where(function ($query) use ($auftragsnummer) {
-                $query->whereRaw("(u.company = 'ZF' AND COALESCE(p.auftragsnummer_zf, '') = ?)", [$auftragsnummer])
-                    ->orWhereRaw("(u.company = 'ZT' AND COALESCE(p.auftragsnummer_zt, '') = ?)", [$auftragsnummer]);
-            })
+            ->whereRaw('YEARWEEK(tl.start_time, 1) = ?', [$calendarWeek]);
+
+        $this->filterDailyRecordsByCompanyAndOrderNumber($query, $auftragsnummer, $userCompany);
+
+        return $query
             ->where('tr.position_id', $positionId)
             ->where('tr.machine_id', $machineId)
             ->whereNotNull('tl.end_time')
@@ -210,6 +212,18 @@ class TimeRecordService
                 'tl.end_time',
                 'ms.name as machine_status',
             ]);
+    }
+
+    private function filterDailyRecordsByCompanyAndOrderNumber(
+        Builder $query,
+        string $auftragsnummer,
+        string $userCompany,
+    ): void {
+        $query->where('u.company', $userCompany)
+            ->where(function (Builder $query) use ($auftragsnummer) {
+                $query->whereRaw("COALESCE(p.auftragsnummer_zf, '') = ?", [$auftragsnummer])
+                    ->orWhereRaw("COALESCE(p.auftragsnummer_zt, '') = ?", [$auftragsnummer]);
+            });
     }
 
     public function getEditRecordData(int $id): array

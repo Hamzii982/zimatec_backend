@@ -21,15 +21,25 @@ class DailyRecordsTable extends Component
 
     public $machineId;
 
+    public $userCompany;
+
     public $autoLoad;
 
-    public function __construct($index = null, $week = null, $auftragsnummer = null, $positionId = null, $machineId = null, $autoLoad = false)
-    {
+    public function __construct(
+        $index = null,
+        $week = null,
+        $auftragsnummer = null,
+        $positionId = null,
+        $machineId = null,
+        $userCompany = null,
+        $autoLoad = false,
+    ) {
         $this->index = $index;
         $this->week = $week;
         $this->auftragsnummer = $auftragsnummer;
         $this->positionId = $positionId;
         $this->machineId = $machineId;
+        $this->userCompany = $userCompany;
         $this->autoLoad = $autoLoad;
     }
 

@@ -6,7 +6,7 @@
 @push('scripts')
 <script>
 
-    function getDayDetails(key, date, week, auftragsnummer, positionId, machineId) {
+    function getDayDetails(key, date, week, auftragsnummer, positionId, machineId, userCompany) {
         const container = document.getElementById(`dayDetails_${key}`);
 
         if (dayDetailsCache[key]) {
@@ -15,12 +15,16 @@
             return;
         }
 
-        fetch(`/admin/time/daily-records/details?` +
-            `date=${date}&calendar_week=${week}` +
-            `&auftragsnummer=${auftragsnummer}` +
-            `&position_id=${positionId}` +
-            `&machine_id=${machineId}`
-        )
+        const params = new URLSearchParams({
+            date,
+            calendar_week: week,
+            auftragsnummer,
+            position_id: positionId,
+            machine_id: machineId,
+            user_company: userCompany,
+        });
+
+        fetch(`/admin/time/daily-records/details?${params}`)
             .then(res => res.json())
             .then(data => {
                 let html = `
@@ -68,7 +72,7 @@
         return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
     }
 
-    function getDailyRecords(index, week, auftragsnummer, positionId, machineId) {
+    function getDailyRecords(index, week, auftragsnummer, positionId, machineId, userCompany) {
         const container = document.getElementById(`dailyRecordsContainer${index}`);
 
         // ✅ Use cache if available
@@ -76,7 +80,15 @@
             container.innerHTML = dailyRecordsCache[index];
             return;
         }
-        fetch(`/admin/time/daily-records?calendar_week=${week}&auftragsnummer=${auftragsnummer}&position_id=${positionId}&machine_id=${machineId}`, {method: 'GET'})
+        const params = new URLSearchParams({
+            calendar_week: week,
+            auftragsnummer,
+            position_id: positionId,
+            machine_id: machineId,
+            user_company: userCompany,
+        });
+
+        fetch(`/admin/time/daily-records?${params}`, {method: 'GET'})
             .then(response => response.json())
             .then(data => {
                 if (data.dailyRecords.length === 0) {
@@ -115,7 +127,8 @@
                                     ${week},
                                     '${auftragsnummer}',
                                     ${positionId},
-                                    ${machineId}
+                                    ${machineId},
+                                    '${userCompany}'
                                 )">
                                     ${record.record_date}
                                 </a>
@@ -145,7 +158,7 @@
     // Optional: Auto-load if index, week, etc. are passed as props
     @if(isset($autoLoad) && $autoLoad)
         document.addEventListener('DOMContentLoaded', function() {
-            getDailyRecords('{{ $index }}', '{{ $week }}', '{{ $auftragsnummer }}', '{{ $positionId }}', '{{ $machineId }}');
+            getDailyRecords(@js($index), @js($week), @js($auftragsnummer), @js($positionId), @js($machineId), @js($userCompany));
         });
     @endif
 </script>
