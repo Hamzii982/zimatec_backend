@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Bauteil extends Model
 {
@@ -59,6 +61,16 @@ class Bauteil extends Model
     public function processes()
     {
         return $this->hasMany(Process::class, 'bauteil_id');
+    }
+
+    public function fraesdata(): HasMany
+    {
+        return $this->hasMany(Fraesdata::class);
+    }
+
+    public function latestFraesdata(): HasOne
+    {
+        return $this->hasOne(Fraesdata::class)->latestOfMany('created_at');
     }
 
     public function measurement()

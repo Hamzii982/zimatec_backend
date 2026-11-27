@@ -189,9 +189,9 @@ test('admin project create with attach_to_workflow attaches the project to the w
         'attach_to_workflow' => '1',
     ]);
 
-    $response->assertRedirect(route('admin.projects'));
-
     $project = BaseProject::where('project_name', 'Test-Projekt Workflow')->firstOrFail();
+    $response->assertRedirect(route('admin.projects.show', $project));
+
     expect($project->workflowProject)->not->toBeNull();
     expect($project->workflowProject->current_stage_id)->not->toBeNull();
     expect($project->workflowProject->currentStage->is_active)->toBeTrue();
@@ -202,7 +202,7 @@ test('admin project create without attach_to_workflow leaves the project off the
     $status = ProjectStatus::firstOrCreate(['name' => 'Neu']);
     $this->actingAs($admin);
 
-    $this->post(route('admin.projects.store'), [
+    $response = $this->post(route('admin.projects.store'), [
         'project_name' => 'Test-Projekt Ohne Workflow',
         'project_status_id' => $status->id,
         'auftragsnummer_zt' => 'ZT-NOWF-001',
@@ -211,8 +211,9 @@ test('admin project create without attach_to_workflow leaves the project off the
         'end_time' => now()->addDays(7)->format('Y-m-d\TH:i'),
         'save_to_db' => '1',
         // no attach_to_workflow
-    ])->assertRedirect(route('admin.projects'));
+    ]);
 
     $project = BaseProject::where('project_name', 'Test-Projekt Ohne Workflow')->firstOrFail();
+    $response->assertRedirect(route('admin.projects.show', $project));
     expect($project->workflowProject)->toBeNull();
 });

@@ -84,6 +84,30 @@
                         
                                         </div>
                                     </div>
+                                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                                        @if($position->latestFraesdata)
+                                            <span class="badge rounded-pill d-inline-flex align-items-center gap-1 px-2 py-2"
+                                                style="background:#edf5fb;color:#174f7a;border:1px solid #d7e8f7;">
+                                                <i class="bi bi-clock-history" aria-hidden="true"></i>
+                                                <span>{{ __('fraesdata.recent_upload') }}:</span>
+                                                <time class="fw-semibold" datetime="{{ $position->latestFraesdata->created_at->toIso8601String() }}">
+                                                    {{ $position->latestFraesdata->created_at->format('d.m.Y H:i') }}
+                                                </time>
+                                            </span>
+                                        @else
+                                            <span class="badge rounded-pill bg-light text-secondary border d-inline-flex align-items-center gap-1 px-2 py-2">
+                                                <i class="bi bi-file-earmark" aria-hidden="true"></i>{{ __('fraesdata.no_recent_upload') }}
+                                            </span>
+                                        @endif
+                                        @if(auth()->user()?->canWriteModule('projects'))
+                                            <a
+                                                href="{{ route('admin.fraesdata.create', ['project' => $project, 'position_id' => $position->id]) }}"
+                                                class="btn btn-outline-primary btn-sm"
+                                            >
+                                                <i class="bi bi-upload me-1"></i>{{ __('fraesdata.upload_button') }}
+                                            </a>
+                                        @endif
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -174,6 +198,31 @@
                                             Liefertermin am {{ $latestProject->end_date }}
                                         </div>
                                     @endif
+
+                                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-2">
+                                        @if($bauteil->latestFraesdata)
+                                            <span class="badge rounded-pill d-inline-flex align-items-center gap-1 px-2 py-2"
+                                                style="background:#edf5fb;color:#174f7a;border:1px solid #d7e8f7;">
+                                                <i class="bi bi-clock-history" aria-hidden="true"></i>
+                                                <span>{{ __('fraesdata.recent_upload') }}:</span>
+                                                <time class="fw-semibold" datetime="{{ $bauteil->latestFraesdata->created_at->toIso8601String() }}">
+                                                    {{ $bauteil->latestFraesdata->created_at->format('d.m.Y H:i') }}
+                                                </time>
+                                            </span>
+                                        @else
+                                            <span class="badge rounded-pill bg-light text-secondary border d-inline-flex align-items-center gap-1 px-2 py-2">
+                                                <i class="bi bi-file-earmark" aria-hidden="true"></i>{{ __('fraesdata.no_recent_upload') }}
+                                            </span>
+                                        @endif
+                                        @if(auth()->user()?->canWriteModule('projects'))
+                                            <a
+                                                href="{{ route('admin.fraesdata.create', ['project' => $project, 'bauteil_id' => $bauteil->id]) }}"
+                                                class="btn btn-outline-primary btn-sm"
+                                            >
+                                                <i class="bi bi-upload me-1"></i>{{ __('fraesdata.upload_button') }}
+                                            </a>
+                                        @endif
+                                    </div>
                                 </div>
                             </div>
                         </div>

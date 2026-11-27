@@ -3,11 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Project;
+use App\Models\ProjectStatus;
 use Illuminate\Http\Request;
 
 class ProjectController extends Controller
 {
-
     /**
      * Create a new controller instance.
      *
@@ -22,10 +22,15 @@ class ProjectController extends Controller
     {
         $projects = Project::with('status')
             ->withCount('positions')
+            ->withCount('bauteile')
+            ->withMax('fraesdata', 'created_at')
             ->orderByDesc('start_time')
             ->get();
+        $statuses = ProjectStatus::query()
+            ->orderBy('name')
+            ->get(['id', 'name', 'color']);
 
-        return view('user.projects.index', compact('projects'));
+        return view('user.projects.index', compact('projects', 'statuses'));
 
     }
 

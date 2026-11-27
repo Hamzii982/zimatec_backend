@@ -45,6 +45,7 @@ class MaterialConsumption extends Model
             'use' => 'Entnommen',
             'return' => 'Zurückgelegt',
             'reserve' => 'Reserviert',
+            'damaged' => 'Beschädigt ausgebucht',
             'restock' => 'Aufgefüllt',
             'audit_adjust' => 'Korrektur',
             'delivery' => 'Geliefert',
@@ -57,6 +58,7 @@ class MaterialConsumption extends Model
         return match ($this->consumption_type) {
             'use' => 'bg-primary-subtle text-primary-emphasis',
             'return', 'restock' => 'bg-success-subtle text-success-emphasis',
+            'damaged' => 'bg-danger-subtle text-danger-emphasis',
             'reserve' => 'bg-info-subtle text-info-emphasis',
             'audit_adjust' => 'bg-warning-subtle text-warning-emphasis',
             'delivery' => 'bg-primary-subtle text-primary-emphasis',

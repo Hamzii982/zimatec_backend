@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\AdminLagerController;
 use App\Http\Controllers\Admin\BauteilController;
 use App\Http\Controllers\Admin\EmailController;
 use App\Http\Controllers\Admin\FeedbackController;
+use App\Http\Controllers\Admin\FraesdataController as AdminFraesdataController;
 use App\Http\Controllers\Admin\HomeController as AdminHome;
 use App\Http\Controllers\Admin\PositionController;
 use App\Http\Controllers\Admin\ProjectController as AdminProject;
@@ -16,16 +17,18 @@ use App\Http\Controllers\Admin\Settings\MaterialThresholdController;
 use App\Http\Controllers\Admin\Settings\ProjectServicesController;
 use App\Http\Controllers\Admin\Settings\ProjectSettingsController;
 use App\Http\Controllers\Admin\Settings\RoleController;
+use App\Http\Controllers\Admin\ShelfController as AdminShelfController;
 use App\Http\Controllers\Admin\SupplierController;
 use App\Http\Controllers\Admin\SupplierOfferController;
 use App\Http\Controllers\Admin\SupplierProjectController;
 use App\Http\Controllers\Admin\TablarController as AdminTablarController;
-use App\Http\Controllers\Admin\ShelfController as AdminShelfController;
 use App\Http\Controllers\Admin\TimeController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\Workflow\AssignmentController as AdminWorkflowAssignmentController;
 use App\Http\Controllers\Admin\Workflow\StageController as AdminWorkflowStageController;
+use App\Http\Controllers\AiChatController;
 use App\Http\Controllers\FeedbackController as PublicFeedbackController;
+use App\Http\Controllers\FraesdataController as PublicFraesdataController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\LanguageController;
 use App\Http\Controllers\PrinterProblemAttachmentController;
@@ -33,15 +36,14 @@ use App\Http\Controllers\PrinterProblemController;
 use App\Http\Controllers\PrinterProblemEmailController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\SchedulerController;
+use App\Http\Controllers\SheetManagementController;
 use App\Http\Controllers\TablarController;
 use App\Http\Controllers\TimeRecordController;
-use App\Http\Controllers\SheetManagementController;
 use App\Http\Controllers\UserController as User;
 use App\Http\Controllers\Workflow\ProjectStepController as WorkflowProjectStepController;
 use App\Http\Controllers\Workflow\WorkflowController as WorkflowWorkflowController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\AiChatController;
 
 Auth::routes();
 
@@ -57,6 +59,14 @@ Route::post('/assistant/ask-recommendations', [AiChatController::class, 'ask'])-
 Route::get('/projects/index', [ProjectController::class, 'index'])->name('projects');
 Route::get('/projects/logs', [ProjectController::class, 'projectLogs'])->name('projects.logs');
 Route::get('/parse-log', [ProjectController::class, 'parseLog'])->name('parse.log');
+
+if (config('modules.projects')) {
+    Route::get('/projects/{project}/cnc-data', [PublicFraesdataController::class, 'projectIndex'])->name('projects.cnc-data');
+    Route::get('/projects/{project}/cnc-data/{fraesdata}/print', [PublicFraesdataController::class, 'printDocument'])
+        ->name('projects.cnc-data.print');
+    Route::get('/projects/{project}/cnc-data/{fraesdata}/download', [PublicFraesdataController::class, 'download'])
+        ->name('projects.cnc-data.download');
+}
 
 // Feedback routes
 Route::prefix('feedback')->controller(PublicFeedbackController::class)->name('feedback.')->group(function () {
@@ -169,6 +179,7 @@ Route::prefix('time-records')->name('time-records.')->group(function () {
 
 // Lager selection page (new)
 Route::get('/lager', [TablarController::class, 'lagerSelect'])->name('lager.select');
+Route::get('/lager/material-search', [TablarController::class, 'searchMaterials'])->name('tablar.material-search');
 
 // Lager-scoped material view
 Route::get('/lager/{lager_id}/tablar', [TablarController::class, 'index'])->name('tablar.index');
@@ -176,6 +187,8 @@ Route::post('/lager/{lager_id}/tablar/consume', [TablarController::class, 'consu
 Route::post('/lager/{lager_id}/tablar/return', [TablarController::class, 'return'])->name('tablar.return');
 Route::post('/lager/{lager_id}/tablar/reserve', [TablarController::class, 'reserve'])->name('tablar.reserve');
 Route::post('/lager/{lager_id}/tablar/reserve/settle', [TablarController::class, 'settleReservation'])->name('tablar.reserve.settle');
+Route::post('/lager/{lager_id}/tablar/reserve/release', [TablarController::class, 'releaseReservation'])->name('tablar.reserve.release');
+Route::post('/lager/{lager_id}/tablar/reserve/damage', [TablarController::class, 'damageReservation'])->name('tablar.reserve.damage');
 Route::post('/lager/{lager_id}/tablar/order-request/{materialId}', [TablarController::class, 'orderRequest'])->name('tablar.order-request');
 Route::post('/lager/{lager_id}/tablar/materials/{id}/cancel-notification', [TablarController::class, 'cancelNotification'])->name('tablar.order.cancel');
 Route::post('/lager/{lager_id}/tablar/materials/{id}/confirm-delivery', [TablarController::class, 'confirmDelivery'])->name('tablar.order.confirm');
@@ -227,6 +240,9 @@ Route::middleware(['auth', 'role:admin'])
                 Route::get('/projects/edit/{project}', [AdminProject::class, 'edit'])->name('projects.edit');
                 Route::put('/projects/{project}', [AdminProject::class, 'update'])->name('projects.update');
                 Route::patch('/projects/{project}/status', [AdminProject::class, 'updateStatus'])->name('projects.update-status');
+                Route::get('/projects/{project}/fraesdata/create', [AdminFraesdataController::class, 'create'])->name('fraesdata.create');
+                Route::post('/projects/{project}/fraesdata', [AdminFraesdataController::class, 'store'])->name('fraesdata.store');
+                Route::get('/fraesdata/materials/search', [AdminFraesdataController::class, 'searchMaterials'])->name('fraesdata.materials.search');
                 Route::resource('bauteile', BauteilController::class);
                 Route::prefix('projects')->name('projects.')->group(function () {
                     Route::get('{project}/positions/create', [PositionController::class, 'create'])->name('positions.create');

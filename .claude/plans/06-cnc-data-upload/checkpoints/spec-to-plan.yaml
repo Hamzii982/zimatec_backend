@@ -1,0 +1,134 @@
+# Spec-to-Plan Traceability Checkpoint
+# Source: .claude/specs/06-cnc-data-upload.md
+# Plan: .claude/plans/06-cnc-data-upload/plan.md
+
+metadata:
+  generated: "2026-11-26"
+  source_spec: ".claude/specs/06-cnc-data-upload.md"
+  target_plan: ".claude/plans/06-cnc-data-upload/plan.md"
+
+summary:
+  total_requirements: 12
+  covered_requirements: 12
+  missing_requirements: 0
+  coverage_percentage: 100.0
+
+requirements:
+  - req_id: "REQ-001"
+    req_description: "Project-guarded public/admin CNC routes and expected route list"
+    priority: "P1"
+    source: "Definition of done #1"
+    plan_mapping:
+      phase: "Phase-2, Phase-3, Phase-4"
+      phase_name: "Admin Upload; Public Project CNC Data; Validation and Polish"
+      items: ["2.1", "3.1", "3.2", "4.2"]
+    notes: ""
+  - req_id: "REQ-002"
+    req_description: "Create fraesdata and fraesdata_tools with the required keys and indexes"
+    priority: "P1"
+    source: "Definition of done #2"
+    plan_mapping:
+      phase: "Phase-1"
+      phase_name: "Foundational data layer"
+      items: ["1.1"]
+    notes: ""
+  - req_id: "REQ-003"
+    req_description: "Admin can upload named Position PDFs with multiple Material/Werkzeug rows"
+    priority: "P1"
+    source: "Definition of done #3"
+    plan_mapping:
+      phase: "Phase-1, Phase-2"
+      phase_name: "Foundational data layer; Admin Upload"
+      items: ["1.1", "1.2", "2.1", "2.2", "2.3"]
+    notes: ""
+  - req_id: "REQ-004"
+    req_description: "Admin can upload Bauteil PDFs with an optional same-project Position"
+    priority: "P1"
+    source: "Definition of done #4"
+    plan_mapping:
+      phase: "Phase-1, Phase-2"
+      phase_name: "Foundational data layer; Admin Upload"
+      items: ["1.1", "1.2", "2.1", "2.2", "2.3"]
+    notes: "Position target and optional Bauteil-associated Position have distinct foreign keys; see research.md."
+  - req_id: "REQ-005"
+    req_description: "Invalid PDFs/targets fail without orphaned records or files"
+    priority: "P1"
+    source: "Definition of done #5"
+    plan_mapping:
+      phase: "Phase-1, Phase-2, Phase-4"
+      phase_name: "Foundational data layer; Admin Upload; Validation and Polish"
+      items: ["1.2", "2.1", "4.1"]
+    notes: ""
+  - req_id: "REQ-006"
+    req_description: "Material search matches by name or description and saves existing IDs"
+    priority: "P1"
+    source: "Definition of done #6"
+    plan_mapping:
+      phase: "Phase-2, Phase-4"
+      phase_name: "Admin Upload; Validation and Polish"
+      items: ["2.1", "2.2", "4.1"]
+    notes: ""
+  - req_id: "REQ-007"
+    req_description: "Admin upload and material search reject unauthenticated/non-admin users"
+    priority: "P1"
+    source: "Definition of done #7"
+    plan_mapping:
+      phase: "Phase-2, Phase-4"
+      phase_name: "Admin Upload; Validation and Polish"
+      items: ["2.1", "4.1"]
+    notes: ""
+  - req_id: "REQ-008"
+    req_description: "Public project list links to CNC pages and displays aggregate latest upload"
+    priority: "P1"
+    source: "Definition of done #8"
+    plan_mapping:
+      phase: "Phase-3, Phase-4"
+      phase_name: "Public Project CNC Data; Validation and Polish"
+      items: ["3.1", "4.1"]
+    notes: ""
+  - req_id: "REQ-009"
+    req_description: "Public page selects a Position/Bauteil and displays its documents and recency"
+    priority: "P1"
+    source: "Definition of done #9"
+    plan_mapping:
+      phase: "Phase-3, Phase-4"
+      phase_name: "Public Project CNC Data; Validation and Polish"
+      items: ["3.1", "4.1"]
+    notes: ""
+  - req_id: "REQ-010"
+    req_description: "Public downloads are scoped to the route project"
+    priority: "P1"
+    source: "Definition of done #10"
+    plan_mapping:
+      phase: "Phase-3, Phase-4"
+      phase_name: "Public Project CNC Data; Validation and Polish"
+      items: ["3.2", "4.1"]
+    notes: ""
+  - req_id: "REQ-011"
+    req_description: "Pest covers new actions, validation, access, search, and scoping"
+    priority: "P1"
+    source: "Definition of done #11"
+    plan_mapping:
+      phase: "Phase-2, Phase-3, Phase-4"
+      phase_name: "Admin Upload; Public Project CNC Data; Validation and Polish"
+      items: ["2.1", "3.1", "3.2", "4.1"]
+    notes: ""
+  - req_id: "REQ-012"
+    req_description: "Pint passes on changed PHP files"
+    priority: "P1"
+    source: "Definition of done #12"
+    plan_mapping:
+      phase: "Phase-4"
+      phase_name: "Validation and Polish"
+      items: ["4.2"]
+    notes: ""
+
+missing_requirements: []
+orphan_plan_items: []
+
+validation:
+  passed: true
+  errors: []
+  warnings:
+    - "REQ labels map one-to-one to the source spec's numbered acceptance criteria; the spec contains no literal REQ identifiers."
+    - "The target Position foreign-key wording is clarified in research.md."

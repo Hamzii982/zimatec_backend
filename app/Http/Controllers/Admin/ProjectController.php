@@ -37,10 +37,10 @@ class ProjectController extends Controller
         // 3. Search by Name or Order Numbers (ZT / ZF)
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('project_name', 'like', "%{$search}%")
-                ->orWhere('auftragsnummer_zt', 'like', "%{$search}%")
-                ->orWhere('auftragsnummer_zf', 'like', "%{$search}%");
+                    ->orWhere('auftragsnummer_zt', 'like', "%{$search}%")
+                    ->orWhere('auftragsnummer_zf', 'like', "%{$search}%");
             });
         }
 
@@ -48,7 +48,7 @@ class ProjectController extends Controller
         $projects = $query->latest()->get();
 
         // 5. Fetch all statuses to populate the filter dropdown element
-        $statuses = ProjectStatus::all(); 
+        $statuses = ProjectStatus::all();
 
         return view('admin.projects.index', compact('projects', 'statuses'));
 
@@ -98,6 +98,10 @@ class ProjectController extends Controller
                     \Log::warning('Workflow auto-attach skipped for project '.$project->id.': '.$e->getMessage());
                 }
             }
+
+            return redirect()
+                ->route('admin.projects.show', $project)
+                ->with('success', 'Auftrag erfolgreich erstellt!');
         }
 
         // Create folder structure
@@ -205,7 +209,9 @@ class ProjectController extends Controller
             'end_time',
         ]));
 
-        return redirect()->route('admin.projects')->with('success', 'Auftrag erfolgreich aktualisiert!');
+        return redirect()
+            ->route('admin.projects.show', $project)
+            ->with('success', 'Auftrag erfolgreich aktualisiert!');
     }
 
     public function updateStatus(Request $request, Project $project)
@@ -229,7 +235,11 @@ class ProjectController extends Controller
 
     public function show(Project $project)
     {
-        $project->load(['status', 'bauteile']);
+        $project->load([
+            'status',
+            'positions.latestFraesdata',
+            'bauteile.latestFraesdata',
+        ]);
 
         return view('admin.projects.show', compact('project'));
     }

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Material extends Model
 {
@@ -82,6 +83,11 @@ class Material extends Model
     public function consumptionRecords()
     {
         return $this->hasMany(MaterialConsumption::class);
+    }
+
+    public function fraesdataTools(): HasMany
+    {
+        return $this->hasMany(FraesdataTool::class);
     }
 
     public function usedRecords()

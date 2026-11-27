@@ -19,7 +19,78 @@ class TablarController extends Controller
     {
         $lagers = Lager::withCount('materials')->orderBy('name')->get();
 
-        return view('user.tablar.lager-select', compact('lagers'));
+        $statusTranslations = [
+            'notified' => 'Bedarf gemeldet',
+            'ordered' => 'Bestellt',
+            'blocked' => 'Blockiert',
+            'delivered' => 'Geliefert',
+        ];
+
+        return view('user.tablar.lager-select', compact('lagers', 'statusTranslations'));
+    }
+
+    public function searchMaterials(Request $request)
+    {
+        $data = $request->validate([
+            'q' => 'required|string|min:1|max:100',
+        ]);
+        $query = trim($data['q']);
+        if ($query === '') {
+            abort(422, 'Bitte geben Sie einen Suchbegriff ein.');
+        }
+
+        $pattern = '%'.$query.'%';
+
+        $materials = Material::with(['lager:id,name,type', 'shelf:id,name'])
+            ->whereNotNull('lager_id')
+            ->where(function ($query) use ($pattern) {
+                $query->where('name', 'like', $pattern)
+                    ->orWhere('code', 'like', $pattern)
+                    ->orWhere('description', 'like', $pattern);
+            })
+            ->orderBy('name')
+            ->limit(51)
+            ->get();
+
+        $hasMore = $materials->count() > 50;
+
+        return response()->json([
+            'materials' => $materials->take(50)->map(fn (Material $material) => [
+                'id' => $material->id,
+                'name' => $material->name,
+                'code' => $material->code,
+                'description' => $material->description,
+                'quantity' => $material->quantity,
+                'on_hold_quantity' => $material->on_hold_quantity ?? 0,
+                'order_quantity' => $material->order_quantity ?? 0,
+                'available_total' => $material->available_total,
+                'shelf' => $material->tablar,
+                'threshold' => $material->threshold,
+                'type' => $material->type,
+                'unit' => $material->unit,
+                'image' => $material->image,
+                'order_status' => $material->order_status,
+                'status' => $material->status,
+                'lager_id' => $material->lager_id,
+                'lager_name' => $material->lager?->name,
+                'lager_type' => $material->lager?->type,
+                'action_urls' => $this->materialActionUrls((int) $material->lager_id),
+            ])->values(),
+            'has_more' => $hasMore,
+        ]);
+    }
+
+    private function materialActionUrls(int $lagerId): array
+    {
+        return [
+            'consume' => route('tablar.consume', $lagerId),
+            'return' => route('tablar.return', $lagerId),
+            'reserve' => route('tablar.reserve', $lagerId),
+            'settle' => route('tablar.reserve.settle', $lagerId),
+            'order_request' => route('tablar.order-request', [$lagerId, '__MATERIAL_ID__']),
+            'cancel_notification' => route('tablar.order.cancel', [$lagerId, '__MATERIAL_ID__']),
+            'confirm_delivery' => route('tablar.order.confirm', [$lagerId, '__MATERIAL_ID__']),
+        ];
     }
 
     public function index(int $lager_id)
@@ -60,6 +131,10 @@ class TablarController extends Controller
             'order_status' => $m->order_status,
             'status' => $m->status,
             'leftover_sheet_count' => $leftoverCounts[$m->id] ?? 0,
+            'lager_id' => $lager->id,
+            'lager_name' => $lager->name,
+            'lager_type' => $lager->type,
+            'action_urls' => $this->materialActionUrls((int) $lager->id),
         ])->values();
 
         $shelves = $materials
@@ -277,6 +352,76 @@ class TablarController extends Controller
         ]);
     }
 
+    public function releaseReservation(Request $request, int $lager_id)
+    {
+        return $this->releaseHeldStock($request, $lager_id, 'return');
+    }
+
+    public function damageReservation(Request $request, int $lager_id)
+    {
+        return $this->releaseHeldStock($request, $lager_id, 'damaged');
+    }
+
+    private function releaseHeldStock(Request $request, int $lager_id, string $consumptionType)
+    {
+        Lager::findOrFail($lager_id);
+
+        $data = $request->validate([
+            'material_id' => 'required|exists:materials,id',
+            'quantity' => 'required|integer|min:1',
+        ]);
+
+        $material = DB::transaction(function () use ($data, $lager_id, $consumptionType) {
+            $material = Material::where('lager_id', $lager_id)
+                ->lockForUpdate()
+                ->findOrFail($data['material_id']);
+
+            if ((int) $material->on_hold_quantity < $data['quantity']) {
+                abort(400, 'Menge übersteigt den reservierten Bestand');
+            }
+
+            $material->decrement('on_hold_quantity', $data['quantity']);
+
+            if ($consumptionType === 'return') {
+                $material->increment('quantity', $data['quantity']);
+            }
+
+            MaterialConsumption::create([
+                'material_id' => $material->id,
+                'quantity' => $data['quantity'],
+                'consumption_type' => $consumptionType,
+                'consumption_time' => now(),
+            ]);
+
+            if ($consumptionType === 'damaged') {
+                $threshold = (int) ($material->threshold ?? 0);
+
+                if ($threshold > 0 && $material->available_total <= $threshold) {
+                    $alreadyExists = Notification::where('type', 'low_stock')
+                        ->where('message', 'like', '%'.$material->name.'%')
+                        ->whereDate('created_at', now()->toDateString())
+                        ->exists();
+
+                    if (! $alreadyExists) {
+                        new_notification(
+                            type: 'low_stock',
+                            message: "{$material->name} ist im Lager fast leer. Bitte nachbestellen.",
+                            url: route('admin.tablar.show', ['lager_id' => $lager_id, 'id' => $material->id]),
+                        );
+                    }
+                }
+            }
+
+            return $material->fresh();
+        });
+
+        return response()->json([
+            'success' => true,
+            'new_quantity' => $material->quantity,
+            'on_hold_quantity' => $material->on_hold_quantity,
+        ]);
+    }
+
     // ─── ORDER REQUEST ───────────────────────────────────────────────────────
 
     public function orderRequest(int $lager_id, $materialId)
@@ -336,7 +481,7 @@ class TablarController extends Controller
         $material = DB::transaction(function () use ($lager_id, $id) {
             $material = Material::where('lager_id', $lager_id)->lockForUpdate()->findOrFail($id);
 
-            if (!in_array($material->order_status, ['ordered', 'delivered'], true)) {
+            if (! in_array($material->order_status, ['ordered', 'delivered'], true)) {
                 abort(400, 'Bestätigung nur möglich, wenn Material bestellt oder geliefert wurde.');
             }
 

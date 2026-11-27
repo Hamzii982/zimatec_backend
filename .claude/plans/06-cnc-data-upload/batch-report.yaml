@@ -1,0 +1,282 @@
+batch_id: "B01"
+completed_tasks: ["T001", "T002", "T003", "T004", "T005", "T006", "T007", "T008", "T009", "T010", "T011", "T012", "T013", "T014"]
+blocked_tasks: []
+required_endpoints: []
+endpoint_probes:
+  - method: "GET"
+    path: "/admin/projects/{project}/fraesdata/create"
+    result: "PASS"
+    evidence: "HTTP feature test confirms the admin upload form renders with the selected target."
+  - method: "POST"
+    path: "/admin/projects/{project}/fraesdata"
+    result: "PASS"
+    evidence: "HTTP feature tests cover Position/Bauteil uploads and invalid PDF handling."
+  - method: "GET"
+    path: "/projects/{project}/cnc-data"
+    result: "PASS"
+    evidence: "HTTP feature tests cover project page and target selection."
+  - method: "GET"
+    path: "/projects/{project}/cnc-data/{fraesdata}/download"
+    result: "PASS"
+    evidence: "HTTP feature tests cover PDF response and cross-project 404."
+  - method: "GET"
+    path: "/admin/fraesdata/materials/search"
+    result: "PASS"
+    evidence: "HTTP feature tests cover name/description search and admin-only access."
+files_changed:
+  T001:
+    - file: "tests/Feature/FraesdataTest.php"
+      change_type: "created"
+      description: "Added schema and relationship regression coverage."
+  T002:
+    - file: "database/migrations/2026_11_26_153700_create_fraesdata_and_fraesdata_tools_tables.php"
+      change_type: "created"
+      description: "Added parent/child CNC data schema."
+  T003:
+    - file: "app/Models/Fraesdata.php"
+      change_type: "created"
+      description: "Added CNC document model and relationships."
+    - file: "app/Models/FraesdataTool.php"
+      change_type: "created"
+      description: "Added CNC tool/material row model."
+    - file: "app/Models/Project.php"
+      change_type: "modified"
+      description: "Added project CNC relations."
+    - file: "app/Models/Position.php"
+      change_type: "modified"
+      description: "Added Position CNC relations."
+    - file: "app/Models/Bauteil.php"
+      change_type: "modified"
+      description: "Added Bauteil CNC relations."
+    - file: "app/Models/Material.php"
+      change_type: "modified"
+      description: "Added material CNC row relation."
+    - file: "app/Models/User.php"
+      change_type: "modified"
+      description: "Added uploader relation."
+  T004:
+    - file: "app/Http/Requests/StoreFraesdataRequest.php"
+      change_type: "created"
+      description: "Added upload validation and project ownership rules."
+  T005:
+    - file: "tests/Feature/FraesdataTest.php"
+      change_type: "modified"
+      description: "Added admin authorization, upload, validation, and search tests."
+  T006:
+    - file: "app/Http/Controllers/Admin/FraesdataController.php"
+      change_type: "created"
+      description: "Added admin upload and material-search actions."
+    - file: "routes/web.php"
+      change_type: "modified"
+      description: "Registered guarded CNC routes."
+  T007:
+    - file: "resources/views/admin/fraesdata/create.blade.php"
+      change_type: "created"
+      description: "Added upload and searchable material form."
+    - file: "lang/de/fraesdata.php"
+      change_type: "created"
+      description: "Added German CNC labels."
+    - file: "lang/en/fraesdata.php"
+      change_type: "created"
+      description: "Added English CNC labels."
+  T008:
+    - file: "app/Http/Controllers/Admin/ProjectController.php"
+      change_type: "modified"
+      description: "Eager-loaded entity upload recency."
+    - file: "resources/views/admin/projects/show.blade.php"
+      change_type: "modified"
+      description: "Added upload actions and recency display to entity cards."
+  T009:
+    - file: "tests/Feature/FraesdataTest.php"
+      change_type: "modified"
+      description: "Added public browsing and download tests."
+  T010:
+    - file: "app/Http/Controllers/FraesdataController.php"
+      change_type: "created"
+      description: "Added public project browsing and selected-target loading."
+    - file: "app/Http/Controllers/ProjectController.php"
+      change_type: "modified"
+      description: "Added latest child-document aggregate to project list."
+    - file: "routes/web.php"
+      change_type: "modified"
+      description: "Registered public CNC routes."
+  T011:
+    - file: "resources/views/user/projects/cnc-data.blade.php"
+      change_type: "created"
+      description: "Added public Position/Bauteil selector and document details."
+    - file: "resources/views/user/projects/index.blade.php"
+      change_type: "modified"
+      description: "Linked project cards and displayed upload recency."
+  T012:
+    - file: "app/Http/Controllers/FraesdataController.php"
+      change_type: "modified"
+      description: "Added project-scoped inline PDF response."
+    - file: "routes/web.php"
+      change_type: "modified"
+      description: "Registered PDF route."
+  T013:
+    - file: "tests/Feature/FraesdataTest.php"
+      change_type: "modified"
+      description: "Completed feature regression suite."
+  T014: []
+upstream_artifacts_consumed:
+  T001:
+    - artifact: ".claude/specs/06-cnc-data-upload.md"
+      used_for: "Acceptance criteria for schema and model tests."
+    - artifact: ".claude/plans/06-cnc-data-upload/plan.md"
+      used_for: "Task order, implementation design, and traceability."
+  T002:
+    - artifact: ".claude/plans/06-cnc-data-upload/research.md"
+      used_for: "Resolved target-versus-related Position foreign key semantics."
+  T003:
+    - artifact: ".claude/specs/06-cnc-data-upload.md"
+      used_for: "Entity relationships and data model requirements."
+  T004:
+    - artifact: ".claude/plans/06-cnc-data-upload/research.md"
+      used_for: "Validation boundaries for target and optional Position."
+  T005:
+    - artifact: ".claude/specs/06-cnc-data-upload.md"
+      used_for: "Admin upload, search, validation, and public access criteria."
+  T006:
+    - artifact: ".claude/plans/06-cnc-data-upload/plan.md"
+      used_for: "Route gating, admin middleware, and persistence design."
+  T007:
+    - artifact: ".claude/specs/06-cnc-data-upload.md"
+      used_for: "German-first upload form and material search behaviors."
+  T008:
+    - artifact: ".claude/specs/06-cnc-data-upload.md"
+      used_for: "Entity card upload actions and latest-upload indicators."
+  T009:
+    - artifact: ".claude/specs/06-cnc-data-upload.md"
+      used_for: "Public browsing and download acceptance criteria."
+  T010:
+    - artifact: ".claude/plans/06-cnc-data-upload/plan.md"
+      used_for: "Public project browsing and aggregate recency behavior."
+  T011:
+    - artifact: ".claude/specs/06-cnc-data-upload.md"
+      used_for: "Public project and entity selection screen requirements."
+  T012:
+    - artifact: ".claude/specs/06-cnc-data-upload.md"
+      used_for: "Project-scoped PDF viewing behavior."
+  T013:
+    - artifact: ".claude/plans/06-cnc-data-upload/plan.md"
+      used_for: "Focused feature and related project regression scope."
+  T014:
+    - artifact: ".claude/plans/06-cnc-data-upload/plan.md"
+      used_for: "Route, formatting, and end-to-end verification checklist."
+evidence_mapping:
+  T001:
+    - upstream: ".claude/specs/06-cnc-data-upload.md#Database changes"
+      output: "database/migrations/2026_11_26_153700_create_fraesdata_and_fraesdata_tools_tables.php"
+      evidence: "Schema and relationship tests passed."
+  T004:
+    - upstream: ".claude/specs/06-cnc-data-upload.md#Definition of done"
+      output: "app/Http/Requests/StoreFraesdataRequest.php"
+      evidence: "Upload validation and cross-project association tests passed."
+  T006:
+    - upstream: ".claude/specs/06-cnc-data-upload.md#Routes"
+      output: "routes/web.php"
+      evidence: "CNC route list verified; admin authorization tests passed."
+  T007:
+    - upstream: ".claude/specs/06-cnc-data-upload.md#Views"
+      output: "resources/views/admin/fraesdata/create.blade.php"
+      evidence: "Admin form render test passed."
+  T009:
+    - upstream: ".claude/specs/06-cnc-data-upload.md#Definition of done"
+      output: "tests/Feature/FraesdataTest.php"
+      evidence: "Public project, target, document, and PDF scoping tests passed."
+  T011:
+    - upstream: ".claude/specs/06-cnc-data-upload.md#Views"
+      output: "resources/views/user/projects/cnc-data.blade.php"
+      evidence: "Public page and project list HTTP tests passed."
+traceability:
+  - requirement: "REQ-001"
+    plan_item: "2.1, 3.1, 3.2, 4.2"
+    task: "T006, T010, T012, T014"
+    files: ["routes/web.php", "tests/Feature/FraesdataTest.php"]
+    status: "completed"
+  - requirement: "REQ-002"
+    plan_item: "1.1"
+    task: "T001, T002, T003"
+    files: ["database/migrations/2026_11_26_153700_create_fraesdata_and_fraesdata_tools_tables.php", "app/Models/Fraesdata.php", "app/Models/FraesdataTool.php"]
+    status: "completed"
+  - requirement: "REQ-003"
+    plan_item: "1.1, 1.2, 2.1, 2.2, 2.3"
+    task: "T003, T004, T005, T006, T007, T008"
+    files: ["app/Http/Requests/StoreFraesdataRequest.php", "app/Http/Controllers/Admin/FraesdataController.php", "resources/views/admin/fraesdata/create.blade.php", "resources/views/admin/projects/show.blade.php"]
+    status: "completed"
+  - requirement: "REQ-004"
+    plan_item: "1.1, 1.2, 2.1, 2.2, 2.3"
+    task: "T003, T004, T005, T006, T007, T008"
+    files: ["database/migrations/2026_11_26_153700_create_fraesdata_and_fraesdata_tools_tables.php", "app/Http/Requests/StoreFraesdataRequest.php", "resources/views/admin/fraesdata/create.blade.php"]
+    status: "completed"
+  - requirement: "REQ-005"
+    plan_item: "1.2, 2.1, 4.1"
+    task: "T004, T005, T006, T013"
+    files: ["app/Http/Requests/StoreFraesdataRequest.php", "app/Http/Controllers/Admin/FraesdataController.php", "tests/Feature/FraesdataTest.php"]
+    status: "completed"
+  - requirement: "REQ-006"
+    plan_item: "2.1, 2.2, 4.1"
+    task: "T005, T006, T007, T013"
+    files: ["app/Http/Controllers/Admin/FraesdataController.php", "resources/views/admin/fraesdata/create.blade.php", "tests/Feature/FraesdataTest.php"]
+    status: "completed"
+  - requirement: "REQ-007"
+    plan_item: "2.1, 4.1"
+    task: "T005, T006, T013"
+    files: ["routes/web.php", "tests/Feature/FraesdataTest.php"]
+    status: "completed"
+  - requirement: "REQ-008"
+    plan_item: "3.1, 4.1"
+    task: "T009, T010, T011, T013"
+    files: ["app/Http/Controllers/ProjectController.php", "resources/views/user/projects/index.blade.php", "tests/Feature/FraesdataTest.php"]
+    status: "completed"
+  - requirement: "REQ-009"
+    plan_item: "3.1, 4.1"
+    task: "T009, T010, T011, T013"
+    files: ["app/Http/Controllers/FraesdataController.php", "resources/views/user/projects/cnc-data.blade.php", "tests/Feature/FraesdataTest.php"]
+    status: "completed"
+  - requirement: "REQ-010"
+    plan_item: "3.2, 4.1"
+    task: "T009, T012, T013"
+    files: ["app/Http/Controllers/FraesdataController.php", "tests/Feature/FraesdataTest.php"]
+    status: "completed"
+  - requirement: "REQ-011"
+    plan_item: "2.1, 3.1, 3.2, 4.1"
+    task: "T005, T009, T013"
+    files: ["tests/Feature/FraesdataTest.php"]
+    status: "completed"
+  - requirement: "REQ-012"
+    plan_item: "4.2"
+    task: "T014"
+    files: ["app/Http/Controllers/Admin/FraesdataController.php", "app/Http/Controllers/FraesdataController.php", "tests/Feature/FraesdataTest.php"]
+    status: "completed"
+protocol_violation: false
+errors: []
+warnings:
+  - severity: "LOW"
+    message: "Interactive browser smoke testing was not run; rendered views, routes, and response behavior were verified through HTTP feature tests."
+test_results:
+  T001:
+    command: "./vendor/bin/pest tests/Feature/FraesdataTest.php tests/Feature/ProjectWorkflowTest.php tests/Feature/ProjectTerminologyTest.php"
+    passed: 23
+    failed: 0
+    skipped: 0
+    failures: []
+  T007:
+    command: "php artisan test --filter='admin upload form keeps the selected Position'"
+    passed: 1
+    failed: 0
+    skipped: 0
+    failures: []
+  T013:
+    command: "./vendor/bin/pest tests/Feature/FraesdataTest.php tests/Feature/ProjectWorkflowTest.php tests/Feature/ProjectTerminologyTest.php"
+    passed: 23
+    failed: 0
+    skipped: 0
+    failures: []
+  T014:
+    command: "php artisan route:list --path=cnc --except-vendor; ./vendor/bin/pint --test <changed PHP files>; git diff --check"
+    passed: 23
+    failed: 0
+    skipped: 0
+    failures: []

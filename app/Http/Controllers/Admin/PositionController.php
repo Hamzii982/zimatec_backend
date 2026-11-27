@@ -34,7 +34,7 @@ class PositionController extends Controller
         $project->positions()->create($validated);
 
         return redirect()
-            ->route('admin.projects.positions.index', $project)
+            ->route('admin.projects.show', $project)
             ->with('success', 'Position erfolgreich erstellt!');
     }
 
@@ -55,7 +55,7 @@ class PositionController extends Controller
         $position->update($validated);
 
         return redirect()
-            ->route('admin.projects.positions.index', $project)
+            ->route('admin.projects.show', $project)
             ->with('success', 'Position erfolgreich aktualisiert!');
     }
 

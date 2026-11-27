@@ -81,7 +81,9 @@ class BauteilController extends Controller
             'unit' => $request->unit,
         ]);
 
-        return redirect()->route('admin.bauteile.index')->with('success', 'Bauteil erfolgreich erstellt.');
+        return redirect()
+            ->route('admin.projects.show', $Bauteil->project_id)
+            ->with('success', 'Bauteil erfolgreich erstellt.');
     }
 
     public function edit($bauteil)
@@ -135,7 +137,9 @@ class BauteilController extends Controller
             ]);
         }
 
-        return redirect()->route('admin.bauteile.index')->with('success', 'Bauteil erfolgreich aktualisiert.');
+        return redirect()
+            ->route('admin.projects.show', $bauteil->project_id)
+            ->with('success', 'Bauteil erfolgreich aktualisiert.');
     }
 
     public function destroy($bauteil)

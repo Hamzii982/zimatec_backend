@@ -23,6 +23,93 @@ beforeEach(function () {
     ]);
 });
 
+test('public Tablar keeps regular stock actions primary and exposes reserved management separately', function () {
+    Material::create([
+        'name' => 'Reservierter Fräser',
+        'quantity' => 2,
+        'on_hold_quantity' => 1,
+        'lager_id' => 2,
+    ]);
+
+    $this->get(route('tablar.index', ['lager_id' => 2]))
+        ->assertOk()
+        ->assertSee('id="materialModal"', false)
+        ->assertSee('Einlagern')
+        ->assertSee('Entnehmen')
+        ->assertSee('Reservieren')
+        ->assertSee('id="manageReservedButton"', false)
+        ->assertSee('Reservierte Menge verwalten')
+        ->assertSee('id="reserveModal"', false);
+});
+
+test('global material search finds name code and description matches across Lagern', function () {
+    $secondLager = Lager::create([
+        'name' => 'Nebenlager',
+        'is_active' => true,
+    ]);
+
+    $nameMatch = Material::create([
+        'name' => 'CNC Fräser',
+        'quantity' => 3,
+        'on_hold_quantity' => 1,
+        'tablar' => 'Fach B2',
+        'lager_id' => $secondLager->id,
+    ]);
+    $codeMatch = Material::create([
+        'name' => 'Spannzange',
+        'code' => 'ZX-4721',
+        'quantity' => 4,
+        'lager_id' => 2,
+    ]);
+    $descriptionMatch = Material::create([
+        'name' => 'Kühlmittel',
+        'description' => 'Für CNC Fräsmaschinen',
+        'quantity' => 5,
+        'lager_id' => 2,
+    ]);
+    $unassigned = Material::create([
+        'name' => 'CNC Fräser ohne Lager',
+        'quantity' => 1,
+    ]);
+
+    $this->getJson(route('tablar.material-search', ['q' => 'CNC Fräser']))
+        ->assertOk()
+        ->assertJsonPath('materials.0.id', $nameMatch->id)
+        ->assertJsonPath('materials.0.lager_name', 'Nebenlager')
+        ->assertJsonPath('materials.0.shelf', 'Fach B2')
+        ->assertJsonPath('materials.0.on_hold_quantity', 1)
+        ->assertJsonPath('materials.0.action_urls.reserve', route('tablar.reserve', $secondLager->id))
+        ->assertJsonMissing(['id' => $unassigned->id]);
+
+    $this->getJson(route('tablar.material-search', ['q' => 'ZX-4721']))
+        ->assertOk()
+        ->assertJsonPath('materials.0.id', $codeMatch->id);
+
+    $this->getJson(route('tablar.material-search', ['q' => 'Fräsmaschinen']))
+        ->assertOk()
+        ->assertJsonPath('materials.0.id', $descriptionMatch->id);
+
+    $this->getJson(route('tablar.material-search', ['q' => '   ']))
+        ->assertUnprocessable();
+});
+
+test('Lager landing page exposes the global material search overlay', function () {
+    Lager::create([
+        'name' => 'Nebenlager',
+        'is_active' => true,
+    ]);
+
+    $this->get(route('lager.select'))
+        ->assertOk()
+        ->assertSee('id="globalMaterialSearchTrigger"', false)
+        ->assertSee('id="globalMaterialSearchPanel" class="lager-global-search-panel d-none"', false)
+        ->assertSee('globalMaterialSearchInput', false)
+        ->assertSee('globalMaterialSearchResults', false)
+        ->assertSee('globalMaterialSearchBackdrop', false)
+        ->assertSee('Material in allen Lagern suchen')
+        ->assertSee('Nebenlager');
+});
+
 test('index filter low_stock returns only materials at or below threshold', function () {
     $admin = User::factory()->create(['role' => 'admin']);
     $this->actingAs($admin);

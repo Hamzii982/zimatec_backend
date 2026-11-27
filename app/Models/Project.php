@@ -62,6 +62,11 @@ class Project extends Model
         return $this->hasMany(Position::class);
     }
 
+    public function fraesdata(): HasMany
+    {
+        return $this->hasMany(Fraesdata::class);
+    }
+
     public function productionSchedules()
     {
         return $this->hasMany(ProductionSchedule::class);

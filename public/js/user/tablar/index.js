@@ -1,5 +1,5 @@
 // Full material list from PHP — flat, all shelves
-const allMaterials = window.tablarData.flatList;
+let allMaterials = window.tablarData.flatList;
 const storagePath = window.tablarData.storagePath ?? '/storage/';
 const consumeUrl    = window.tablarData.consumeUrl;
 const returnUrl     = window.tablarData.returnUrl;
@@ -11,6 +11,7 @@ const confirmDeliveryBaseUrl = window.tablarData.confirmDeliveryBase;
 const sheetOptionsUrlBase = window.tablarData.sheetOptionsUrlBase;
 const sheetCutUrl = window.tablarData.sheetCutUrl;
 const sheetSearchUrl = window.tablarData.sheetSearchUrl;
+const globalSearchUrl = window.tablarData.globalSearchUrl;
 
 // Group by shelf for fast lookup: { "A1": [...], "B2": [...] }
 const byShelf = {};
@@ -23,6 +24,8 @@ allMaterials.forEach(m => {
 let currentShelf = null;
 let currentShelfMaterials = [];
 let selectedMaterial = null;
+let globalSearchTimer = null;
+let globalSearchRequestId = 0;
 
 let selectedSheetMaterial = null; // { id, name }
 let selectedSheetOption = null;   // { type, sheet_id, length_mm, width_mm, thickness_mm }
@@ -31,6 +34,41 @@ let selectedCorner = 'top-left';
 let selectedSheetAxis = null;     // 'length' | 'width' | null (null = let backend auto-pick)
 
 const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, character => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;',
+    }[character]));
+}
+
+function materialActionUrl(action, material = selectedMaterial) {
+    const url = material?.action_urls?.[action];
+    if (url) return url.replace('__MATERIAL_ID__', material.id);
+
+    return {
+        consume: consumeUrl,
+        return: returnUrl,
+        reserve: reserveUrl,
+        settle: settleReservationUrl,
+    }[action];
+}
+
+function refreshMaterialListing() {
+    if (window.tablarData.isGlobalSearch) {
+        const input = document.getElementById('globalMaterialSearchInput');
+        if (input?.value.trim()) searchGlobalMaterials(input.value);
+        return;
+    }
+
+    if (document.getElementById('materialSearch')) filterMaterials();
+
+    const nameStep = document.getElementById('nameStep');
+    if (nameStep && !nameStep.classList.contains('d-none')) filterByName();
+}
 
 async function openSheetModal(id, name) {
     selectedSheetMaterial = { id, name };
@@ -543,11 +581,17 @@ async function runSheetSearch() {
     }
 }
 
+function maximizeImage(event, src) {
+    event.stopPropagation();
+    document.getElementById('lightboxImage').src = src;
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('imageLightboxModal')).show();
+}
+
 // Helper function to build image markup
 function generateImageHtml(image, name) {
     if (image) {
         const fullSrc = `${storagePath}/${image}`.replace(/\/+/g, '/').replace(':/', '://');
-        return `<img src="${fullSrc}" alt="${name}" width="60" height="60" class="rounded border img-thumbnail-clickable me-3" onclick="maximizeImage(event, '${fullSrc}')">`;
+        return `<img src="${escapeHtml(fullSrc)}" alt="${escapeHtml(name)}" width="60" height="60" class="rounded border img-thumbnail-clickable me-3" onclick="event.stopPropagation(); maximizeImage(event, this.src)">`;
     }
     return `
         <div class="bg-secondary text-white rounded d-flex align-items-center justify-content-center me-3" style="width:60px; height:60px; min-width:60px;">
@@ -568,9 +612,9 @@ function generateOrderHtml(m) {
 
     const statusText = window.tablarData.statusTranslations[status] ?? ucfirst(status);
     const qtyText = (status === 'ordered' && m.order_quantity)
-        ? ` · ${m.order_quantity} ${m.unit ?? 'Stk.'}`
+        ? ` · ${m.order_quantity} ${escapeHtml(m.unit ?? 'Stk.')}`
         : '';
-    const badge = `<span class="badge bg-warning text-dark ms-2"><i class="bi bi-clock-history me-1"></i>${statusText}${qtyText}</span>`;
+    const badge = `    <span class="badge bg-warning text-dark ms-2"><i class="bi bi-clock-history me-1"></i>${escapeHtml(statusText)}${qtyText}</span>`;
 
     if (status === 'notified') {
         return `${badge}
@@ -623,7 +667,10 @@ function goBackToShelves() {
 
 async function cancelNotification(materialId) {
     try {
-        const res = await fetch(`${cancelNotificationBaseUrl}/${materialId}/cancel-notification`, {
+        const material = allMaterials.find(x => Number(x.id) === Number(materialId));
+        const url = materialActionUrl('cancel_notification', material)
+            ?? `${cancelNotificationBaseUrl}/${materialId}/cancel-notification`;
+        const res = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': token }
         });
@@ -633,8 +680,7 @@ async function cancelNotification(materialId) {
         const m = allMaterials.find(x => x.id === materialId);
         if (m) { m.order_status = data.order_status; m.order_quantity = data.order_quantity; }
 
-        filterMaterials();
-        if (!document.getElementById('nameStep').classList.contains('d-none')) filterByName();
+        refreshMaterialListing();
     } catch (e) {
         alert('Fehler beim Stornieren: ' + e.message);
     }
@@ -642,7 +688,10 @@ async function cancelNotification(materialId) {
 
 async function confirmDelivery(materialId) {
     try {
-        const res = await fetch(`${confirmDeliveryBaseUrl}/${materialId}/confirm-delivery`, {
+        const material = allMaterials.find(x => Number(x.id) === Number(materialId));
+        const url = materialActionUrl('confirm_delivery', material)
+            ?? `${confirmDeliveryBaseUrl}/${materialId}/confirm-delivery`;
+        const res = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': token }
         });
@@ -652,8 +701,7 @@ async function confirmDelivery(materialId) {
         const m = allMaterials.find(x => x.id === materialId);
         if (m) { m.order_status = data.order_status; m.order_quantity = data.order_quantity; m.quantity = data.quantity; }
 
-        filterMaterials();
-        if (!document.getElementById('nameStep').classList.contains('d-none')) filterByName();
+        refreshMaterialListing();
     } catch (e) {
         alert('Fehler beim Bestätigen: ' + e.message);
     }
@@ -661,7 +709,7 @@ async function confirmDelivery(materialId) {
 
 function generateCodeHtml(code) {
     return code
-        ? `<br><code class="text-muted small">${code}</code>`
+        ? `<br><code class="text-muted small">${escapeHtml(code)}</code>`
         : '';
 }
 
@@ -675,8 +723,8 @@ function filterMaterials() {
     renderMaterials(filtered);
 }
 
-function renderMaterials(materials) {
-    const container = document.getElementById('materialList');
+function renderMaterials(materials, containerId = 'materialList', globalResults = false) {
+    const container = document.getElementById(containerId);
 
     if (materials.length === 0) {
         container.innerHTML = `<div class="text-center text-muted py-5">
@@ -698,15 +746,12 @@ function renderMaterials(materials) {
         const orderQty   = m.order_quantity ?? 0;
         const available  = m.available_total ?? (m.quantity + onHold + orderQty);
         const isReserved = onHold > 0;
-        const modalType = window.tablarData.isHolzLager
-            ? 'openSheetModal'
-            : (isReserved ? 'openReserveModal' : 'openMaterialModal');
         const badgeClass = outOfStock
             ? 'bg-secondary'
             : available > threshold ? 'bg-success' : 'bg-danger';
-            const badgeText = outOfStock
+        const badgeText = outOfStock
             ? (m.order_status === 'ordered' ? 'Kommt gleich' : 'Kein Bestand')
-            : m.quantity + ' ' + (m.unit ?? 'Stk.');
+            : m.quantity + ' ' + escapeHtml(m.unit ?? 'Stk.');
         const leftoverBadge = (window.tablarData.isHolzLager && m.leftover_sheet_count > 0)
             ? `<span class="badge bg-secondary ms-1"><i class="bi bi-scissors me-1"></i>${m.leftover_sheet_count} Reste</span>`
             : '';
@@ -715,13 +760,13 @@ function renderMaterials(materials) {
         const orderTemplate = generateOrderHtml(m);
         const codeTemplate  = generateCodeHtml(m.code);
         const onHoldText = isReserved
-            ? `<span class="badge bg-info text-dark ms-2"><i class="bi bi-clock-history me-1"></i>Reserviert: ${onHold} ${m.unit ?? 'Stk.'}</span>`
+            ? `<span class="badge bg-info text-dark ms-2"><i class="bi bi-clock-history me-1"></i>Reserviert: ${onHold} ${escapeHtml(m.unit ?? 'Stk.')}</span>`
             : '';
         const orderText = orderQty > 0
-            ? `<span class="badge bg-warning text-dark ms-2"><i class="bi bi-truck me-1"></i>Bestellt: ${orderQty} ${m.unit ?? 'Stk.'}</span>`
+            ? `<span class="badge bg-warning text-dark ms-2"><i class="bi bi-truck me-1"></i>Bestellt: ${orderQty} ${escapeHtml(m.unit ?? 'Stk.')}</span>`
             : '';
 
-        if (outOfStock) {
+        if (outOfStock && !globalResults) {
             return `
             <div class="d-flex justify-content-between align-items-center p-3 mb-2 rounded border bg-light text-muted"
                 style="cursor: not-allowed;"
@@ -729,7 +774,7 @@ function renderMaterials(materials) {
                 <div class="d-flex align-items-center">
                     ${imageTemplate}
                     <div>
-                        <span class="text-decoration-line-through fw-semibold">${m.name}</span>${codeTemplate}
+                        <span class="text-decoration-line-through fw-semibold">${escapeHtml(m.name)}</span>${codeTemplate}
                         <div class="mt-1">${orderTemplate}</div>
                     </div>
                 </div>
@@ -737,13 +782,18 @@ function renderMaterials(materials) {
             </div>`;
         }
 
+        const lagerHint = globalResults
+            ? `<div class="text-muted small mt-1"><i class="bi bi-geo-alt me-1"></i>${escapeHtml(m.lager_name ?? 'Lager')}${m.shelf ? ` · Tablar/Fach ${escapeHtml(m.shelf)}` : ''}</div>`
+            : '';
+
         return `
         <div class="d-flex justify-content-between align-items-center p-3 mb-2 rounded border material-item"
-            onclick="${modalType}(${m.id}, '${m.name}', ${m.quantity}, '${m.shelf}', ${onHold}, '${m.unit ?? 'Stk.'}', '${m.code ?? ''}')">
+            onclick="openMaterialById(${m.id})">
             <div class="d-flex align-items-center">
                 ${imageTemplate}
                 <div>
-                    <span class="fw-semibold">${m.name} ${onHoldText}${orderText}</span>${codeTemplate}
+                    <span class="fw-semibold">${escapeHtml(m.name)} ${onHoldText}${orderText}</span>${codeTemplate}
+                    ${lagerHint}
                     <div class="mt-1">${orderTemplate}</div>
                 </div>
             </div>
@@ -757,12 +807,61 @@ function renderMaterials(materials) {
 
 // ─── MODAL ────────────────────────────────────────────────────────────────────
 
+function openMaterialById(id) {
+    const material = allMaterials.find(item => Number(item.id) === Number(id));
+    if (!material) return;
+
+    if (window.tablarData.isHolzLager && !window.tablarData.isGlobalSearch) {
+        openSheetModal(material.id, material.name);
+        return;
+    }
+
+    openMaterialModal(
+        material.id,
+        material.name,
+        material.quantity,
+        material.shelf ?? '',
+        material.on_hold_quantity ?? 0,
+        material.unit,
+        material.code
+    );
+}
+
 function openMaterialModal(id, name, quantity, shelf, onHoldQuantity, unit, code) {
-    selectedMaterial = { id, name, quantity, shelf, onHoldQuantity, unit };
+    const listedMaterial = allMaterials.find(item => Number(item.id) === Number(id)) ?? {};
+    selectedMaterial = {
+        ...listedMaterial,
+        id,
+        name,
+        quantity,
+        shelf,
+        onHoldQuantity,
+        unit,
+        code,
+    };
 
     document.getElementById('modalMaterialName').innerText = name;
-    document.getElementById('modalShelf').innerText        = 'Tablar: ' + shelf;
+    document.getElementById('modalLager').innerText         = 'Lager: ' + (selectedMaterial.lager_name ?? window.tablarData.lagerName ?? '');
+    document.getElementById('modalShelf').innerText        = 'Tablar/Fach: ' + (shelf || '—');
     document.getElementById('modalAvailable').innerText    = quantity + ' ' + (selectedMaterial.unit ?? 'Stk.');
+    document.getElementById('modalReserved').innerText     = onHoldQuantity + ' ' + (selectedMaterial.unit ?? 'Stk.');
+    document.getElementById('modalReservedRow').classList.toggle('d-none', onHoldQuantity <= 0);
+    document.getElementById('manageReservedButton').classList.toggle('d-none', onHoldQuantity <= 0);
+
+    const description = document.getElementById('modalMaterialDescription');
+    description.innerText = selectedMaterial.description ?? '';
+    description.classList.toggle('d-none', !selectedMaterial.description);
+
+    const image = document.getElementById('modalMaterialImage');
+    if (selectedMaterial.image) {
+        image.src = `${storagePath}/${selectedMaterial.image}`.replace(/\/+/g, '/').replace(':/', '://');
+        image.alt = name;
+        image.classList.remove('d-none');
+    } else {
+        image.removeAttribute('src');
+        image.alt = '';
+        image.classList.add('d-none');
+    }
 
     const codeEl = document.getElementById('modalMaterialCode');
     if (codeEl) {
@@ -778,12 +877,15 @@ function openMaterialModal(id, name, quantity, shelf, onHoldQuantity, unit, code
     input.value = 1;
     // When returning, max configuration shouldn't block entering high amounts, so we remove programmatic max cap.
     input.removeAttribute('max'); 
+    document.querySelector('#materialModal .btn-secondary').disabled = quantity < 1;
+    document.querySelector('#materialModal .btn-primary').disabled = quantity < 1;
 
     new bootstrap.Modal(document.getElementById('materialModal')).show();
 }
 
 function openReserveModal(id, name, quantity, shelf, onHoldQuantity, unit, code) {
-    selectedMaterial = { id, name, quantity, shelf, onHoldQuantity, unit };
+    const listedMaterial = allMaterials.find(item => Number(item.id) === Number(id)) ?? {};
+    selectedMaterial = { ...listedMaterial, id, name, quantity, shelf, onHoldQuantity, unit, code };
 
     document.getElementById('reserveModalMaterialName').innerText = name;
     document.getElementById('reserveModalShelf').innerText        = 'Tablar: ' + shelf;
@@ -807,6 +909,26 @@ function openReserveModal(id, name, quantity, shelf, onHoldQuantity, unit, code)
     updateReserveHint();
 
     new bootstrap.Modal(document.getElementById('reserveModal')).show();
+}
+
+function openReservationManagementModal() {
+    if (!selectedMaterial || selectedMaterial.onHoldQuantity <= 0) return;
+
+    const material = { ...selectedMaterial };
+    const materialModal = document.getElementById('materialModal');
+    materialModal.addEventListener('hidden.bs.modal', () => {
+        openReserveModal(
+            material.id,
+            material.name,
+            material.quantity,
+            material.shelf,
+            material.onHoldQuantity,
+            material.unit,
+            material.code
+        );
+    }, { once: true });
+
+    bootstrap.Modal.getInstance(materialModal).hide();
 }
 
 function updateReserveHint() {
@@ -849,7 +971,7 @@ async function confirmReservationSettlement() {
     btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span> Lädt...`;
 
     try {
-        const res = await fetch(settleReservationUrl, {
+        const res = await fetch(materialActionUrl('settle'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': token },
             body: JSON.stringify({ material_id: selectedMaterial.id, return_quantity: returnQty })
@@ -865,12 +987,8 @@ async function confirmReservationSettlement() {
             m.on_hold_quantity = data.on_hold_quantity;
         }
 
-        filterMaterials();
+        refreshMaterialListing();
         bootstrap.Modal.getInstance(document.getElementById('reserveModal')).hide();
-
-        if (!document.getElementById('nameStep').classList.contains('d-none')) {
-            filterByName();
-        }
 
     } catch (e) {
         alert('Fehler beim Abschließen der Reservierung: ' + e.message);
@@ -914,7 +1032,7 @@ async function confirmConsumption() {
     btn.innerHTML   = `<span class="spinner-border spinner-border-sm me-2"></span> Wird gebucht...`;
 
     try {
-        const res = await fetch(consumeUrl, {
+        const res = await fetch(materialActionUrl('consume'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': token },
             body: JSON.stringify({ material_id: selectedMaterial.id, quantity: amountTaken })
@@ -927,12 +1045,8 @@ async function confirmConsumption() {
         const m = allMaterials.find(x => x.id === selectedMaterial.id);
         if (m) m.quantity = data.new_quantity;
 
-        filterMaterials();
+        refreshMaterialListing();
         bootstrap.Modal.getInstance(document.getElementById('materialModal')).hide();
-
-        if (!document.getElementById('nameStep').classList.contains('d-none')) {
-            filterByName();
-        }
 
     } catch (e) {
         alert('Fehler beim Buchen: ' + e.message);
@@ -954,7 +1068,7 @@ async function confirmReturn() {
     btn.innerHTML   = `<span class="spinner-border spinner-border-sm me-2"></span> Lädt...`;
 
     try {
-        const res = await fetch(returnUrl, {
+        const res = await fetch(materialActionUrl('return'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': token },
             body: JSON.stringify({ material_id: selectedMaterial.id, quantity: amountReturned })
@@ -967,12 +1081,8 @@ async function confirmReturn() {
         const m = allMaterials.find(x => x.id === selectedMaterial.id);
         if (m) m.quantity = data.new_quantity;
 
-        filterMaterials();
+        refreshMaterialListing();
         bootstrap.Modal.getInstance(document.getElementById('materialModal')).hide();
-
-        if (!document.getElementById('nameStep').classList.contains('d-none')) {
-            filterByName();
-        }
 
     } catch (e) {
         alert('Fehler beim Einlagern: ' + e.message);
@@ -986,13 +1096,18 @@ async function confirmReservation() {
     const amountReserved = parseInt(document.getElementById('counterInput').value);
     if (!selectedMaterial || isNaN(amountReserved)) return;
 
+    if (amountReserved > selectedMaterial.quantity) {
+        alert('Nicht genügend verfügbarer Bestand für die Reservierung.');
+        return;
+    }
+
     const btn = document.querySelector('#materialModal .btn-secondary');
     const originalContent = btn.innerHTML;
     btn.disabled    = true;
     btn.innerHTML   = `<span class="spinner-border spinner-border-sm me-2"></span> Lädt...`;
 
     try {
-        const res = await fetch(`${reserveUrl}`, {
+        const res = await fetch(materialActionUrl('reserve'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': token },
             body: JSON.stringify({ material_id: selectedMaterial.id, quantity: amountReserved })
@@ -1008,12 +1123,8 @@ async function confirmReservation() {
             m.quantity = data.new_quantity;
         }
 
-        filterMaterials();
+        refreshMaterialListing();
         bootstrap.Modal.getInstance(document.getElementById('materialModal')).hide();
-
-        if (!document.getElementById('nameStep').classList.contains('d-none')) {
-            filterByName();
-        }
         
     } catch (e) {
         alert('Fehler beim Reservieren: ' + e.message);
@@ -1027,7 +1138,10 @@ async function confirmReservation() {
 
 async function triggerOrder(materialId) {
     try{
-        const res = await fetch(`${orderBaseUrl}/${materialId}`, {
+        const material = allMaterials.find(x => Number(x.id) === Number(materialId));
+        const url = materialActionUrl('order_request', material)
+            ?? `${orderBaseUrl}/${materialId}`;
+        const res = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': token }
         });
@@ -1039,7 +1153,7 @@ async function triggerOrder(materialId) {
         const m = allMaterials.find(x => x.id === materialId);
         if (m) m.order_status = data.order_status;
 
-        filterMaterials();
+        refreshMaterialListing();
         
         alert('Admin hat Bestellung request gestellt. Bitte warten Sie auf Bestätigung.');
 
@@ -1068,6 +1182,106 @@ function switchMode(mode) {
 }
 
 // ─── GLOBAL NAME SEARCH ───────────────────────────────────────────────────────
+
+function initializeGlobalSearch() {
+    const trigger = document.getElementById('globalMaterialSearchTrigger');
+    const panel = document.getElementById('globalMaterialSearchPanel');
+    const input = document.getElementById('globalMaterialSearchInput');
+    const results = document.getElementById('globalMaterialSearchResults');
+    const backdrop = document.getElementById('globalMaterialSearchBackdrop');
+    const clearButton = document.getElementById('clearGlobalMaterialSearch');
+
+    if (!trigger || !panel || !input || !results || !backdrop || !clearButton) return;
+
+    const openSearch = () => {
+        document.body.classList.add('lager-global-search-open');
+        panel.classList.remove('d-none');
+        results.classList.remove('d-none');
+        backdrop.classList.remove('d-none');
+        trigger.setAttribute('aria-expanded', 'true');
+    };
+
+    const closeSearch = () => {
+        document.body.classList.remove('lager-global-search-open');
+        panel.classList.add('d-none');
+        results.classList.add('d-none');
+        backdrop.classList.add('d-none');
+        trigger.setAttribute('aria-expanded', 'false');
+        trigger.focus();
+    };
+
+    trigger.addEventListener('click', () => {
+        openSearch();
+        input.focus();
+    });
+
+    input.addEventListener('focus', () => {
+        openSearch();
+        if (input.value.trim()) searchGlobalMaterials(input.value);
+    });
+    input.addEventListener('click', openSearch);
+
+    input.addEventListener('input', () => {
+        const query = input.value.trim();
+        openSearch();
+        clearButton.classList.toggle('d-none', query.length === 0);
+        window.clearTimeout(globalSearchTimer);
+
+        if (!query) {
+            globalSearchRequestId++;
+            allMaterials = [];
+            results.innerHTML = '<p class="text-muted small mb-0">Suche nach Name, Artikelnummer oder Beschreibung.</p>';
+            return;
+        }
+
+        results.innerHTML = '<div class="text-center text-muted py-4"><span class="spinner-border spinner-border-sm me-2"></span>Suche läuft…</div>';
+        globalSearchTimer = window.setTimeout(() => searchGlobalMaterials(query), 250);
+    });
+
+    clearButton.addEventListener('click', () => {
+        input.value = '';
+        input.dispatchEvent(new Event('input'));
+        input.focus();
+    });
+
+    backdrop.addEventListener('click', closeSearch);
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && document.body.classList.contains('lager-global-search-open')) {
+            closeSearch();
+        }
+    });
+}
+
+async function searchGlobalMaterials(query) {
+    const normalizedQuery = query.trim();
+    if (!normalizedQuery) return;
+
+    const results = document.getElementById('globalMaterialSearchResults');
+    const requestId = ++globalSearchRequestId;
+
+    try {
+        const response = await fetch(`${globalSearchUrl}?q=${encodeURIComponent(normalizedQuery)}`, {
+            headers: { Accept: 'application/json' },
+        });
+        if (!response.ok) throw new Error(await response.text());
+
+        const data = await response.json();
+        if (requestId !== globalSearchRequestId) return;
+
+        allMaterials = data.materials;
+        renderMaterials(allMaterials, 'globalMaterialSearchResults', true);
+        if (data.has_more) {
+            results.insertAdjacentHTML('beforeend', '<p class="text-muted small text-center mt-3">Es gibt weitere Treffer. Bitte verfeinern Sie Ihre Suche.</p>');
+        }
+    } catch (error) {
+        if (requestId !== globalSearchRequestId) return;
+        results.innerHTML = '';
+        const message = document.createElement('div');
+        message.className = 'alert alert-danger mb-0';
+        message.textContent = `Fehler bei der Materialsuche: ${error.message}`;
+        results.appendChild(message);
+    }
+}
 
 function filterByName() {
     const q = document.getElementById('globalNameSearch').value.toLowerCase().trim();
@@ -1099,27 +1313,24 @@ function filterByName() {
         const isReserved = m.on_hold_quantity > 0;
         const badgeClass = outOfStock ? 'bg-secondary'
             : available > threshold ? 'bg-success' : 'bg-danger';
-        const modalType = window.tablarData.isHolzLager
-            ? 'openSheetModal'
-            : (isReserved ? 'openReserveModal' : 'openMaterialModal');
         const badgeText = outOfStock
             ? (m.order_status === 'ordered' ? 'Kommt gleich' : 'Kein Bestand')
-            : m.quantity + ' ' + (m.unit ?? 'Stk.');
+            : m.quantity + ' ' + escapeHtml(m.unit ?? 'Stk.');
         const leftoverBadge = (window.tablarData.isHolzLager && m.leftover_sheet_count > 0)
             ? `<span class="badge bg-secondary ms-1"><i class="bi bi-scissors me-1"></i>${m.leftover_sheet_count} Reste</span>`
             : '';
 
         const shelfHint = m.shelf
-            ? `<span class="text-muted small ms-2"><i class="bi bi-geo-alt me-1"></i>${m.shelf}</span>`
+            ? `<span class="text-muted small ms-2"><i class="bi bi-geo-alt me-1"></i>${escapeHtml(m.shelf)}</span>`
             : '';
 
         const imageTemplate = generateImageHtml(m.image, m.name);
         const orderTemplate = generateOrderHtml(m);
         const codeTemplate  = generateCodeHtml(m.code);
 
-        const onHoldText = isReserved ? `<span class="badge bg-info text-dark ms-2"><i class="bi bi-clock-history me-1"></i>Reserviert: ${on_hold} ${m.unit ?? 'Stk.'}</span>` : '';
+        const onHoldText = isReserved ? `<span class="badge bg-info text-dark ms-2"><i class="bi bi-clock-history me-1"></i>Reserviert: ${on_hold} ${escapeHtml(m.unit ?? 'Stk.')}</span>` : '';
         const orderText = orderQty > 0
-            ? `<span class="badge bg-warning text-dark ms-2"><i class="bi bi-truck me-1"></i>Bestellt: ${orderQty} ${m.unit ?? 'Stk.'}</span>`
+            ? `<span class="badge bg-warning text-dark ms-2"><i class="bi bi-truck me-1"></i>Bestellt: ${orderQty} ${escapeHtml(m.unit ?? 'Stk.')}</span>`
             : '';
 
         if (outOfStock) {
@@ -1130,7 +1341,7 @@ function filterByName() {
                 <div class="d-flex align-items-center">
                     ${imageTemplate}
                     <div>
-                        <span class="text-decoration-line-through fw-semibold">${m.name}</span>${codeTemplate}${shelfHint}
+                        <span class="text-decoration-line-through fw-semibold">${escapeHtml(m.name)}</span>${codeTemplate}${shelfHint}
                         <div class="mt-1">${orderTemplate}</div>
                     </div>
                 </div>
@@ -1143,11 +1354,11 @@ function filterByName() {
 
         return `
         <div class="d-flex justify-content-between align-items-center p-3 mb-2 rounded border material-item"
-                onclick="${modalType}(${m.id}, '${m.name}', ${m.quantity}, '${m.shelf ?? ''}', ${on_hold}, '${m.unit ?? 'Stk.'}')">
+                onclick="openMaterialById(${m.id})">
             <div class="d-flex align-items-center">
                 ${imageTemplate}
                 <div>
-                    <span class="fw-semibold">${m.name} ${onHoldText}${orderText}</span>${codeTemplate}
+                    <span class="fw-semibold">${escapeHtml(m.name)} ${onHoldText}${orderText}</span>${codeTemplate}
                     ${shelfHint}
                     <div class="mt-1">${orderTemplate}</div>
                 </div>
@@ -1165,8 +1376,10 @@ window.filterShelves       = filterShelves;
 window.selectShelf         = selectShelf;
 window.goBackToShelves     = goBackToShelves;
 window.filterMaterials     = filterMaterials;
+window.openMaterialById = openMaterialById;
 window.openMaterialModal   = openMaterialModal;
 window.openReserveModal              = openReserveModal;
+window.openReservationManagementModal = openReservationManagementModal;
 window.increaseReserve               = increaseReserve;
 window.decreaseReserve               = decreaseReserve;
 window.validateReserveInput          = validateReserveInput;
@@ -1185,3 +1398,6 @@ window.openSheetModal   = openSheetModal;
 window.backToSheetPick  = backToSheetPick;
 window.performSheetCut  = performSheetCut;
 window.runSheetSearch   = runSheetSearch;
+window.maximizeImage = maximizeImage;
+
+if (window.tablarData.isGlobalSearch) initializeGlobalSearch();
