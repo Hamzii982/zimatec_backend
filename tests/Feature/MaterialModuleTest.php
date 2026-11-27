@@ -322,3 +322,56 @@ test('available_total accessor sums quantity, on_hold_quantity and order_quantit
     expect($material->fresh()->available_total)->toBe(21);
     expect($material->fresh()->status)->toBe('ok');
 });
+
+test('material scan page offers take return and reservation actions for the scanned material', function () {
+    $material = Material::create([
+        'name' => 'Werkzeug-Set',
+        'quantity' => 4,
+        'lager_id' => 2,
+        'is_werkzeug' => true,
+    ]);
+
+    $this->get(route('materials.scan', ['material' => $material->id]))
+        ->assertOk()
+        ->assertSee('Werkzeug-Set')
+        ->assertSee('Entnehmen')
+        ->assertSee('Zurückgeben')
+        ->assertSee('Werkzeug reservieren')
+        ->assertSee('Reserviertes Werkzeug zurücklegen')
+        ->assertSee(route('tablar.consume', ['lager_id' => 2]))
+        ->assertSee(route('tablar.return', ['lager_id' => 2]))
+        ->assertSee(route('tablar.reserve', ['lager_id' => 2]))
+        ->assertSee(route('tablar.reserve.release', ['lager_id' => 2]));
+
+    $this->postJson(route('tablar.reserve', ['lager_id' => 2]), [
+        'material_id' => $material->id,
+        'quantity' => 1,
+    ])->assertOk()->assertJson(['new_quantity' => 3, 'on_hold_quantity' => 1]);
+
+    $this->postJson(route('tablar.reserve.release', ['lager_id' => 2]), [
+        'material_id' => $material->id,
+        'quantity' => 1,
+    ])->assertOk()->assertJson(['new_quantity' => 4, 'on_hold_quantity' => 0]);
+});
+
+test('admin material page shows a downloadable QR code which opens the scan page', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $this->actingAs($admin);
+
+    $material = Material::create([
+        'name' => 'QR-Werkzeug',
+        'quantity' => 3,
+        'lager_id' => 2,
+    ]);
+
+    $this->get(route('admin.tablar.show', ['lager_id' => 2, 'id' => $material->id]))
+        ->assertOk()
+        ->assertSee('data:image/svg+xml;base64,', false)
+        ->assertSee(route('admin.materials.qr.download', ['material' => $material->id]));
+
+    $this->get(route('admin.materials.qr.download', ['material' => $material->id]))
+        ->assertOk()
+        ->assertHeader('content-type', 'image/svg+xml')
+        ->assertHeader('content-disposition', 'attachment; filename="material-'.$material->id.'-qr.svg"')
+        ->assertSee('<svg', false);
+});

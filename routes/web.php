@@ -180,6 +180,7 @@ Route::prefix('time-records')->name('time-records.')->group(function () {
 // Lager selection page (new)
 Route::get('/lager', [TablarController::class, 'lagerSelect'])->name('lager.select');
 Route::get('/lager/material-search', [TablarController::class, 'searchMaterials'])->name('tablar.material-search');
+Route::get('/materials/{material}/scan', [TablarController::class, 'scan'])->name('materials.scan');
 
 // Lager-scoped material view
 Route::get('/lager/{lager_id}/tablar', [TablarController::class, 'index'])->name('tablar.index');
@@ -205,6 +206,9 @@ Route::middleware(['auth', 'role:admin'])
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {
+        Route::get('/materials/{material}/qr', [AdminTablarController::class, 'downloadQr'])
+            ->name('materials.qr.download');
+
         // Admin Home Views
         Route::get('/emails', [AdminHome::class, 'emails'])->name('emails');
         Route::get('/dashboard', [AdminHome::class, 'index'])->name('dashboard');

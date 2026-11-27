@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Carbon\Carbon;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class TablarController extends Controller
 {
@@ -128,13 +129,29 @@ class TablarController extends Controller
             ->paginate(10, ['*'], 'logs_page')
             ->withQueryString();
 
+        $qrSvg = QrCode::format('svg')
+            ->size(240)
+            ->generate(route('materials.scan', ['material' => $material->id]));
+
         $stockTrend = $this->getStockTrend($material, 30);
         $consumptionForecast = $this->getConsumptionForecast($material, 30);
 
         return view('admin.tablar.show', compact(
             'material', 'lager', 'recentSupplier', 'supplierListUrl', 'backToListUrl', 'logs',
-            'stockTrend', 'consumptionForecast'
+            'stockTrend', 'consumptionForecast', 'qrSvg'
         ));
+    }
+
+    public function downloadQr(Material $material)
+    {
+        $qrSvg = QrCode::format('svg')
+            ->size(240)
+            ->generate(route('materials.scan', ['material' => $material->id]));
+
+        return response($qrSvg, 200, [
+            'Content-Type' => 'image/svg+xml',
+            'Content-Disposition' => 'attachment; filename="material-'.$material->id.'-qr.svg"',
+        ]);
     }
 
     /**

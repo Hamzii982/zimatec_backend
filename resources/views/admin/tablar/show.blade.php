@@ -2,7 +2,7 @@
 
 @section('content')
 
-<div class="container py-4">
+<div class="container py-4 zt-material-show">
     <div class="card shadow-sm">
         <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
             <h5 class="mb-0">{{ $material->name }} im {{ $lager->name }}</h5>
@@ -12,6 +12,27 @@
         </div>
 
         <div class="card-body">
+            <section class="card zt-card zt-qr-panel mb-4" aria-labelledby="materialQrHeading">
+                <div class="card-body">
+                    <div class="row g-3 align-items-center">
+                        <div class="col-12 col-sm-auto text-center">
+                            <img
+                                src="data:image/svg+xml;base64,{{ base64_encode($qrSvg) }}"
+                                alt="QR-Code für {{ $material->name }}"
+                                class="img-fluid zt-qr-image"
+                            >
+                        </div>
+                        <div class="col text-center text-sm-start">
+                            <h2 id="materialQrHeading" class="h6 fw-bold mb-1">Material per QR-Code scannen</h2>
+                            <p class="text-muted small mb-3">Öffnet die Entnahme-, Rückgabe- und Reservierungsoptionen für dieses Material.</p>
+                            <a href="{{ route('admin.materials.qr.download', ['material' => $material->id]) }}" class="zt-btn zt-btn--primary">
+                                <i class="bi bi-download" aria-hidden="true"></i> QR-Code herunterladen
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <div class="row g-4">
 
                 {{-- LEFT: image + meta --}}
@@ -63,6 +84,7 @@
                             </li>
                         </ul>
                     </div>
+
                 </div>
 
                 {{-- RIGHT: status + supplier + stock + audit adjust + back link --}}
@@ -452,3 +474,58 @@
 </script>
 
 @endsection
+
+@push('styles')
+<style>
+    .zt-material-show {
+        --zt-bg: #f5f6f8;
+        --zt-ink: #1b1f24;
+        --zt-muted: #667085;
+        --zt-line: #dfe3e8;
+    }
+
+    .zt-material-show .zt-card {
+        overflow: hidden;
+        border: 1px solid var(--zt-line);
+        border-radius: 10px;
+    }
+
+    .zt-material-show .zt-card > .card-body {
+        background: var(--zt-bg);
+    }
+
+    .zt-material-show .zt-qr-image {
+        width: 176px;
+        max-width: 100%;
+        height: auto;
+        padding: .5rem;
+        border: 1px solid var(--zt-line);
+        border-radius: 8px;
+        background: #fff;
+    }
+
+    .zt-material-show .zt-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: .4rem;
+        padding: .45rem .9rem;
+        border: 1px solid var(--zt-ink);
+        border-radius: 8px;
+        font-size: .85rem;
+        font-weight: 500;
+        text-decoration: none;
+    }
+
+    .zt-material-show .zt-btn--primary {
+        color: #fff;
+        background: var(--zt-ink);
+    }
+
+    .zt-material-show .zt-btn--primary:hover,
+    .zt-material-show .zt-btn--primary:focus-visible {
+        color: #fff;
+        background: #000;
+    }
+</style>
+@endpush

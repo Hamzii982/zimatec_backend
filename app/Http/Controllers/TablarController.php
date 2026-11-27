@@ -15,6 +15,13 @@ use function App\Helpers\new_notification;
 
 class TablarController extends Controller
 {
+    public function scan(Material $material)
+    {
+        $material->load(['lager:id,name', 'shelf:id,name']);
+
+        return view('user.tablar.scan', compact('material'));
+    }
+
     public function lagerSelect()
     {
         $lagers = Lager::withCount('materials')->orderBy('name')->get();
